@@ -71,7 +71,7 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		return []string{strSql}
 
 	case MigrateRemoveAction:
-		return []string{fmt.Sprintf(mysql_templates.AlterTableDropColumnStm(isLower), tbName, c.Name)}
+		return []string{fmt.Sprintf(mysql_templates.AlterTableDropColumnStm(isLower), utils.EscapeSqlName(tbName), utils.EscapeSqlName(c.Name))}
 
 	case MigrateModifyAction:
 		return nil

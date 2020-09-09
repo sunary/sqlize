@@ -74,22 +74,24 @@ func main() {
 	println(newMigration.StringDown())
 	//DROP TABLE IF EXISTS `user`;
 
-	oldMigration := sqlize.NewSqlize()
+	oldMigration := sqlize.NewSqlize(sqlize.WithMigrationFolder(""))
+	//_ = oldMigration.FromMigrationFolder()
 	_ = oldMigration.FromString(createStm)
 
 	newMigration.Diff(*oldMigration)
 
 	println(newMigration.StringUp())
 	//ALTER TABLE `user` ADD COLUMN `alias` varchar(64) AFTER `id`;
-	//ALTER TABLE user DROP COLUMN gender;
+	//ALTER TABLE `user` DROP COLUMN `gender`;
 	//CREATE INDEX `idx_accept_tnc_at` ON `user`(`accept_tnc_at`);
 
 	println(newMigration.StringDown())
-	//ALTER TABLE user DROP COLUMN alias;
+	//ALTER TABLE `user` DROP COLUMN `alias`;
 	//ALTER TABLE `user` ADD COLUMN `gender` tinyint(1) AFTER `age`;
 	//DROP INDEX `idx_accept_tnc_at` ON `user`;
 
 	println(newMigration.ArvoSchema())
+	//...
 
 	_ = newMigration.WriteFiles("demo migration")
 }

@@ -3,13 +3,12 @@ module github.com/sunary/sqlize
 go 1.14
 
 require (
-	github.com/actgardner/gogen-avro/v7 v7.1.1 // indirect
-	github.com/golang/protobuf v1.4.2 // indirect
-	github.com/micahhausler/k8s-oidc-helper v0.1.0 // indirect
-	github.com/pingcap/errors v0.11.4 // indirect
+	github.com/kr/pretty v0.2.0 // indirect
 	github.com/pingcap/parser v0.0.0-20200623164729-3a18f1e5dceb
-	github.com/pingcap/tipb v0.0.0-20200813070854-57da1e63f73e // indirect
-	github.com/sirupsen/logrus v1.6.0 // indirect
+	github.com/stretchr/testify v1.6.1 // indirect
 	golang.org/x/text v0.3.3 // indirect
-	vitess.io/vitess v0.7.0 // indirect
+	golang.org/x/tools v0.0.0-20191219041853-979b82bfef62 // indirect
+	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
+	gopkg.in/yaml.v2 v2.2.8 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200605160147-a5ece683394c // indirect
 )
