@@ -149,7 +149,7 @@ func (s SqlBuilder) RemoveTable(tb interface{}) string {
 func (s SqlBuilder) sqlType(v interface{}, suffix string) string {
 	if reflect.ValueOf(v).Kind() == reflect.Ptr {
 		vv := reflect.Indirect(reflect.ValueOf(v))
-		if vv.IsZero() {
+		if reflect.ValueOf(v).Pointer() == 0 || vv.IsZero() {
 			return mysql_templates.UnspecificType(s.isLower)
 		}
 

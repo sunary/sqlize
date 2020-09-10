@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pingcap/parser/ast"
 	"github.com/sunary/sqlize/mysql-templates"
 	"github.com/sunary/sqlize/utils"
 )
@@ -54,6 +55,15 @@ func (t *Table) addColumn(col Column) {
 
 	if t.Columns[id].Action == MigrateAddAction {
 		t.Columns[id].Options = append(t.Columns[id].Options, col.Options...)
+
+		size := len(t.Columns[id].Options)
+		for i := range t.Columns[id].Options[:size-1] {
+			if t.Columns[id].Options[i].Tp == ast.ColumnOptionPrimaryKey {
+				t.Columns[id].Options[i], t.Columns[id].Options[size-1] = t.Columns[id].Options[size-1], t.Columns[id].Options[i]
+				break
+			}
+		}
+
 		t.Columns[id].Typ = col.Typ
 	} else {
 		t.Columns[id] = col

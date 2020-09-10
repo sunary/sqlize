@@ -15,6 +15,7 @@ import (
 const (
 	migrationUpSuffix   = ".up.sql"
 	migrationDownSuffix = ".down.sql"
+	genDescription      = "--- generate by sqlize\n\n"
 )
 
 type Sqlize struct {
@@ -92,18 +93,23 @@ func (s *Sqlize) StringDown() string {
 }
 
 func (s *Sqlize) WriteFiles(name string) error {
-	migrationName := utils.MigrationFileName(name)
-	err := ioutil.WriteFile(s.migrationFolder+migrationName+s.migrationUpSuffix, []byte(s.StringUp()), 0644)
-	if err != nil {
-		return err
-	}
+	migrationUp := s.StringUp()
+	if len(migrationUp) > 0 {
+		migrationName := utils.MigrationFileName(name)
 
-	if s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
-		err := ioutil.WriteFile(s.migrationFolder+migrationName+s.migrationDownSuffix, []byte(s.StringDown()), 0644)
+		err := ioutil.WriteFile(s.migrationFolder+migrationName+s.migrationUpSuffix, []byte(genDescription+migrationUp), 0644)
 		if err != nil {
 			return err
 		}
+
+		if s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
+			err := ioutil.WriteFile(s.migrationFolder+migrationName+s.migrationDownSuffix, []byte(genDescription+s.StringDown()), 0644)
+			if err != nil {
+				return err
+			}
+		}
 	}
+
 	return nil
 }
 
