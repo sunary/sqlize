@@ -1,5 +1,7 @@
 ### SQLize
 
+[![From Vietnam with <3](https://raw.githubusercontent.com/webuild-community/badge/master/svg/love.svg)](https://webuild.community)
+
 Migration MySQL Compatible SQL
 
 #### Features
@@ -10,7 +12,7 @@ Migration MySQL Compatible SQL
 + Generate arvo schema
 
 
-#### Examples
+### Getting Started
 
 ```go
 package main
