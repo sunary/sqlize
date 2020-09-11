@@ -26,10 +26,11 @@ type Node struct {
 
 type Table struct {
 	Node
-	Columns       []Column
-	columnIndexes map[string]int
-	Indexes       []Index
-	indexIndexes  map[string]int
+	Columns        []Column
+	columnIndexes  map[string]int
+	columnPosition *ast.ColumnPosition
+	Indexes        []Index
+	indexIndexes   map[string]int
 }
 
 func NewTable(name string) *Table {
@@ -50,7 +51,30 @@ func (t *Table) addColumn(col Column) {
 	if id == -1 {
 		t.Columns = append(t.Columns, col)
 		t.columnIndexes[col.Name] = len(t.Columns) - 1
+
+		if t.columnPosition != nil {
+			newID := 0
+			if t.columnPosition.Tp == ast.ColumnPositionAfter {
+				if afterID := t.getIndexColumn(t.columnPosition.RelativeColumn.Name.O); afterID >= 0 {
+					newID = afterID + 1
+				} else {
+					return
+				}
+			}
+
+			t.Columns[newID], t.Columns[len(t.Columns)-1] = t.Columns[len(t.Columns)-1], t.Columns[newID]
+
+			for k := range t.columnIndexes {
+				if t.columnIndexes[k] >= newID {
+					t.columnIndexes[k] += 1
+				}
+			}
+			t.columnIndexes[t.Columns[newID].Name] = newID
+
+			t.columnPosition = nil
+		}
 		return
+
 	}
 
 	if t.Columns[id].Action == MigrateAddAction {
@@ -146,22 +170,22 @@ func (t *Table) Diff(old Table) {
 			old.Columns[j].Action = MigrateRemoveAction
 			t.addColumn(old.Columns[j])
 
-			ii := 0
+			newID := 0
 			for _, v := range t.columnIndexes {
 				if v+1 == j {
-					ii = v + 1
+					newID = v + 1
 					break
 				}
 			}
 
-			t.Columns[ii], t.Columns[len(t.Columns)-1] = t.Columns[len(t.Columns)-1], t.Columns[ii]
+			t.Columns[newID], t.Columns[len(t.Columns)-1] = t.Columns[len(t.Columns)-1], t.Columns[newID]
 
 			for k := range t.columnIndexes {
-				if t.columnIndexes[k] > ii-1 {
+				if t.columnIndexes[k] >= newID {
 					t.columnIndexes[k] += 1
 				}
 			}
-			t.columnIndexes[old.Columns[j].Name] = ii
+			t.columnIndexes[old.Columns[j].Name] = newID
 		}
 	}
 

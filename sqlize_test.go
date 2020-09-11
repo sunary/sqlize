@@ -39,11 +39,9 @@ var (
  create_at datetime DEFAULT CURRENT_TIMESTAMP()
 );`
 	alterPersonUpStm = `
-CREATE UNIQUE INDEX idx_name_age ON person(name, age);
-`
+CREATE UNIQUE INDEX idx_name_age ON person(name, age);`
 	alterPersonDownStm = `
-DROP INDEX idx_name_age ON person;
-`
+DROP INDEX idx_name_age ON person;`
 
 	createHotelStm = `
 CREATE TABLE hotel (
@@ -198,15 +196,15 @@ func TestSqlize_FromString(t *testing.T) {
 			wantMigrationDown: expectCreateHotelDown,
 			wantErr:           false,
 		},
-		//{
-		//	name: "from city sql",
-		//	args: args{
-		//		joinSql(createCityStm, alterCityUpStm),
-		//	},
-		//	wantMigrationUp:   expectCreateCityUp,
-		//	wantMigrationDown: expectCreateCityDown,
-		//	wantErr:           false,
-		//},
+		{
+			name: "from city sql",
+			args: args{
+				joinSql(createCityStm, alterCityUpStm),
+			},
+			wantMigrationUp:   expectCreateCityUp,
+			wantMigrationDown: expectCreateCityDown,
+			wantErr:           false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

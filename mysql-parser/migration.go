@@ -56,6 +56,9 @@ func (m *Migration) Enter(in ast.Node) (ast.Node, bool) {
 		for i := range alter.Specs {
 			switch alter.Specs[i].Tp {
 			case ast.AlterTableAddColumns:
+				if alter.Specs[i].Position != nil {
+					m.setColumnPosition("", alter.Specs[i].Position)
+				}
 				break
 			case ast.AlterTableDropColumn:
 				m.removeColumn(alter.Table.Name.O, alter.Specs[i].OldColumnName.Name.O)
@@ -217,6 +220,16 @@ func (m *Migration) addColumn(tbName string, col Column) {
 	}
 
 	m.Tables[id].addColumn(col)
+}
+
+func (m *Migration) setColumnPosition(tbName string, pos *ast.ColumnPosition) {
+	if tbName == "" {
+		tbName = m.currentTable
+	}
+
+	if id := m.getIndexTable(tbName); id >= 0 {
+		m.Tables[id].columnPosition = pos
+	}
 }
 
 func (m *Migration) removeColumn(tbName string, colName string) {
