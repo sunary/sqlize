@@ -44,11 +44,11 @@ func AlterTableDropColumnStm(isLower bool) string {
 	return fromStr("ALTER TABLE %s DROP COLUMN %s;").apply(isLower)
 }
 
-func AlterTableModifyStm(isLower bool) string {
+func AlterTableModifyColumnStm(isLower bool) string {
 	return fromStr("ALTER TABLE %s MODIFY COLUMN %s;").apply(isLower)
 }
 
-func AlterTableRenameStm(isLower bool) string {
+func AlterTableRenameColumnStm(isLower bool) string {
 	return fromStr("ALTER TABLE %s RENAME COLUMN %s TO %s;").apply(isLower)
 }
 
@@ -62,4 +62,8 @@ func CreateUniqueIndexStm(isLower bool) string {
 
 func DropIndexStm(isLower bool) string {
 	return fromStr("DROP INDEX %s ON %s;").apply(isLower)
+}
+
+func AlterTableRenameIndexStm(isLower bool) string {
+	return fromStr("ALTER TABLE %s RENAME INDEX %s TO %s;").apply(isLower)
 }

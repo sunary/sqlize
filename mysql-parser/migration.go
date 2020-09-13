@@ -59,22 +59,16 @@ func (m *Migration) Enter(in ast.Node) (ast.Node, bool) {
 				if alter.Specs[i].Position != nil {
 					m.setColumnPosition("", alter.Specs[i].Position)
 				}
-				break
 			case ast.AlterTableDropColumn:
 				m.removeColumn(alter.Table.Name.O, alter.Specs[i].OldColumnName.Name.O)
-				break
 			case ast.AlterTableModifyColumn:
 				// TODO
-				break
 			case ast.AlterTableRenameColumn:
-				// TODO
-				break
+				m.renameColumn("", alter.Specs[i].OldColumnName.Name.O, alter.Specs[i].NewColumnName.Name.O)
 			case ast.AlterTableRenameTable:
 				// TODO
-				break
 			case ast.AlterTableRenameIndex:
-				// TODO
-				break
+				m.renameIndex("", alter.Specs[i].FromKey.O, alter.Specs[i].ToKey.O)
 			}
 		}
 	}
@@ -206,6 +200,16 @@ func (m *Migration) removeTable(tbName string) {
 	}
 }
 
+func (m *Migration) renameTable(oldName, newName string) {
+	if id := m.getIndexTable(oldName); id >= 0 {
+		m.Tables[id].Action = MigrateRemoveAction
+		m.Tables[id].OldName = oldName
+		m.Tables[id].Name = newName
+		m.tableIndexes[newName] = id
+		delete(m.tableIndexes, oldName)
+	}
+}
+
 func (m *Migration) addColumn(tbName string, col Column) {
 	if tbName == "" {
 		tbName = m.currentTable
@@ -232,7 +236,7 @@ func (m *Migration) setColumnPosition(tbName string, pos *ast.ColumnPosition) {
 	}
 }
 
-func (m *Migration) removeColumn(tbName string, colName string) {
+func (m *Migration) removeColumn(tbName, colName string) {
 	if tbName == "" {
 		tbName = m.currentTable
 	}
@@ -244,6 +248,16 @@ func (m *Migration) removeColumn(tbName string, colName string) {
 	}
 
 	m.Tables[id].removeColumn(colName)
+}
+
+func (m *Migration) renameColumn(tbName, oldName, newName string) {
+	if tbName == "" {
+		tbName = m.currentTable
+	}
+
+	if id := m.getIndexTable(tbName); id >= 0 {
+		m.Tables[id].renameColumn(oldName, newName)
+	}
 }
 
 func (m *Migration) addIndex(tbName string, idx Index) {
@@ -272,6 +286,16 @@ func (m *Migration) removeIndex(tbName string, idxName string) {
 	}
 
 	m.Tables[id].removeIndex(idxName)
+}
+
+func (m *Migration) renameIndex(tbName, oldName, newName string) {
+	if tbName == "" {
+		tbName = m.currentTable
+	}
+
+	if id := m.getIndexTable(tbName); id >= 0 {
+		m.Tables[id].renameIndex(oldName, newName)
+	}
 }
 
 func (m Migration) getIndexTable(tableName string) int {

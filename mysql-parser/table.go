@@ -16,6 +16,7 @@ const (
 	MigrateAddAction
 	MigrateRemoveAction
 	MigrateModifyAction
+	MigrateRenameAction
 )
 
 type Node struct {
@@ -110,6 +111,16 @@ func (t *Table) removeColumn(colName string) {
 	}
 }
 
+func (t *Table) renameColumn(oldName, newName string) {
+	if id := t.getIndexColumn(oldName); id >= 0 {
+		t.Columns[id].Action = MigrateRenameAction
+		t.Columns[id].OldName = oldName
+		t.Columns[id].Name = newName
+		t.columnIndexes[newName] = id
+		delete(t.columnIndexes, oldName)
+	}
+}
+
 func (t *Table) addIndex(idx Index) {
 	id := t.getIndexColumn(idx.Name)
 	if id == -1 {
@@ -134,6 +145,16 @@ func (t *Table) removeIndex(idxName string) {
 		t.Indexes[id].Action = MigrateNoAction
 	} else {
 		t.Indexes[id].Action = MigrateRemoveAction
+	}
+}
+
+func (t *Table) renameIndex(oldName, newName string) {
+	if id := t.getIndexIndex(oldName); id >= 0 {
+		t.Indexes[id].Action = MigrateRenameAction
+		t.Indexes[id].OldName = oldName
+		t.Indexes[id].Name = newName
+		t.indexIndexes[newName] = id
+		delete(t.indexIndexes, oldName)
 	}
 }
 
@@ -234,7 +255,7 @@ func (t Table) migrationColumnUp() []string {
 	case MigrateAddAction:
 		maxIdent := len(t.Columns[0].Name)
 		for i := range t.Columns {
-			if t.Columns[i].Action == MigrateAddAction {
+			if t.Columns[i].Action == MigrateAddAction || t.Columns[i].Action == MigrateModifyAction || t.Columns[i].Action == MigrateRenameAction {
 				if len(t.Columns[i].Name) > maxIdent {
 					maxIdent = len(t.Columns[i].Name)
 				}
@@ -245,6 +266,10 @@ func (t Table) migrationColumnUp() []string {
 		for i := range t.Columns {
 			if t.Columns[i].Action == MigrateAddAction {
 				strCols = append(strCols, " "+t.Columns[i].migrationUp("", "", maxIdent)[0])
+			} else if t.Columns[i].Action == MigrateModifyAction || t.Columns[i].Action == MigrateRenameAction {
+				nCol := t.Columns[i]
+				nCol.Action = MigrateAddAction
+				strCols = append(strCols, " "+nCol.migrationUp("", "", maxIdent)[0])
 			}
 		}
 

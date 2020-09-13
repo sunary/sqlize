@@ -76,6 +76,9 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 	case MigrateModifyAction:
 		return nil
 
+	case MigrateRenameAction:
+		return []string{fmt.Sprintf(mysql_templates.AlterTableRenameColumnStm(isLower), utils.EscapeSqlName(tbName), utils.EscapeSqlName(c.OldName), utils.EscapeSqlName(c.Name))}
+
 	default:
 		return nil
 	}
@@ -88,14 +91,14 @@ func (c Column) migrationDown(tbName, after string) []string {
 
 	case MigrateAddAction:
 		c.Action = MigrateRemoveAction
-		break
 
 	case MigrateRemoveAction:
 		c.Action = MigrateAddAction
-		break
 
 	case MigrateModifyAction:
-		break
+
+	case MigrateRenameAction:
+		c.Name, c.OldName = c.OldName, c.Name
 
 	default:
 		return nil

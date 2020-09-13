@@ -23,8 +23,8 @@ type Sqlize struct {
 	migrationUpSuffix   string
 	migrationDownSuffix string
 	isLower             bool
-	sqlBuilder          *mysql_builder.SqlBuilder
-	migration           mysql_parser.Migration
+	mysqlBuilder        *mysql_builder.SqlBuilder
+	MysqlMigration      mysql_parser.Migration
 }
 
 func NewSqlize(opts ...SqlizeOption) *Sqlize {
@@ -53,22 +53,22 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationDownSuffix: o.migrationDownSuffix,
 		isLower:             o.isLower,
 
-		sqlBuilder: sb,
-		migration:  mysql_parser.NewMigration(o.isLower),
+		mysqlBuilder:   sb,
+		MysqlMigration: mysql_parser.NewMigration(o.isLower),
 	}
 }
 
 func (s *Sqlize) FromObjects(objs ...interface{}) error {
 	sqls := make([]string, len(objs))
 	for i := range objs {
-		sqls[i] += s.sqlBuilder.AddTable(objs[i])
+		sqls[i] += s.mysqlBuilder.AddTable(objs[i])
 	}
 
 	return s.FromString(strings.Join(sqls, "\n"))
 }
 
 func (s *Sqlize) FromString(sql string) error {
-	return s.migration.Parser(sql)
+	return s.MysqlMigration.Parser(sql)
 }
 
 func (s *Sqlize) FromMigrationFolder() error {
@@ -81,15 +81,15 @@ func (s *Sqlize) FromMigrationFolder() error {
 }
 
 func (s *Sqlize) Diff(old Sqlize) {
-	s.migration.Diff(old.migration)
+	s.MysqlMigration.Diff(old.MysqlMigration)
 }
 
 func (s *Sqlize) StringUp() string {
-	return s.migration.MigrationUp()
+	return s.MysqlMigration.MigrationUp()
 }
 
 func (s *Sqlize) StringDown() string {
-	return s.migration.MigrationDown()
+	return s.MysqlMigration.MigrationDown()
 }
 
 func (s *Sqlize) WriteFiles(name string) error {
@@ -115,9 +115,9 @@ func (s *Sqlize) WriteFiles(name string) error {
 
 func (s Sqlize) ArvoSchema(needTables ...string) []string {
 	schemas := make([]string, 0)
-	for i := range s.migration.Tables {
-		if len(needTables) == 0 || utils.ContainStr(needTables, s.migration.Tables[i].Name) {
-			record := mysql_avro.NewArvoSchema(s.migration.Tables[i])
+	for i := range s.MysqlMigration.Tables {
+		if len(needTables) == 0 || utils.ContainStr(needTables, s.MysqlMigration.Tables[i].Name) {
+			record := mysql_avro.NewArvoSchema(s.MysqlMigration.Tables[i])
 			jsonData, _ := json.Marshal(record)
 			schemas = append(schemas, string(jsonData))
 		}

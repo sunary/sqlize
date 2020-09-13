@@ -17,15 +17,22 @@ type person struct {
 }
 
 type hotel struct {
-	ID             int32 `sql:"primary_key"`
-	Name           string
-	GrandOpeningAt *time.Time
+	ID           int32 `sql:"primary_key"`
+	Name         string
+	GrandOpening *time.Time
 }
 
 type city struct {
-	ID     int32 `sql:"primary_key;auto_increment"`
-	Name   string
+	ID     int32  `sql:"primary_key;auto_increment"`
+	Name   string `sql:"column:name"`
 	Region string `sql:"type:ENUM('northern','southern');default:'northern'"`
+}
+
+type movie struct {
+	ID           int32  `sql:"primary_key;auto_increment"`
+	Title        string `sql:"type:varchar(255)"`
+	Director     string `sql:"column:director;type:varchar(255)"`
+	YearReleased string `sql:"column:year_released,old:released_at"`
 }
 
 var (
@@ -45,10 +52,10 @@ DROP INDEX idx_name_age ON person;`
 
 	createHotelStm = `
 CREATE TABLE hotel (
- id               int(11) PRIMARY KEY,
- name             text,
- star             tinyint(4),
- grand_opening_at datetime NULL
+ id            int(11) PRIMARY KEY,
+ name          text,
+ star          tinyint(4),
+ grand_opening datetime NULL
 );`
 	alterHotelUpStm = `
 ALTER TABLE hotel DROP COLUMN star;`
@@ -68,6 +75,17 @@ ALTER TABLE city ADD COLUMN name text AFTER id;`
 ALTER TABLE city ADD COLUMN code varchar(3) FIRST;
 ALTER TABLE city DROP COLUMN name;`
 
+	createMovieStm = `
+CREATE TABLE movie (
+ id int(11) AUTO_INCREMENT PRIMARY KEY,
+ title varchar(255),
+ director varchar(255)
+);`
+	alterMovieUpStm = `
+ALTER TABLE movie RENAME COLUMN released_at TO year_released;`
+	alterMovieDownStm = `
+ALTER TABLE movie RENAME COLUMN year_released TO released_at;`
+
 	expectCreatePersonUp = `
 CREATE TABLE person (
  id        int(11) AUTO_INCREMENT PRIMARY KEY,
@@ -82,9 +100,9 @@ DROP TABLE IF EXISTS person;`
 
 	expectCreateHotelUp = `
 CREATE TABLE hotel (
- id               int(11) PRIMARY KEY,
- name             text,
- grand_opening_at datetime NULL
+ id            int(11) PRIMARY KEY,
+ name          text,
+ grand_opening datetime NULL
 );`
 	expectCreateHotelDown = `
 DROP TABLE IF EXISTS hotel;`
@@ -124,7 +142,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 		{
 			name: "from hotel object",
 			args: args{
-				[]interface{}{hotel{GrandOpeningAt: &now}},
+				[]interface{}{hotel{GrandOpening: &now}},
 			},
 			wantMigrationUp:   expectCreateHotelUp,
 			wantMigrationDown: expectCreateHotelDown,
@@ -142,7 +160,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 		{
 			name: "from all object",
 			args: args{
-				[]interface{}{person{}, hotel{GrandOpeningAt: &now}, city{}},
+				[]interface{}{person{}, hotel{GrandOpening: &now}, city{}},
 			},
 			wantMigrationUp:   joinSql(expectCreatePersonUp, expectCreateHotelUp, expectCreateCityUp),
 			wantMigrationDown: joinSql(expectCreatePersonDown, expectCreateHotelDown, expectCreateCityDown),
@@ -214,7 +232,7 @@ func TestSqlize_FromString(t *testing.T) {
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("StringUp() string = -%s-, wantErr -%s-", normSql(strUp), normSql(tt.wantMigrationUp))
+				t.Errorf("StringUp() string = %s, wantErr %s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
@@ -249,7 +267,7 @@ func TestSqlize_Diff(t *testing.T) {
 		{
 			name: "diff hotel sql",
 			args: args{
-				hotel{GrandOpeningAt: &now},
+				hotel{GrandOpening: &now},
 				createHotelStm,
 			},
 			wantMigrationUp:   alterHotelUpStm,
@@ -263,6 +281,14 @@ func TestSqlize_Diff(t *testing.T) {
 			},
 			wantMigrationUp:   alterCityUpStm,
 			wantMigrationDown: alterCityDownStm,
+		}, {
+			name: "diff movie sql",
+			args: args{
+				movie{},
+				createMovieStm,
+			},
+			wantMigrationUp:   alterMovieUpStm,
+			wantMigrationDown: alterMovieDownStm,
 		},
 	}
 	for _, tt := range tests {
@@ -275,7 +301,7 @@ func TestSqlize_Diff(t *testing.T) {
 
 			s.Diff(*o)
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("StringUp() string = -%s-, wantErr -%s-", normSql(strUp), normSql(tt.wantMigrationUp))
+				t.Errorf("StringUp() string = %s, wantErr %s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {

@@ -12,10 +12,11 @@ import (
 
 const (
 	SqlTagDefault       = "sql"
-	columnPrefix        = "column:"
-	typePrefix          = "type:"
-	defaultPrefix       = "default:"
-	indexPrefix         = "index:"
+	columnPrefix        = "column:"  // column:column_name
+	oldNameMark         = ",old:"    // column:column_name,old:old_name
+	typePrefix          = "type:"    // type:VARCHAR(64)
+	defaultPrefix       = "default:" // default:0
+	indexPrefix         = "index:"   // index:idx_name index:column1,column2
 	foreignKeyPrefix    = "foreignkey:"
 	associationFkPrefix = "association_foreignkey:"
 	isPrimaryKey        = "primary_key"
@@ -46,6 +47,7 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 
 func (s SqlBuilder) AddTable(tb interface{}) string {
 	tableName := getTableName(tb)
+	columnsHistory := make([][2]string, 0)
 	maxLen := 0
 
 	fields := make([][]string, 0)
@@ -71,11 +73,17 @@ func (s SqlBuilder) AddTable(tb interface{}) string {
 		isAutoDeclare := false
 		for _, gt := range gts {
 			gtLower := strings.ToLower(gt)
-			if strings.HasPrefix(gtLower, foreignKeyPrefix) || strings.HasPrefix(gtLower, associationFkPrefix) {
+			if strings.HasPrefix(gtLower, columnPrefix) {
+				columnNames := strings.Split(gt[len(columnPrefix):], oldNameMark)
+				if len(columnNames) == 1 {
+					columnDeclare = columnNames[0]
+				} else {
+					columnsHistory = append(columnsHistory, [2]string{columnNames[1], columnNames[0]})
+					columnDeclare = columnNames[1]
+				}
+			} else if strings.HasPrefix(gtLower, foreignKeyPrefix) || strings.HasPrefix(gtLower, associationFkPrefix) {
 				isFkDeclare = true
 				break
-			} else if strings.HasPrefix(gtLower, columnPrefix) {
-				columnDeclare = gt[len(columnPrefix):]
 			} else if strings.HasPrefix(gtLower, typePrefix) {
 				typeDeclare = gt[len(typePrefix):]
 			} else if strings.HasPrefix(gtLower, defaultPrefix) {
@@ -138,7 +146,12 @@ func (s SqlBuilder) AddTable(tb interface{}) string {
 	}
 
 	sql := []string{fmt.Sprintf(mysql_templates.CreateTableStm(s.isLower), utils.EscapeSqlName(tableName), strings.Join(fs, ",\n"))}
+	for _, h := range columnsHistory {
+		sql = append(sql, fmt.Sprintf(mysql_templates.AlterTableRenameColumnStm(s.isLower), utils.EscapeSqlName(tableName), utils.EscapeSqlName(h[0]), utils.EscapeSqlName(h[1])))
+	}
+
 	sql = append(sql, indexes...)
+
 	return strings.Join(sql, "\n")
 }
 
