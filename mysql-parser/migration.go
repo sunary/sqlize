@@ -44,6 +44,11 @@ func (m *Migration) Parser(sql string) error {
 }
 
 func (m *Migration) Enter(in ast.Node) (ast.Node, bool) {
+	// get Table name
+	if tb, ok := in.(*ast.TableName); ok {
+		m.using(tb.Name.O)
+	}
+
 	// drop Table
 	if tb, ok := in.(*ast.DropTableStmt); ok {
 		for i := range tb.Tables {
@@ -59,14 +64,19 @@ func (m *Migration) Enter(in ast.Node) (ast.Node, bool) {
 				if alter.Specs[i].Position != nil {
 					m.setColumnPosition("", alter.Specs[i].Position)
 				}
+
 			case ast.AlterTableDropColumn:
 				m.removeColumn(alter.Table.Name.O, alter.Specs[i].OldColumnName.Name.O)
+
 			case ast.AlterTableModifyColumn:
 				// TODO
+
 			case ast.AlterTableRenameColumn:
 				m.renameColumn("", alter.Specs[i].OldColumnName.Name.O, alter.Specs[i].NewColumnName.Name.O)
+
 			case ast.AlterTableRenameTable:
 				// TODO
+
 			case ast.AlterTableRenameIndex:
 				m.renameIndex("", alter.Specs[i].FromKey.O, alter.Specs[i].ToKey.O)
 			}
@@ -76,11 +86,6 @@ func (m *Migration) Enter(in ast.Node) (ast.Node, bool) {
 	// drop Index
 	if idx, ok := in.(*ast.DropIndexStmt); ok {
 		m.removeIndex(idx.Table.Name.O, idx.IndexName)
-	}
-
-	// alter Table
-	if tb, ok := in.(*ast.TableName); ok {
-		m.using(tb.Name.O)
 	}
 
 	// create Table
@@ -105,7 +110,7 @@ func (m *Migration) Enter(in ast.Node) (ast.Node, bool) {
 						},
 					},
 				})
-				break
+
 			case ast.ConstraintKey, ast.ConstraintIndex:
 				tb.addIndex(Index{
 					Node: Node{
@@ -115,7 +120,7 @@ func (m *Migration) Enter(in ast.Node) (ast.Node, bool) {
 					Typ:     ast.IndexKeyTypeNone,
 					Columns: cols,
 				})
-				break
+
 			case ast.ConstraintUniqKey, ast.ConstraintUniqIndex:
 				tb.addIndex(Index{
 					Node: Node{
@@ -125,7 +130,6 @@ func (m *Migration) Enter(in ast.Node) (ast.Node, bool) {
 					Typ:     ast.IndexKeyTypeUnique,
 					Columns: cols,
 				})
-				break
 			}
 		}
 

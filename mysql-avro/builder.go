@@ -48,8 +48,8 @@ func buildFieldsFromTable(table mysql_parser.Table) []Field {
 func getAvroType(col mysql_parser.Column) interface{} {
 
 	switch col.Typ.Tp {
-	case mysql.TypeBit, mysql.TypeBlob, mysql.TypeTinyBlob, mysql.TypeMediumBlob, mysql.TypeLongBlob:
-		return "[]byte"
+	//case mysql.TypeBit, mysql.TypeBlob, mysql.TypeTinyBlob, mysql.TypeMediumBlob, mysql.TypeLongBlob:
+	//	return "[]byte"
 
 	case mysql.TypeTiny:
 		return "bool"

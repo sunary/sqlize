@@ -77,8 +77,8 @@ ALTER TABLE city DROP COLUMN name;`
 
 	createMovieStm = `
 CREATE TABLE movie (
- id int(11) AUTO_INCREMENT PRIMARY KEY,
- title varchar(255),
+ id       int(11) AUTO_INCREMENT PRIMARY KEY,
+ title    varchar(255),
  director varchar(255)
 );`
 	alterMovieUpStm = `
