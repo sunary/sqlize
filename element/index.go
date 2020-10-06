@@ -1,4 +1,4 @@
-package mysql_parser
+package element
 
 import (
 	"fmt"
@@ -23,17 +23,23 @@ func (i Index) migrationUp(tbName string) []string {
 	case MigrateAddAction:
 		switch i.Typ {
 		case ast.IndexKeyTypeNone:
-			return []string{fmt.Sprintf(mysql_templates.CreateIndexStm(isLower), utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName), strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
+			return []string{fmt.Sprintf(mysql_templates.CreateIndexStm(isLower),
+				utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName),
+				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
 
 		case ast.IndexKeyTypeUnique:
-			return []string{fmt.Sprintf(mysql_templates.CreateUniqueIndexStm(isLower), utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName), strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
+			return []string{fmt.Sprintf(mysql_templates.CreateUniqueIndexStm(isLower),
+				utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName),
+				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
 
 		default:
 			return nil
 		}
 
 	case MigrateRemoveAction:
-		return []string{fmt.Sprintf(mysql_templates.DropIndexStm(isLower), utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName))}
+		return []string{fmt.Sprintf(mysql_templates.DropIndexStm(isLower),
+			utils.EscapeSqlName(i.Name),
+			utils.EscapeSqlName(tbName))}
 
 	case MigrateModifyAction:
 		strRems := make([]string, 2)
@@ -44,7 +50,10 @@ func (i Index) migrationUp(tbName string) []string {
 		return strRems
 
 	case MigrateRenameAction:
-		return []string{fmt.Sprintf(mysql_templates.AlterTableRenameIndexStm(isLower), utils.EscapeSqlName(tbName), utils.EscapeSqlName(i.OldName), utils.EscapeSqlName(i.Name))}
+		return []string{fmt.Sprintf(mysql_templates.AlterTableRenameIndexStm(isLower),
+			utils.EscapeSqlName(tbName),
+			utils.EscapeSqlName(i.OldName),
+			utils.EscapeSqlName(i.Name))}
 
 	default:
 		return nil

@@ -1,4 +1,4 @@
-package mysql_avro
+package avro
 
 type Field struct {
 	Name    string      `json:"name"`

@@ -5,8 +5,9 @@ type sqlizeOptions struct {
 	migrationUpSuffix   string
 	migrationDownSuffix string
 
-	isLower bool
-	sqlTag  string
+	isPostgres bool
+	isLower    bool
+	sqlTag     string
 }
 
 type funcSqlizeOption struct {
@@ -37,6 +38,12 @@ func WithMigrationSuffix(upSuffix, downSuffix string) SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.migrationUpSuffix = upSuffix
 		o.migrationDownSuffix = downSuffix
+	})
+}
+
+func WithPostgresql() SqlizeOption {
+	return newFuncSqlizeOption(func(o *sqlizeOptions) {
+		o.isPostgres = true
 	})
 }
 

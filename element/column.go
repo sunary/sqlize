@@ -1,4 +1,4 @@
-package mysql_parser
+package element
 
 import (
 	"bytes"
@@ -21,6 +21,10 @@ type Column struct {
 	Node
 	Typ     *types.FieldType
 	Options []*ast.ColumnOption
+}
+
+func (c Column) GetType() byte {
+	return c.Typ.Tp
 }
 
 func (c Column) HasDefaultValue() bool {

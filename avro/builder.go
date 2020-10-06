@@ -1,4 +1,4 @@
-package mysql_avro
+package avro
 
 import (
 	"strconv"
@@ -6,10 +6,10 @@ import (
 
 	"github.com/pingcap/parser/mysql"
 	"github.com/pingcap/parser/types"
-	"github.com/sunary/sqlize/mysql-parser"
+	"github.com/sunary/sqlize/element"
 )
 
-func NewArvoSchema(table mysql_parser.Table) *RecordSchema {
+func NewArvoSchema(table element.Table) *RecordSchema {
 	fields := buildFieldsFromTable(table)
 	record := newRecordSchema(table.Name, table.Name)
 	record.Name = table.Name
@@ -26,7 +26,7 @@ func NewArvoSchema(table mysql_parser.Table) *RecordSchema {
 	return record
 }
 
-func buildFieldsFromTable(table mysql_parser.Table) []Field {
+func buildFieldsFromTable(table element.Table) []Field {
 	fields := []Field{}
 
 	for _, col := range table.Columns {
@@ -45,9 +45,8 @@ func buildFieldsFromTable(table mysql_parser.Table) []Field {
 	return fields
 }
 
-func getAvroType(col mysql_parser.Column) interface{} {
-
-	switch col.Typ.Tp {
+func getAvroType(col element.Column) interface{} {
+	switch col.GetType() {
 	//case mysql.TypeBit, mysql.TypeBlob, mysql.TypeTinyBlob, mysql.TypeMediumBlob, mysql.TypeLongBlob:
 	//	return "[]byte"
 

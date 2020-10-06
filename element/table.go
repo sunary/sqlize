@@ -1,4 +1,4 @@
-package mysql_parser
+package element
 
 import (
 	"fmt"
@@ -9,29 +9,15 @@ import (
 	"github.com/sunary/sqlize/utils"
 )
 
-type MigrateAction int8
-
-const (
-	MigrateNoAction MigrateAction = iota
-	MigrateAddAction
-	MigrateRemoveAction
-	MigrateModifyAction
-	MigrateRenameAction
-)
-
-type Node struct {
-	Name    string
-	OldName string
-	Action  MigrateAction
-}
-
 type Table struct {
 	Node
+
 	Columns        []Column
 	columnIndexes  map[string]int
 	columnPosition *ast.ColumnPosition
-	Indexes        []Index
-	indexIndexes   map[string]int
+
+	Indexes      []Index
+	indexIndexes map[string]int
 }
 
 func NewTable(name string) *Table {
@@ -47,7 +33,7 @@ func NewTable(name string) *Table {
 	}
 }
 
-func (t *Table) addColumn(col Column) {
+func (t *Table) AddColumn(col Column) {
 	id := t.getIndexColumn(col.Name)
 	if id == -1 {
 		t.Columns = append(t.Columns, col)
@@ -111,7 +97,7 @@ func (t *Table) removeColumn(colName string) {
 	}
 }
 
-func (t *Table) renameColumn(oldName, newName string) {
+func (t *Table) RenameColumn(oldName, newName string) {
 	if id := t.getIndexColumn(oldName); id >= 0 {
 		t.Columns[id].Action = MigrateRenameAction
 		t.Columns[id].OldName = oldName
@@ -121,7 +107,7 @@ func (t *Table) renameColumn(oldName, newName string) {
 	}
 }
 
-func (t *Table) addIndex(idx Index) {
+func (t *Table) AddIndex(idx Index) {
 	id := t.getIndexColumn(idx.Name)
 	if id == -1 {
 		t.Indexes = append(t.Indexes, idx)
@@ -132,7 +118,7 @@ func (t *Table) addIndex(idx Index) {
 	t.Indexes[id] = idx
 }
 
-func (t *Table) removeIndex(idxName string) {
+func (t *Table) RemoveIndex(idxName string) {
 	id := t.getIndexIndex(idxName)
 	if id == -1 {
 		idx := Index{Node: Node{Name: idxName, Action: MigrateRemoveAction}}
@@ -148,7 +134,7 @@ func (t *Table) removeIndex(idxName string) {
 	}
 }
 
-func (t *Table) renameIndex(oldName, newName string) {
+func (t *Table) RenameIndex(oldName, newName string) {
 	if id := t.getIndexIndex(oldName); id >= 0 {
 		t.Indexes[id].Action = MigrateRenameAction
 		t.Indexes[id].OldName = oldName
@@ -189,7 +175,7 @@ func (t *Table) Diff(old Table) {
 	for j := range old.Columns {
 		if i := t.getIndexColumn(old.Columns[j].Name); i == -1 {
 			old.Columns[j].Action = MigrateRemoveAction
-			t.addColumn(old.Columns[j])
+			t.AddColumn(old.Columns[j])
 
 			newID := 0
 			for _, v := range t.columnIndexes {
@@ -224,12 +210,12 @@ func (t *Table) Diff(old Table) {
 	for j := range old.Indexes {
 		if i := t.getIndexIndex(old.Indexes[j].Name); i == -1 {
 			old.Indexes[j].Action = MigrateRemoveAction
-			t.addIndex(old.Indexes[j])
+			t.AddIndex(old.Indexes[j])
 		}
 	}
 }
 
-func (t Table) migrationColumnUp() []string {
+func (t Table) MigrationColumnUp() []string {
 	switch t.Action {
 	case MigrateNoAction:
 		strSqls := make([]string, 0)
@@ -287,7 +273,7 @@ func (t Table) migrationColumnUp() []string {
 	}
 }
 
-func (t Table) migrationIndexUp() []string {
+func (t Table) MigrationIndexUp() []string {
 	switch t.Action {
 	case MigrateNoAction:
 		strSqls := make([]string, 0)
@@ -318,7 +304,7 @@ func (t Table) migrationIndexUp() []string {
 	}
 }
 
-func (t Table) migrationColumnDown() []string {
+func (t Table) MigrationColumnDown() []string {
 	switch t.Action {
 	case MigrateNoAction:
 		strSqls := make([]string, 0)
@@ -343,11 +329,11 @@ func (t Table) migrationColumnDown() []string {
 
 	case MigrateAddAction:
 		t.Action = MigrateRemoveAction
-		return t.migrationColumnUp()
+		return t.MigrationColumnUp()
 
 	case MigrateRemoveAction:
 		t.Action = MigrateAddAction
-		return t.migrationColumnUp()
+		return t.MigrationColumnUp()
 
 	case MigrateModifyAction:
 		// TODO
@@ -358,7 +344,7 @@ func (t Table) migrationColumnDown() []string {
 	}
 }
 
-func (t Table) migrationIndexDown() []string {
+func (t Table) MigrationIndexDown() []string {
 	switch t.Action {
 	case MigrateNoAction:
 		strSqls := make([]string, 0)
@@ -371,11 +357,11 @@ func (t Table) migrationIndexDown() []string {
 
 	case MigrateAddAction:
 		t.Action = MigrateRemoveAction
-		return t.migrationIndexUp()
+		return t.MigrationIndexUp()
 
 	case MigrateRemoveAction:
 		t.Action = MigrateAddAction
-		return t.migrationIndexUp()
+		return t.MigrationIndexUp()
 
 	case MigrateModifyAction:
 		// TODO
