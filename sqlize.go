@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	_ "github.com/pingcap/parser/test_driver"
-	"github.com/sunary/sqlize/mysql-avro"
+	"github.com/sunary/sqlize/avro"
 	"github.com/sunary/sqlize/mysql-builder"
 	"github.com/sunary/sqlize/mysql-parser"
 	"github.com/sunary/sqlize/utils"
@@ -22,9 +22,10 @@ type Sqlize struct {
 	migrationFolder     string
 	migrationUpSuffix   string
 	migrationDownSuffix string
+	isPostgres          bool
 	isLower             bool
 	mysqlBuilder        *mysql_builder.SqlBuilder
-	MysqlMigration      mysql_parser.Migration
+	mysqlParser         *mysql_parser.Parser
 }
 
 func NewSqlize(opts ...SqlizeOption) *Sqlize {
@@ -33,8 +34,9 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationUpSuffix:   migrationUpSuffix,
 		migrationDownSuffix: migrationDownSuffix,
 
-		isLower: false,
-		sqlTag:  mysql_builder.SqlTagDefault,
+		isPostgres: false,
+		isLower:    false,
+		sqlTag:     mysql_builder.SqlTagDefault,
 	}
 	for i := range opts {
 		opts[i].apply(&o)
@@ -51,10 +53,11 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationFolder:     o.migrationFolder,
 		migrationUpSuffix:   o.migrationUpSuffix,
 		migrationDownSuffix: o.migrationDownSuffix,
+		isPostgres:          o.isPostgres,
 		isLower:             o.isLower,
 
-		mysqlBuilder:   sb,
-		MysqlMigration: mysql_parser.NewMigration(o.isLower),
+		mysqlBuilder: sb,
+		mysqlParser:  mysql_parser.NewParser(o.isLower),
 	}
 }
 
@@ -68,7 +71,7 @@ func (s *Sqlize) FromObjects(objs ...interface{}) error {
 }
 
 func (s *Sqlize) FromString(sql string) error {
-	return s.MysqlMigration.Parser(sql)
+	return s.mysqlParser.Parser(sql)
 }
 
 func (s *Sqlize) FromMigrationFolder() error {
@@ -81,15 +84,15 @@ func (s *Sqlize) FromMigrationFolder() error {
 }
 
 func (s *Sqlize) Diff(old Sqlize) {
-	s.MysqlMigration.Diff(old.MysqlMigration)
+	s.mysqlParser.Diff(*old.mysqlParser)
 }
 
 func (s *Sqlize) StringUp() string {
-	return s.MysqlMigration.MigrationUp()
+	return s.mysqlParser.MigrationUp()
 }
 
 func (s *Sqlize) StringDown() string {
-	return s.MysqlMigration.MigrationDown()
+	return s.mysqlParser.MigrationDown()
 }
 
 func (s *Sqlize) WriteFiles(name string) error {
@@ -115,9 +118,9 @@ func (s *Sqlize) WriteFiles(name string) error {
 
 func (s Sqlize) ArvoSchema(needTables ...string) []string {
 	schemas := make([]string, 0)
-	for i := range s.MysqlMigration.Tables {
-		if len(needTables) == 0 || utils.ContainStr(needTables, s.MysqlMigration.Tables[i].Name) {
-			record := mysql_avro.NewArvoSchema(s.MysqlMigration.Tables[i])
+	for i := range s.mysqlParser.Migration.Tables {
+		if len(needTables) == 0 || utils.ContainStr(needTables, s.mysqlParser.Migration.Tables[i].Name) {
+			record := avro.NewArvoSchema(s.mysqlParser.Migration.Tables[i])
 			jsonData, _ := json.Marshal(record)
 			schemas = append(schemas, string(jsonData))
 		}
