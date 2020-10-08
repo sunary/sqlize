@@ -7,8 +7,8 @@ import (
 
 	_ "github.com/pingcap/parser/test_driver"
 	"github.com/sunary/sqlize/avro"
-	"github.com/sunary/sqlize/mysql-builder"
 	"github.com/sunary/sqlize/mysql-parser"
+	"github.com/sunary/sqlize/sql-builder"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -24,7 +24,7 @@ type Sqlize struct {
 	migrationDownSuffix string
 	isPostgres          bool
 	isLower             bool
-	mysqlBuilder        *mysql_builder.SqlBuilder
+	sqlBuilder          *sql_builder.SqlBuilder
 	mysqlParser         *mysql_parser.Parser
 }
 
@@ -36,18 +36,20 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 
 		isPostgres: false,
 		isLower:    false,
-		sqlTag:     mysql_builder.SqlTagDefault,
+		sqlTag:     sql_builder.SqlTagDefault,
 	}
 	for i := range opts {
 		opts[i].apply(&o)
 	}
 
-	var sb *mysql_builder.SqlBuilder
-	if o.isLower {
-		sb = mysql_builder.NewSqlBuilder(mysql_builder.WithSqlLowercase(), mysql_builder.WithSqlTag(o.sqlTag))
-	} else {
-		sb = mysql_builder.NewSqlBuilder(mysql_builder.WithSqlUppercase(), mysql_builder.WithSqlTag(o.sqlTag))
+	opt := []sql_builder.SqlBuilderOption{sql_builder.WithSqlTag(o.sqlTag)}
+	if o.isPostgres {
+		opt = append(opt, sql_builder.WithPostgresql())
 	}
+	if o.isLower {
+		opt = append(opt, sql_builder.WithSqlLowercase())
+	}
+	sb := sql_builder.NewSqlBuilder(opt...)
 
 	return &Sqlize{
 		migrationFolder:     o.migrationFolder,
@@ -56,15 +58,15 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		isPostgres:          o.isPostgres,
 		isLower:             o.isLower,
 
-		mysqlBuilder: sb,
-		mysqlParser:  mysql_parser.NewParser(o.isLower),
+		sqlBuilder:  sb,
+		mysqlParser: mysql_parser.NewParser(o.isLower),
 	}
 }
 
 func (s *Sqlize) FromObjects(objs ...interface{}) error {
 	sqls := make([]string, len(objs))
 	for i := range objs {
-		sqls[i] += s.mysqlBuilder.AddTable(objs[i])
+		sqls[i] += s.sqlBuilder.AddTable(objs[i])
 	}
 
 	return s.FromString(strings.Join(sqls, "\n"))
