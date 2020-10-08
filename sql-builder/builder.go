@@ -1,4 +1,4 @@
-package mysql_builder
+package sql_builder
 
 import (
 	"fmt"
@@ -26,22 +26,25 @@ const (
 )
 
 type SqlBuilder struct {
-	isLower bool
-	sqlTag  string
+	isPostgres bool
+	isLower    bool
+	sqlTag     string
 }
 
 func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	o := sqlBuilderOptions{
-		isLower: false,
-		sqlTag:  SqlTagDefault,
+		isLower:    false,
+		isPostgres: false,
+		sqlTag:     SqlTagDefault,
 	}
 	for i := range opts {
 		opts[i].apply(&o)
 	}
 
 	return &SqlBuilder{
-		isLower: o.isLower,
-		sqlTag:  o.sqlTag,
+		isPostgres: o.isPostgres,
+		isLower:    o.isLower,
+		sqlTag:     o.sqlTag,
 	}
 }
 

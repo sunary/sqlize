@@ -1,8 +1,9 @@
-package mysql_builder
+package sql_builder
 
 type sqlBuilderOptions struct {
-	isLower bool
-	sqlTag  string
+	isPostgres bool
+	isLower    bool
+	sqlTag     string
 }
 
 type funcSqlBuilderOption struct {
@@ -26,6 +27,12 @@ type SqlBuilderOption interface {
 func WithSqlTag(sqlTag string) SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.sqlTag = sqlTag
+	})
+}
+
+func WithPostgresql() SqlBuilderOption {
+	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
+		o.isPostgres = true
 	})
 }
 
