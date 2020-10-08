@@ -15,7 +15,7 @@ import (
 const (
 	migrationUpSuffix   = ".up.sql"
 	migrationDownSuffix = ".down.sql"
-	genDescription      = "--- generate by sqlize\n\n"
+	genDescription      = "# generate by sqlize\n\n"
 )
 
 type Sqlize struct {
