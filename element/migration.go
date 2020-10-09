@@ -183,8 +183,17 @@ func (m *Migration) Diff(old Migration) {
 func (m Migration) MigrationUp() string {
 	strTables := make([]string, 0)
 	for i := range m.Tables {
-		strTb := append([]string{}, strings.Join(m.Tables[i].MigrationColumnUp(), "\n"), strings.Join(m.Tables[i].MigrationIndexUp(), "\n"))
-		strTables = append(strTables, strings.Join(strTb, "\n"))
+		strTb := make([]string, 0)
+		if mColumn := m.Tables[i].MigrationColumnUp(); len(mColumn) > 0 {
+			strTb = append(strTb, strings.Join(mColumn, "\n"))
+		}
+		if mIndex := m.Tables[i].MigrationIndexUp(); len(mIndex) > 0 {
+			strTb = append(strTb, strings.Join(mIndex, "\n"))
+		}
+
+		if len(strTb) > 0 {
+			strTables = append(strTables, strings.Join(strTb, "\n"))
+		}
 	}
 
 	return strings.Join(strTables, "\n\n")
@@ -193,8 +202,17 @@ func (m Migration) MigrationUp() string {
 func (m Migration) MigrationDown() string {
 	strTables := make([]string, 0)
 	for i := range m.Tables {
-		strTb := append([]string{}, strings.Join(m.Tables[i].MigrationColumnDown(), "\n"), strings.Join(m.Tables[i].MigrationIndexDown(), "\n"))
-		strTables = append(strTables, strings.Join(strTb, "\n"))
+		strTb := make([]string, 0)
+		if mColumn := m.Tables[i].MigrationColumnDown(); len(mColumn) > 0 {
+			strTb = append(strTb, strings.Join(mColumn, "\n"))
+		}
+		if mIndex := m.Tables[i].MigrationIndexDown(); len(mIndex) > 0 {
+			strTb = append(strTb, strings.Join(mIndex, "\n"))
+		}
+
+		if len(strTb) > 0 {
+			strTables = append(strTables, strings.Join(strTb, "\n"))
+		}
 	}
 
 	return strings.Join(strTables, "\n\n")
