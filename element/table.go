@@ -40,7 +40,11 @@ func (t *Table) AddColumn(col Column) {
 		t.columnIndexes[col.Name] = len(t.Columns) - 1
 
 		if t.columnPosition != nil {
-			newID := 0
+			defer func() {
+				t.columnPosition = nil
+			}()
+
+			newID, currentID := 0, len(t.Columns)-1
 			if t.columnPosition.Tp == ast.ColumnPositionAfter {
 				if afterID := t.getIndexColumn(t.columnPosition.RelativeColumn.Name.O); afterID >= 0 {
 					newID = afterID + 1
@@ -49,16 +53,14 @@ func (t *Table) AddColumn(col Column) {
 				}
 			}
 
-			t.Columns[newID], t.Columns[len(t.Columns)-1] = t.Columns[len(t.Columns)-1], t.Columns[newID]
+			t.Columns[newID], t.Columns[currentID] = t.Columns[currentID], t.Columns[newID]
 
 			for k := range t.columnIndexes {
 				if t.columnIndexes[k] >= newID {
 					t.columnIndexes[k] += 1
 				}
 			}
-			t.columnIndexes[t.Columns[newID].Name] = newID
-
-			t.columnPosition = nil
+			t.columnIndexes[col.Name] = newID
 		}
 		return
 
@@ -145,16 +147,26 @@ func (t *Table) RenameIndex(oldName, newName string) {
 }
 
 func (t Table) getIndexColumn(colName string) int {
-	if v, ok := t.columnIndexes[colName]; ok {
-		return v
+	//if v, ok := t.columnIndexes[colName]; ok {
+	//	return v
+	//}
+	for i := range t.Columns {
+		if t.Columns[i].Name == colName {
+			return i
+		}
 	}
 
 	return -1
 }
 
 func (t Table) getIndexIndex(idxName string) int {
-	if v, ok := t.indexIndexes[idxName]; ok {
-		return v
+	//if v, ok := t.indexIndexes[idxName]; ok {
+	//	return v
+	//}
+	for i := range t.Indexes {
+		if t.Indexes[i].Name == idxName {
+			return i
+		}
 	}
 
 	return -1
@@ -162,7 +174,7 @@ func (t Table) getIndexIndex(idxName string) int {
 
 func (t *Table) Diff(old Table) {
 	for i := range t.Columns {
-		if j := old.getIndexColumn(t.Columns[i].Name); j >= 0 {
+		if j := old.getIndexColumn(t.Columns[i].Name); t.Columns[i].Action == MigrateAddAction && j >= 0 {
 			if t.Columns[i].Typ == old.Columns[j].Typ {
 				t.Columns[i].Action = MigrateNoAction
 			} else {
@@ -173,11 +185,11 @@ func (t *Table) Diff(old Table) {
 	}
 
 	for j := range old.Columns {
-		if i := t.getIndexColumn(old.Columns[j].Name); i == -1 {
+		if old.Columns[j].Action == MigrateAddAction && t.getIndexColumn(old.Columns[j].Name) == -1 {
 			old.Columns[j].Action = MigrateRemoveAction
 			t.AddColumn(old.Columns[j])
 
-			newID := 0
+			newID, currentID := 0, len(t.Columns)-1
 			for _, v := range t.columnIndexes {
 				if v+1 == j {
 					newID = v + 1
@@ -185,7 +197,7 @@ func (t *Table) Diff(old Table) {
 				}
 			}
 
-			t.Columns[newID], t.Columns[len(t.Columns)-1] = t.Columns[len(t.Columns)-1], t.Columns[newID]
+			t.Columns[newID], t.Columns[currentID] = t.Columns[currentID], t.Columns[newID]
 
 			for k := range t.columnIndexes {
 				if t.columnIndexes[k] >= newID {
@@ -197,7 +209,7 @@ func (t *Table) Diff(old Table) {
 	}
 
 	for i := range t.Indexes {
-		if j := old.getIndexIndex(t.Indexes[i].Name); j >= 0 {
+		if j := old.getIndexIndex(t.Indexes[i].Name); t.Indexes[i].Action == MigrateAddAction && j >= 0 {
 			if t.Indexes[i].Typ == old.Indexes[j].Typ && utils.SlideStrEqual(t.Indexes[i].Columns, old.Indexes[j].Columns) {
 				t.Indexes[i].Action = MigrateNoAction
 			} else {
@@ -208,7 +220,7 @@ func (t *Table) Diff(old Table) {
 	}
 
 	for j := range old.Indexes {
-		if i := t.getIndexIndex(old.Indexes[j].Name); i == -1 {
+		if old.Indexes[j].Action == MigrateAddAction && t.getIndexIndex(old.Indexes[j].Name) == -1 {
 			old.Indexes[j].Action = MigrateRemoveAction
 			t.AddIndex(old.Indexes[j])
 		}
