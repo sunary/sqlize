@@ -3,7 +3,6 @@ package sqlize
 import (
 	"encoding/json"
 	"io/ioutil"
-	"strings"
 
 	_ "github.com/pingcap/parser/test_driver"
 	"github.com/sunary/sqlize/avro"
@@ -64,12 +63,13 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 }
 
 func (s *Sqlize) FromObjects(objs ...interface{}) error {
-	sqls := make([]string, len(objs))
 	for i := range objs {
-		sqls[i] += s.sqlBuilder.AddTable(objs[i])
+		if err := s.FromString(s.sqlBuilder.AddTable(objs[i])); err != nil {
+			return err
+		}
 	}
 
-	return s.FromString(strings.Join(sqls, "\n"))
+	return nil
 }
 
 func (s *Sqlize) FromString(sql string) error {
@@ -82,7 +82,13 @@ func (s *Sqlize) FromMigrationFolder() error {
 		return err
 	}
 
-	return s.FromString(strings.Join(sqls, "\n"))
+	for _, sql := range sqls {
+		if err := s.FromString(sql); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *Sqlize) Diff(old Sqlize) {
