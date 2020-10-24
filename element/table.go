@@ -62,8 +62,8 @@ func (t *Table) AddColumn(col Column) {
 			}
 			t.columnIndexes[col.Name] = newID
 		}
-		return
 
+		return
 	}
 
 	if t.Columns[id].Action == MigrateAddAction {
@@ -147,26 +147,16 @@ func (t *Table) RenameIndex(oldName, newName string) {
 }
 
 func (t Table) getIndexColumn(colName string) int {
-	//if v, ok := t.columnIndexes[colName]; ok {
-	//	return v
-	//}
-	for i := range t.Columns {
-		if t.Columns[i].Name == colName {
-			return i
-		}
+	if v, ok := t.columnIndexes[colName]; ok {
+		return v
 	}
 
 	return -1
 }
 
 func (t Table) getIndexIndex(idxName string) int {
-	//if v, ok := t.indexIndexes[idxName]; ok {
-	//	return v
-	//}
-	for i := range t.Indexes {
-		if t.Indexes[i].Name == idxName {
-			return i
-		}
+	if v, ok := t.indexIndexes[idxName]; ok {
+		return v
 	}
 
 	return -1
