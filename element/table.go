@@ -45,22 +45,28 @@ func (t *Table) AddColumn(col Column) {
 			}()
 
 			newID, currentID := 0, len(t.Columns)-1
-			if t.columnPosition.Tp == ast.ColumnPositionAfter {
+
+			switch t.columnPosition.Tp {
+			case ast.ColumnPositionAfter:
 				if afterID := t.getIndexColumn(t.columnPosition.RelativeColumn.Name.O); afterID >= 0 {
 					newID = afterID + 1
-				} else {
-					return
-				}
-			}
 
-			t.Columns[newID], t.Columns[currentID] = t.Columns[currentID], t.Columns[newID]
+					t.Columns[newID], t.Columns[currentID] = t.Columns[currentID], t.Columns[newID]
 
-			for k := range t.columnIndexes {
-				if t.columnIndexes[k] >= newID {
-					t.columnIndexes[k] += 1
+					for k := range t.columnIndexes {
+						if t.columnIndexes[k] >= newID {
+							t.columnIndexes[k]++
+						}
+					}
+					t.columnIndexes[col.Name] = newID
 				}
+			case ast.ColumnPositionFirst:
+				t.columnIndexes[t.Columns[currentID].Name] = newID
+				t.columnIndexes[t.Columns[newID].Name] = currentID
+
+				t.Columns[newID], t.Columns[currentID] = t.Columns[currentID], t.Columns[newID]
+			case ast.ColumnPositionNone:
 			}
-			t.columnIndexes[col.Name] = newID
 		}
 
 		return

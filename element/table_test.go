@@ -2,6 +2,9 @@ package element
 
 import (
 	"testing"
+
+	"github.com/pingcap/parser/ast"
+	"github.com/pingcap/parser/model"
 )
 
 func TestGetIndexIndex(t *testing.T) {
@@ -66,11 +69,13 @@ func TestGetIndexColumn(t *testing.T) {
 	}
 }
 
-func TestGetIndexColumnWithColumnPosition(t *testing.T) {
+func TestGetIndexColumnWithColumnPositionNone(t *testing.T) {
 	const (
 		newColumn  = "newColumn"
 		newColumn2 = "newColumn2"
+		newColumn3 = "newColumn3"
 	)
+
 	table := NewTable("testTable")
 
 	column := Column{
@@ -85,14 +90,130 @@ func TestGetIndexColumnWithColumnPosition(t *testing.T) {
 		},
 	}
 
+	column3 := Column{
+		Node: Node{
+			Name: newColumn3,
+		},
+	}
+
 	table.AddColumn(column)
 	table.AddColumn(column2)
+
+	table.columnPosition = &ast.ColumnPosition{
+		Tp: ast.ColumnPositionNone,
+	}
+	table.AddColumn(column3)
 
 	if i := table.getIndexColumn(newColumn); i != 0 {
 		t.Errorf("wrong index returned: %d", i)
 	}
 
 	if i := table.getIndexColumn(newColumn2); i != 1 {
+		t.Errorf("wrong index returned: %d", i)
+	}
+
+	if i := table.getIndexColumn(newColumn3); i != 2 {
+		t.Errorf("wrong index returned: %d", i)
+	}
+}
+
+func TestGetIndexColumnWithColumnPositionAfter(t *testing.T) {
+	const (
+		newColumn  = "newColumn"
+		newColumn2 = "newColumn2"
+		newColumn3 = "newColumn3"
+	)
+
+	table := NewTable("testTable")
+
+	column := Column{
+		Node: Node{
+			Name: newColumn,
+		},
+	}
+
+	column2 := Column{
+		Node: Node{
+			Name: newColumn2,
+		},
+	}
+
+	column3 := Column{
+		Node: Node{
+			Name: newColumn3,
+		},
+	}
+
+	table.AddColumn(column)
+	table.AddColumn(column2)
+
+	table.columnPosition = &ast.ColumnPosition{
+		Tp: ast.ColumnPositionAfter,
+		RelativeColumn: &ast.ColumnName{
+			Name: model.CIStr{
+				O: newColumn,
+			},
+		},
+	}
+	table.AddColumn(column3)
+
+	if i := table.getIndexColumn(newColumn); i != 0 {
+		t.Errorf("wrong index returned: %d", i)
+	}
+
+	if i := table.getIndexColumn(newColumn2); i != 2 {
+		t.Errorf("wrong index returned: %d", i)
+	}
+
+	if i := table.getIndexColumn(newColumn3); i != 1 {
+		t.Errorf("wrong index returned: %d", i)
+	}
+}
+
+func TestGetIndexColumnWithColumnPositionFirst(t *testing.T) {
+	const (
+		newColumn  = "newColumn"
+		newColumn2 = "newColumn2"
+		newColumn3 = "newColumn3"
+	)
+
+	table := NewTable("testTable")
+
+	column := Column{
+		Node: Node{
+			Name: newColumn,
+		},
+	}
+
+	column2 := Column{
+		Node: Node{
+			Name: newColumn2,
+		},
+	}
+
+	column3 := Column{
+		Node: Node{
+			Name: newColumn3,
+		},
+	}
+
+	table.AddColumn(column)
+	table.AddColumn(column2)
+
+	table.columnPosition = &ast.ColumnPosition{
+		Tp: ast.ColumnPositionFirst,
+	}
+	table.AddColumn(column3)
+
+	if i := table.getIndexColumn(newColumn); i != 2 {
+		t.Errorf("wrong index returned: %d", i)
+	}
+
+	if i := table.getIndexColumn(newColumn2); i != 1 {
+		t.Errorf("wrong index returned: %d", i)
+	}
+
+	if i := table.getIndexColumn(newColumn3); i != 0 {
 		t.Errorf("wrong index returned: %d", i)
 	}
 }
