@@ -35,6 +35,33 @@ type movie struct {
 	YearReleased string `sql:"column:year_released,old:released_at"`
 }
 
+type request struct {
+	ID                       int32   `sql:"primary_key;auto_increment"`
+	Sku                      string  `sql:"type:VARCHAR(64);index:idx_sku"`
+	SiteID                   string  `sql:"type:VARCHAR(64);index:idx_site_id"`
+	CategoryID               string  `sql:"type:VARCHAR(64);index:idx_category_id"`
+	FromSiteIDs              string  `sql:"type:VARCHAR(255);index:idx_from_site_ids"`
+	SupplierIDs              string  `sql:"type:VARCHAR(255)"`
+	AverageSale              float64 `sql:"type:DOUBLE"`
+	RemainQuantity           float64 `sql:"type:DOUBLE"`
+	InComingQuantity         float64 `sql:"type:DOUBLE"`
+	RequestMessage           string  `sql:"type:VARCHAR(255)"`
+	IsUrgent                 bool
+	SuggestedQuantity        float64 `sql:"type:DOUBLE"`
+	Quantity                 float64 `sql:"type:DOUBLE"`
+	RequestedBy              string  `sql:"type:VARCHAR(64)"`
+	Message                  string  `sql:"type:VARCHAR(255)"`
+	ActionBy                 string  `sql:"type:VARCHAR(64)"`
+	ReferenceID              string  `sql:"type:VARCHAR(64)"`
+	ReferenceMessage         string  `sql:"type:VARCHAR(255)"`
+	PurchaseReferenceID      string  `sql:"type:VARCHAR(64)"`
+	PurchaseReferenceMessage string  `sql:"type:VARCHAR(255)"`
+	TransferCommandID        int32
+	PurchaseOrderID          int32     `sql:"index:idx_purchase_command_id"`
+	CreatedAt                time.Time `sql:"default:CURRENT_TIMESTAMP"`
+	UpdatedAt                time.Time `sql:"default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+}
+
 var (
 	space = regexp.MustCompile(`\s+`)
 
@@ -115,6 +142,43 @@ CREATE TABLE city (
 );`
 	expectCreateCityDown = `
 DROP TABLE IF EXISTS city;`
+
+	requestMigration = `
+CREATE TABLE request(
+  id                    INT AUTO_INCREMENT PRIMARY KEY,
+  sku                   VARCHAR(64),
+  site_id               VARCHAR(64),
+  category_id           VARCHAR(64),
+  from_site_ids         VARCHAR(255),
+  supplier_ids          VARCHAR(255),
+  average_sale          DOUBLE,
+  remain_quantity       DOUBLE,
+  request_message       VARCHAR(255),
+  is_urgent             BOOLEAN,
+  suggested_quantity    DOUBLE,
+  quantity              DOUBLE,
+  requested_by          VARCHAR(64),
+  message               VARCHAR(255),
+  reference_id          VARCHAR(64),
+  purchase_reference_id VARCHAR(64),
+  response_message      VARCHAR(255),
+  transfer_command_id   INT,
+  purchase_order_id     INT,
+  created_at            DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at            DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_sku ON request(sku);
+CREATE INDEX idx_site_id ON request(site_id);
+CREATE INDEX idx_category_id ON request(category_id);
+CREATE INDEX idx_purchase_command_id ON request(purchase_order_id);
+
+CREATE INDEX idx_from_site_ids ON request(from_site_ids);
+ALTER TABLE request ADD COLUMN action_by VARCHAR(64) AFTER message;
+ALTER TABLE request ADD COLUMN in_coming_quantity double AFTER remain_quantity;
+ALTER TABLE request ADD COLUMN reference_message varchar(255) AFTER reference_id;
+ALTER TABLE request ADD COLUMN purchase_reference_message varchar(255) AFTER purchase_reference_id;
+ALTER TABLE request DROP COLUMN response_message;`
 )
 
 func TestSqlize_FromObjects(t *testing.T) {
@@ -281,7 +345,8 @@ func TestSqlize_Diff(t *testing.T) {
 			},
 			wantMigrationUp:   alterCityUpStm,
 			wantMigrationDown: alterCityDownStm,
-		}, {
+		},
+		{
 			name: "diff movie sql",
 			args: args{
 				movie{},
@@ -289,6 +354,15 @@ func TestSqlize_Diff(t *testing.T) {
 			},
 			wantMigrationUp:   alterMovieUpStm,
 			wantMigrationDown: alterMovieDownStm,
+		},
+		{
+			name: "diff device sql",
+			args: args{
+				request{},
+				requestMigration,
+			},
+			wantMigrationUp:   "",
+			wantMigrationDown: "",
 		},
 	}
 	for _, tt := range tests {
