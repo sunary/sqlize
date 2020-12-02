@@ -356,7 +356,7 @@ func TestSqlize_Diff(t *testing.T) {
 			wantMigrationDown: alterMovieDownStm,
 		},
 		{
-			name: "diff device sql",
+			name: "diff request sql",
 			args: args{
 				request{},
 				requestMigration,
