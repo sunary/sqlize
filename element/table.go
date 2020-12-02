@@ -35,38 +35,16 @@ func NewTable(name string) *Table {
 
 func (t *Table) AddColumn(col Column) {
 	id := t.getIndexColumn(col.Name)
-	if id == -1 {
+	switch {
+	case id == -1:
 		t.Columns = append(t.Columns, col)
 		t.columnIndexes[col.Name] = len(t.Columns) - 1
+		id = len(t.Columns) - 1
 
-		if t.columnPosition != nil {
-			defer func() {
-				t.columnPosition = nil
-			}()
+	case t.Columns[id].Action != MigrateAddAction:
+		t.Columns[id] = col
 
-			newID, currentID := 0, len(t.Columns)-1
-			if t.columnPosition.Tp == ast.ColumnPositionAfter {
-				if afterID := t.getIndexColumn(t.columnPosition.RelativeColumn.Name.O); afterID >= 0 {
-					newID = afterID + 1
-				} else {
-					return
-				}
-			}
-
-			t.Columns[newID], t.Columns[currentID] = t.Columns[currentID], t.Columns[newID]
-
-			for k := range t.columnIndexes {
-				if t.columnIndexes[k] >= newID {
-					t.columnIndexes[k] += 1
-				}
-			}
-			t.columnIndexes[col.Name] = newID
-		}
-		return
-
-	}
-
-	if t.Columns[id].Action == MigrateAddAction {
+	default:
 		t.Columns[id].Options = append(t.Columns[id].Options, col.Options...)
 
 		size := len(t.Columns[id].Options)
@@ -78,23 +56,77 @@ func (t *Table) AddColumn(col Column) {
 		}
 
 		t.Columns[id].Typ = col.Typ
+		return
+	}
+
+	if t.columnPosition != nil {
+		defer func() {
+			t.columnPosition = nil
+		}()
+
+		switch t.columnPosition.Tp {
+		case ast.ColumnPositionFirst:
+			t.swapOrder(id, 0)
+
+		case ast.ColumnPositionAfter:
+			if afterID := t.getIndexColumn(t.columnPosition.RelativeColumn.Name.O); afterID >= 0 {
+				fmt.Println(t.columnPosition.RelativeColumn.Name.O)
+				fmt.Println(afterID + 1)
+				t.swapOrder(id, afterID+1)
+			}
+		}
+	}
+}
+
+func (t *Table) swapOrder(oldID, newID int) {
+	if oldID == newID {
+		return
+	}
+	if newID == len(t.Columns)-1 {
+		t.Columns = append(t.Columns, t.Columns[oldID])
 	} else {
-		t.Columns[id] = col
+		oldCol := t.Columns[oldID]
+		t.Columns = append(t.Columns[:newID+1], t.Columns[newID:]...)
+		t.Columns[newID] = oldCol
+	}
+
+	switch {
+	case oldID > newID:
+		for k := range t.columnIndexes {
+			if t.columnIndexes[k] >= newID && t.columnIndexes[k] < oldID {
+				t.columnIndexes[k]++
+			}
+		}
+
+		if oldID == len(t.Columns)-2 {
+			t.Columns = t.Columns[:len(t.Columns)-1]
+		} else {
+			t.Columns = append(t.Columns[:oldID], t.Columns[oldID+1:]...)
+		}
+
+	case oldID < newID:
+		for k := range t.columnIndexes {
+			if t.columnIndexes[k] > oldID && t.columnIndexes[k] <= newID {
+				t.columnIndexes[k]--
+			}
+		}
+
+		t.Columns = append(t.Columns[:oldID-1], t.Columns[oldID:]...)
 	}
 }
 
 func (t *Table) removeColumn(colName string) {
 	id := t.getIndexColumn(colName)
-	if id == -1 {
+	switch {
+	case id == -1:
 		col := Column{Node: Node{Name: colName, Action: MigrateRemoveAction}}
 		t.Columns = append(t.Columns, col)
 		t.columnIndexes[colName] = len(t.Columns) - 1
-		return
-	}
 
-	if t.Columns[id].Action == MigrateAddAction {
+	case t.Columns[id].Action == MigrateAddAction:
 		t.Columns[id].Action = MigrateNoAction
-	} else {
+
+	default:
 		t.Columns[id].Action = MigrateRemoveAction
 	}
 }
@@ -147,26 +179,16 @@ func (t *Table) RenameIndex(oldName, newName string) {
 }
 
 func (t Table) getIndexColumn(colName string) int {
-	//if v, ok := t.columnIndexes[colName]; ok {
-	//	return v
-	//}
-	for i := range t.Columns {
-		if t.Columns[i].Name == colName {
-			return i
-		}
+	if v, ok := t.columnIndexes[colName]; ok {
+		return v
 	}
 
 	return -1
 }
 
 func (t Table) getIndexIndex(idxName string) int {
-	//if v, ok := t.indexIndexes[idxName]; ok {
-	//	return v
-	//}
-	for i := range t.Indexes {
-		if t.Indexes[i].Name == idxName {
-			return i
-		}
+	if v, ok := t.indexIndexes[idxName]; ok {
+		return v
 	}
 
 	return -1
