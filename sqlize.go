@@ -9,6 +9,7 @@ import (
 	"github.com/sunary/sqlize/mysql-parser"
 	"github.com/sunary/sqlize/sql-builder"
 	"github.com/sunary/sqlize/utils"
+	"github.com/sunary/sqlize/postgres-parser"
 )
 
 const (
@@ -25,6 +26,7 @@ type Sqlize struct {
 	isLower             bool
 	sqlBuilder          *sql_builder.SqlBuilder
 	mysqlParser         *mysql_parser.Parser
+	postgresParser *postgres_parser.Parser
 }
 
 func NewSqlize(opts ...SqlizeOption) *Sqlize {
@@ -59,6 +61,7 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 
 		sqlBuilder:  sb,
 		mysqlParser: mysql_parser.NewParser(o.isLower),
+		postgresParser: postgres_parser.NewParser(),
 	}
 }
 
@@ -73,6 +76,10 @@ func (s *Sqlize) FromObjects(objs ...interface{}) error {
 }
 
 func (s *Sqlize) FromString(sql string) error {
+	if s.isPostgres {
+		return s.postgresParser.Parse(sql)
+	}
+
 	return s.mysqlParser.Parser(sql)
 }
 

@@ -20,6 +20,7 @@ const (
 type Column struct {
 	Node
 	Typ     *types.FieldType
+	StrTyp  string
 	Options []*ast.ColumnOption
 }
 
