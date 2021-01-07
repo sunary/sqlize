@@ -91,15 +91,24 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 
 			switch tab.Constraints[i].Tp {
 			case ast.ConstraintPrimaryKey:
-				tb.AddColumn(element.Column{
-					Node: element.Node{Name: cols[0], Action: element.MigrateAddAction},
-					Typ:  nil,
-					Options: []*ast.ColumnOption{
-						{
-							Tp: ast.ColumnOptionPrimaryKey,
+				if tab.Constraints[i].Keys != nil {
+					tb.AddIndex(element.Index{
+						Node:    element.Node{Name: "primary_key", Action: element.MigrateAddAction},
+						Typ:     ast.IndexKeyTypeNone,
+						CnsTyp:  ast.ConstraintPrimaryKey,
+						Columns: cols,
+					})
+				} else {
+					tb.AddColumn(element.Column{
+						Node: element.Node{Name: cols[0], Action: element.MigrateAddAction},
+						Typ:  nil,
+						Options: []*ast.ColumnOption{
+							{
+								Tp: ast.ColumnOptionPrimaryKey,
+							},
 						},
-					},
-				})
+					})
+				}
 
 			case ast.ConstraintKey, ast.ConstraintIndex:
 				tb.AddIndex(element.Index{

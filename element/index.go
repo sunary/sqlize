@@ -12,6 +12,7 @@ import (
 type Index struct {
 	Node
 	Typ     ast.IndexKeyType
+	CnsTyp  ast.ConstraintType
 	Columns []string
 }
 
@@ -21,6 +22,12 @@ func (i Index) migrationUp(tbName string) []string {
 		return nil
 
 	case MigrateAddAction:
+		if i.CnsTyp == ast.ConstraintPrimaryKey {
+			return []string{fmt.Sprintf(mysql_templates.CreatePrimaryKeyStm(isLower),
+				utils.EscapeSqlName(tbName),
+				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
+		}
+
 		switch i.Typ {
 		case ast.IndexKeyTypeNone:
 			return []string{fmt.Sprintf(mysql_templates.CreateIndexStm(isLower),
@@ -37,6 +44,11 @@ func (i Index) migrationUp(tbName string) []string {
 		}
 
 	case MigrateRemoveAction:
+		if i.CnsTyp == ast.ConstraintPrimaryKey {
+			return []string{fmt.Sprintf(mysql_templates.DropPrimaryKeyStm(isLower),
+				utils.EscapeSqlName(tbName))}
+		}
+
 		return []string{fmt.Sprintf(mysql_templates.DropIndexStm(isLower),
 			utils.EscapeSqlName(i.Name),
 			utils.EscapeSqlName(tbName))}

@@ -52,12 +52,20 @@ func AlterTableRenameColumnStm(isLower bool) string {
 	return fromStr("ALTER TABLE %s RENAME COLUMN %s TO %s;").apply(isLower)
 }
 
+func CreatePrimaryKeyStm(isLower bool) string {
+	return fromStr("ALTER TABLE %s ADD PRIMARY KEY(%s);").apply(isLower)
+}
+
 func CreateIndexStm(isLower bool) string {
 	return fromStr("CREATE INDEX %s ON %s(%s);").apply(isLower)
 }
 
 func CreateUniqueIndexStm(isLower bool) string {
 	return fromStr("CREATE UNIQUE INDEX %s ON %s(%s);").apply(isLower)
+}
+
+func DropPrimaryKeyStm(isLower bool) string {
+	return fromStr("ALTER TABLE %s DROP PRIMARY KEY;").apply(isLower)
 }
 
 func DropIndexStm(isLower bool) string {

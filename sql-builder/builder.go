@@ -54,6 +54,7 @@ func (s SqlBuilder) AddTable(tb interface{}) string {
 	maxLen := 0
 
 	fields := make([][]string, 0)
+	primaryKey := ""
 	indexes := make([]string, 0)
 	v := reflect.ValueOf(tb)
 	t := reflect.TypeOf(tb)
@@ -75,8 +76,11 @@ func (s SqlBuilder) AddTable(tb interface{}) string {
 		indexColumns := ""
 		isAutoDeclare := false
 		for _, gt := range gts {
+			hasBreak := false
+
 			gtLower := strings.ToLower(gt)
-			if strings.HasPrefix(gtLower, columnPrefix) {
+			switch {
+			case strings.HasPrefix(gtLower, columnPrefix):
 				columnNames := strings.Split(gt[len(columnPrefix):], oldNameMark)
 				if len(columnNames) == 1 {
 					columnDeclare = columnNames[0]
@@ -84,14 +88,18 @@ func (s SqlBuilder) AddTable(tb interface{}) string {
 					columnsHistory = append(columnsHistory, [2]string{columnNames[1], columnNames[0]})
 					columnDeclare = columnNames[1]
 				}
-			} else if strings.HasPrefix(gtLower, foreignKeyPrefix) || strings.HasPrefix(gtLower, associationFkPrefix) {
+
+			case strings.HasPrefix(gtLower, foreignKeyPrefix) || strings.HasPrefix(gtLower, associationFkPrefix):
 				isFkDeclare = true
-				break
-			} else if strings.HasPrefix(gtLower, typePrefix) {
+				hasBreak = true
+
+			case strings.HasPrefix(gtLower, typePrefix):
 				typeDeclare = gt[len(typePrefix):]
-			} else if strings.HasPrefix(gtLower, defaultPrefix) {
+
+			case strings.HasPrefix(gtLower, defaultPrefix):
 				defaultDeclare = fmt.Sprintf(mysql_templates.DefaultOption(s.isLower), gt[len(defaultPrefix):])
-			} else if strings.HasPrefix(gtLower, indexPrefix) {
+
+			case strings.HasPrefix(gtLower, indexPrefix):
 				indexDeclare = gt[len(indexPrefix):]
 				if idxFields := strings.Split(indexDeclare, ","); len(idxFields) > 1 {
 					indexDeclare = fmt.Sprintf("idx_%s", strings.Join(idxFields, "_"))
@@ -99,12 +107,25 @@ func (s SqlBuilder) AddTable(tb interface{}) string {
 				} else {
 					indexColumns = utils.EscapeSqlName(columnDeclare)
 				}
-			} else if gtLower == isPrimaryKey {
-				isPkDeclare = true
-			} else if gtLower == isUnique {
+
+			case strings.HasPrefix(gtLower, isPrimaryKey):
+				if gtLower == isPrimaryKey {
+					isPkDeclare = true
+				} else {
+					pkDeclare := gt[len(isPrimaryKey)+1:]
+					idxFields := strings.Split(pkDeclare, ",")
+					primaryKey = strings.Join(utils.EscapeSqlNames(idxFields), ", ")
+				}
+
+			case gtLower == isUnique:
 				isUniqueDeclare = true
-			} else if gtLower == isAutoIncrement {
+
+			case gtLower == isAutoIncrement:
 				isAutoDeclare = true
+			}
+
+			if hasBreak {
+				break
 			}
 		}
 
@@ -146,6 +167,10 @@ func (s SqlBuilder) AddTable(tb interface{}) string {
 	fs := make([]string, 0)
 	for _, f := range fields {
 		fs = append(fs, fmt.Sprintf("  %s%s%s", utils.EscapeSqlName(f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
+	}
+
+	if len(primaryKey) > 0 {
+		fs = append(fs, fmt.Sprintf("  %s (%s)", mysql_templates.PrimaryOption(s.isLower), primaryKey))
 	}
 
 	sql := []string{fmt.Sprintf(mysql_templates.CreateTableStm(s.isLower), utils.EscapeSqlName(tableName), strings.Join(fs, ",\n"))}
