@@ -7,16 +7,22 @@ import (
 	"time"
 )
 
+type Base struct {
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
 type person struct {
-	ID       int32  `sql:"primary_key;auto_increment"`
-	Name     string `sql:"type:VARCHAR(64);unique;index:name,age"`
-	Alias    string `sql:"-"`
-	Age      int
-	IsFemale bool
-	CreateAt time.Time `sql:"default:CURRENT_TIMESTAMP"`
+	ID        int32  `sql:"primary_key;auto_increment"`
+	Name      string `sql:"type:VARCHAR(64);unique;index:name,age"`
+	Alias     string `sql:"-"`
+	Age       int
+	IsFemale  bool
+	CreatedAt time.Time `sql:"default:CURRENT_TIMESTAMP"`
 }
 
 type hotel struct {
+	Base
 	ID           int32 `sql:"primary_key"`
 	Name         string
 	GrandOpening *time.Time
@@ -70,7 +76,7 @@ var (
  name      varchar(64),
  age       int(11),
  is_female tinyint(1),
- create_at datetime DEFAULT CURRENT_TIMESTAMP()
+ created_at datetime DEFAULT CURRENT_TIMESTAMP()
 );`
 	alterPersonUpStm = `
 CREATE UNIQUE INDEX idx_name_age ON person(name, age);`
@@ -82,7 +88,9 @@ CREATE TABLE hotel (
  id            int(11) PRIMARY KEY,
  name          text,
  star          tinyint(4),
- grand_opening datetime NULL
+ grand_opening datetime NULL,
+ created_at datetime,
+ updated_at datetime
 );`
 	alterHotelUpStm = `
 ALTER TABLE hotel DROP COLUMN star;`
@@ -119,7 +127,7 @@ CREATE TABLE person (
  name      varchar(64),
  age       int(11),
  is_female tinyint(1),
- create_at datetime DEFAULT CURRENT_TIMESTAMP()
+ created_at datetime DEFAULT CURRENT_TIMESTAMP()
 );
 CREATE UNIQUE INDEX idx_name_age ON person(name, age);`
 	expectCreatePersonDown = `
@@ -129,7 +137,9 @@ DROP TABLE IF EXISTS person;`
 CREATE TABLE hotel (
  id            int(11) PRIMARY KEY,
  name          text,
- grand_opening datetime NULL
+ grand_opening datetime NULL,
+ created_at datetime,
+ updated_at datetime
 );`
 	expectCreateHotelDown = `
 DROP TABLE IF EXISTS hotel;`

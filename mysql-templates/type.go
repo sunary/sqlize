@@ -35,6 +35,10 @@ func DatetimeType(isLower bool) string {
 	return fromStr("DATETIME").apply(isLower)
 }
 
+func PointerType(isLower bool) string {
+	return fromStr("POINTER").apply(isLower)
+}
+
 func UnspecificType(isLower bool) string {
 	return fromStr("UNSPECIFIED").apply(isLower)
 }

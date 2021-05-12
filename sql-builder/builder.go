@@ -25,6 +25,14 @@ const (
 	funcTableName       = "TableName"
 )
 
+var (
+	reflectValueFields = map[string]struct{}{
+		"typ":  {},
+		"ptr":  {},
+		"flag": {},
+	}
+)
+
 type SqlBuilder struct {
 	isPostgres bool
 	isLower    bool
@@ -48,16 +56,35 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	}
 }
 
-func (s SqlBuilder) AddTable(tb interface{}) string {
-	tableName := getTableName(tb)
-	columnsHistory := make([][2]string, 0)
+func (s SqlBuilder) AddTable(obj interface{}) string {
+	tableName := getTableName(obj)
+	columns, columnsHistory, indexes := s.parseStruct(tableName, obj)
+	sql := []string{fmt.Sprintf(mysql_templates.CreateTableStm(s.isLower), utils.EscapeSqlName(tableName), strings.Join(columns, ",\n"))}
+	for _, h := range columnsHistory {
+		sql = append(sql, fmt.Sprintf(mysql_templates.AlterTableRenameColumnStm(s.isLower), utils.EscapeSqlName(tableName), utils.EscapeSqlName(h[0]), utils.EscapeSqlName(h[1])))
+	}
+
+	sql = append(sql, indexes...)
+
+	return strings.Join(sql, "\n")
+}
+
+func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, [][2]string, []string) {
 	maxLen := 0
 
-	fields := make([][]string, 0)
-	primaryKey := ""
+	rawCols := make([][]string, 0)
+
+	embedColumns := make([]string, 0)
+	embedColumnsHistory := make([][2]string, 0)
+	embedIndexes := make([]string, 0)
+
+	columns := make([]string, 0)
+	columnsHistory := make([][2]string, 0)
 	indexes := make([]string, 0)
-	v := reflect.ValueOf(tb)
-	t := reflect.TypeOf(tb)
+
+	primaryKey := ""
+	v := reflect.ValueOf(obj)
+	t := reflect.TypeOf(obj)
 	for j := 0; j < t.NumField(); j++ {
 		field := t.Field(j)
 		gtag := field.Tag.Get(s.sqlTag)
@@ -145,62 +172,81 @@ func (s SqlBuilder) AddTable(tb interface{}) string {
 			maxLen = len(columnDeclare)
 		}
 
-		fs := []string{columnDeclare}
+		col := []string{columnDeclare}
 		if typeDeclare != "" {
-			fs = append(fs, typeDeclare)
+			col = append(col, typeDeclare)
 		} else {
-			fs = append(fs, s.sqlType(v.Field(j).Interface(), ""))
+			if _, ok := reflectValueFields[t.Field(j).Name]; ok {
+				continue
+			}
+
+			strType, isStruct := s.sqlType(v.Field(j).Interface(), "")
+			if isStruct {
+				_columns, _columnsHistory, _indexes := s.parseStruct(tableName, v.Field(j).Interface())
+				embedColumns = append(embedColumns, _columns...)
+				embedColumnsHistory = append(embedColumnsHistory, _columnsHistory...)
+				embedIndexes = append(embedIndexes, _indexes...)
+				continue
+			} else {
+				col = append(col, strType)
+			}
 		}
 		if defaultDeclare != "" {
-			fs = append(fs, defaultDeclare)
+			col = append(col, defaultDeclare)
 		}
 		if isAutoDeclare {
-			fs = append(fs, mysql_templates.AutoIncrementOption(s.isLower))
+			col = append(col, mysql_templates.AutoIncrementOption(s.isLower))
 		}
 		if isPkDeclare {
-			fs = append(fs, mysql_templates.PrimaryOption(s.isLower))
+			col = append(col, mysql_templates.PrimaryOption(s.isLower))
 		}
 
-		fields = append(fields, fs)
+		rawCols = append(rawCols, col)
 	}
 
-	fs := make([]string, 0)
-	for _, f := range fields {
-		fs = append(fs, fmt.Sprintf("  %s%s%s", utils.EscapeSqlName(f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
+	for _, f := range rawCols {
+		columns = append(columns, fmt.Sprintf("  %s%s%s", utils.EscapeSqlName(f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
 	}
 
 	if len(primaryKey) > 0 {
-		fs = append(fs, fmt.Sprintf("  %s (%s)", mysql_templates.PrimaryOption(s.isLower), primaryKey))
+		columns = append(columns, fmt.Sprintf("  %s (%s)", mysql_templates.PrimaryOption(s.isLower), primaryKey))
 	}
 
-	sql := []string{fmt.Sprintf(mysql_templates.CreateTableStm(s.isLower), utils.EscapeSqlName(tableName), strings.Join(fs, ",\n"))}
-	for _, h := range columnsHistory {
-		sql = append(sql, fmt.Sprintf(mysql_templates.AlterTableRenameColumnStm(s.isLower), utils.EscapeSqlName(tableName), utils.EscapeSqlName(h[0]), utils.EscapeSqlName(h[1])))
-	}
-
-	sql = append(sql, indexes...)
-
-	return strings.Join(sql, "\n")
+	return append(columns, embedColumns...), append(columnsHistory, embedColumnsHistory...), append(indexes, embedIndexes...)
 }
 
 func (s SqlBuilder) RemoveTable(tb interface{}) string {
 	return fmt.Sprintf(mysql_templates.DropTableStm(s.isLower), utils.EscapeSqlName(getTableName(tb)))
 }
 
-func (s SqlBuilder) sqlType(v interface{}, suffix string) string {
-	if reflect.ValueOf(v).Kind() == reflect.Ptr {
+func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
+	switch reflect.ValueOf(v).Kind() {
+	case reflect.Ptr:
 		vv := reflect.Indirect(reflect.ValueOf(v))
 		if reflect.ValueOf(v).Pointer() == 0 || vv.IsZero() {
-			return mysql_templates.UnspecificType(s.isLower)
+			return mysql_templates.PointerType(s.isLower), false
 		}
 
 		return s.sqlType(vv.Interface(), mysql_templates.NullValue(s.isLower))
+
+	case reflect.Struct:
+		if _, ok := v.(time.Time); ok {
+			if suffix != "" {
+				suffix = " " + suffix
+			}
+			return mysql_templates.DatetimeType(s.isLower) + suffix, false
+		}
+		return "", true
 	}
 
 	if suffix != "" {
 		suffix = " " + suffix
 	}
 
+	return s.sqlPrimitiveType(v, suffix), false
+}
+
+func (s SqlBuilder) sqlPrimitiveType(v interface{}, suffix string) string {
 	switch v.(type) {
 	case bool:
 		return mysql_templates.BooleanType(s.isLower) + suffix

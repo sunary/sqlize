@@ -70,8 +70,6 @@ func (t *Table) AddColumn(col Column) {
 
 		case ast.ColumnPositionAfter:
 			if afterID := t.getIndexColumn(t.columnPosition.RelativeColumn.Name.O); afterID >= 0 {
-				fmt.Println(t.columnPosition.RelativeColumn.Name.O)
-				fmt.Println(afterID + 1)
 				t.swapOrder(id, afterID+1)
 			}
 		}
