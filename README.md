@@ -6,10 +6,12 @@ Migration MySQL Compatible SQL
 
 #### Features
 
-+ Sql parser
++ Sql parser (Mysql)
 + Sql builder from objects
-+ Generate sql migration from diff sql
-+ Generate arvo schema
++ Generate `sql migration` from diff between existed sql and objects
++ Generate `arvo` schema
++ Compatible with `gorm` tag
++ Support embedded struct
 
 
 ### Getting Started
@@ -97,4 +99,50 @@ func main() {
 
 	_ = newMigration.WriteFiles("demo migration")
 }
+```
+
+### Convention
+
+1. primary key: `sql:"primary_key"`
+2. auto increment: `sql:"auto_increment"`
+3. index on a single column: `sql:"index:idx_name"`
+4. composite index: `sql:"index:col1,col2"`, index name will be `idx_col1_col2`
+5. unique: `sql:"unique"`
+6. set default value: `sql:"default:CURRENT_TIMESTAMP"`
+7. override datatype: `sql:"type:VARCHAR(64)"`
+8. ignore: `sql:"-"`
+9. pointer value must be declare in struct
+
+```golang
+type sample struct {
+	ID        int32 `sql:"primary_key"`
+	DeletedAt *time.Time
+}
+
+now := time.Now()
+newMigration.FromObjects(sample{DeletedAt: &now})
+```
+
+10. fields belong to embedded struct have the lowest order, except `primary key` always first
+11. an embedded struct can not be pointer
+
+```golang
+type Base struct {
+	ID        int32 `sql:"primary_key"`
+	CreatedAt time.Time
+}
+type sample struct {
+	Base
+	User string
+}
+
+newMigration.FromObjects(sample{})
+
+/*
+CREATE TABLE sample (
+ id         int(11) PRIMARY KEY,
+ user       text,
+ created_at datetime
+);
+*/
 ```

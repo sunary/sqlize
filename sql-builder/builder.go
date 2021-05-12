@@ -59,6 +59,15 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 func (s SqlBuilder) AddTable(obj interface{}) string {
 	tableName := getTableName(obj)
 	columns, columnsHistory, indexes := s.parseStruct(tableName, obj)
+
+	sqlPrimaryKey := mysql_templates.PrimaryOption(s.isLower)
+	for i := range columns {
+		if strings.Index(columns[i], sqlPrimaryKey) > 0 {
+			columns[0], columns[i] = columns[i], columns[0]
+			break
+		}
+	}
+
 	sql := []string{fmt.Sprintf(mysql_templates.CreateTableStm(s.isLower), utils.EscapeSqlName(tableName), strings.Join(columns, ",\n"))}
 	for _, h := range columnsHistory {
 		sql = append(sql, fmt.Sprintf(mysql_templates.AlterTableRenameColumnStm(s.isLower), utils.EscapeSqlName(tableName), utils.EscapeSqlName(h[0]), utils.EscapeSqlName(h[1])))
@@ -231,11 +240,9 @@ func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
 
 	case reflect.Struct:
 		if _, ok := v.(time.Time); ok {
-			if suffix != "" {
-				suffix = " " + suffix
-			}
-			return mysql_templates.DatetimeType(s.isLower) + suffix, false
+			break
 		}
+
 		return "", true
 	}
 
