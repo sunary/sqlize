@@ -30,6 +30,7 @@ func (p *Parser) Parser(sql string) error {
 			break
 		}
 	}
+
 	return nil
 }
 
@@ -116,8 +117,9 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 						Name:   tab.Constraints[i].Name,
 						Action: element.MigrateAddAction,
 					},
-					Typ:     ast.IndexKeyTypeNone,
-					Columns: cols,
+					Typ:       ast.IndexKeyTypeNone,
+					IndexType: tab.Constraints[i].Option.Tp,
+					Columns:   cols,
 				})
 
 			case ast.ConstraintUniqKey, ast.ConstraintUniqIndex:
@@ -126,8 +128,9 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 						Name:   tab.Constraints[i].Name,
 						Action: element.MigrateAddAction,
 					},
-					Typ:     ast.IndexKeyTypeUnique,
-					Columns: cols,
+					Typ:       ast.IndexKeyTypeUnique,
+					IndexType: tab.Constraints[i].Option.Tp,
+					Columns:   cols,
 				})
 			}
 		}

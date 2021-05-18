@@ -12,11 +12,12 @@ import (
 
 const (
 	SqlTagDefault       = "sql"
-	columnPrefix        = "column:"  // column:column_name
-	oldNameMark         = ",old:"    // column:column_name,old:old_name
-	typePrefix          = "type:"    // type:VARCHAR(64)
-	defaultPrefix       = "default:" // default:0
-	indexPrefix         = "index:"   // index:idx_name index:column1,column2
+	columnPrefix        = "column:"     // column:column_name
+	oldNameMark         = ",old:"       // column:column_name,old:old_name
+	typePrefix          = "type:"       // type:VARCHAR(64)
+	defaultPrefix       = "default:"    // default:0
+	indexPrefix         = "index:"      // index:idx_name or index:col1,col2 (=> idx_col1_col2)
+	indexTypePrefix     = "index_type:" // index_type:btree (default) or index_type:hash
 	foreignKeyPrefix    = "foreignkey:"
 	associationFkPrefix = "association_foreignkey:"
 	isPrimaryKey        = "primary_key"
@@ -109,6 +110,7 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 		isPkDeclare := false
 		isUniqueDeclare := false
 		indexDeclare := ""
+		indexTypeDeclare := ""
 		indexColumns := ""
 		isAutoDeclare := false
 		for _, gt := range gts {
@@ -143,6 +145,8 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 				} else {
 					indexColumns = utils.EscapeSqlName(columnDeclare)
 				}
+			case strings.HasPrefix(gtLower, indexTypePrefix):
+				indexTypeDeclare = gt[len(indexTypePrefix):]
 
 			case strings.HasPrefix(gtLower, isPrimaryKey):
 				if gtLower == isPrimaryKey {
@@ -170,11 +174,14 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 		}
 
 		if indexDeclare != "" {
+			var strIndex string
 			if isUniqueDeclare {
-				indexes = append(indexes, fmt.Sprintf(mysql_templates.CreateUniqueIndexStm(s.isLower), utils.EscapeSqlName(indexDeclare), utils.EscapeSqlName(tableName), indexColumns))
+				strIndex = fmt.Sprintf(mysql_templates.CreateUniqueIndexStm(s.isLower, indexTypeDeclare), utils.EscapeSqlName(indexDeclare), utils.EscapeSqlName(tableName), indexColumns)
 			} else {
-				indexes = append(indexes, fmt.Sprintf(mysql_templates.CreateIndexStm(s.isLower), utils.EscapeSqlName(indexDeclare), utils.EscapeSqlName(tableName), indexColumns))
+				strIndex = fmt.Sprintf(mysql_templates.CreateIndexStm(s.isLower, indexTypeDeclare), utils.EscapeSqlName(indexDeclare), utils.EscapeSqlName(tableName), indexColumns)
 			}
+
+			indexes = append(indexes, strIndex)
 		}
 
 		if len(columnDeclare) > maxLen {

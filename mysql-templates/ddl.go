@@ -56,11 +56,19 @@ func CreatePrimaryKeyStm(isLower bool) string {
 	return fromStr("ALTER TABLE %s ADD PRIMARY KEY(%s);").apply(isLower)
 }
 
-func CreateIndexStm(isLower bool) string {
+func CreateIndexStm(isLower bool, indexType string) string {
+	if indexType != "" {
+		return fromStr("CREATE INDEX %s ON %s(%s) USING " + strings.ToUpper(indexType) + ";").apply(isLower)
+	}
+
 	return fromStr("CREATE INDEX %s ON %s(%s);").apply(isLower)
 }
 
-func CreateUniqueIndexStm(isLower bool) string {
+func CreateUniqueIndexStm(isLower bool, indexType string) string {
+	if indexType != "" {
+		return fromStr("CREATE UNIQUE INDEX %s ON %s(%s) USING " + strings.ToUpper(indexType) + ";").apply(isLower)
+	}
+
 	return fromStr("CREATE UNIQUE INDEX %s ON %s(%s);").apply(isLower)
 }
 

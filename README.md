@@ -103,15 +103,16 @@ func main() {
 
 ### Convention
 
-1. primary key: `sql:"primary_key"`
-2. auto increment: `sql:"auto_increment"`
-3. index on a single column: `sql:"index:idx_name"`
-4. composite index: `sql:"index:col1,col2"`, index name will be `idx_col1_col2`
-5. unique: `sql:"unique"`
-6. set default value: `sql:"default:CURRENT_TIMESTAMP"`
-7. override datatype: `sql:"type:VARCHAR(64)"`
-8. ignore: `sql:"-"`
-9. pointer value must be declare in struct
+* primary key: `sql:"primary_key"`
+* auto increment: `sql:"auto_increment"`
+* index on a single column: `sql:"index:idx_name"`
+* composite index: `sql:"index:col1,col2"`, index name will be `idx_col1_col2`
+* index type: `sql:"index_type:btree"`
+* unique: `sql:"unique"`
+* set default value: `sql:"default:CURRENT_TIMESTAMP"`
+* override datatype: `sql:"type:VARCHAR(64)"`
+* ignore: `sql:"-"`
+* pointer value must be declare in struct
 
 ```golang
 type sample struct {
@@ -123,8 +124,8 @@ now := time.Now()
 newMigration.FromObjects(sample{DeletedAt: &now})
 ```
 
-10. fields belong to embedded struct have the lowest order, except `primary key` always first
-11. an embedded struct can not be pointer
+* fields belong to embedded struct have the lowest order, except `primary key` always first
+* an embedded struct can not be pointer
 
 ```golang
 type Base struct {

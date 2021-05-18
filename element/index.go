@@ -5,15 +5,17 @@ import (
 	"strings"
 
 	"github.com/pingcap/parser/ast"
+	"github.com/pingcap/parser/model"
 	"github.com/sunary/sqlize/mysql-templates"
 	"github.com/sunary/sqlize/utils"
 )
 
 type Index struct {
 	Node
-	Typ     ast.IndexKeyType
-	CnsTyp  ast.ConstraintType
-	Columns []string
+	Typ       ast.IndexKeyType
+	IndexType model.IndexType
+	CnsTyp    ast.ConstraintType
+	Columns   []string
 }
 
 func (i Index) migrationUp(tbName string) []string {
@@ -30,12 +32,12 @@ func (i Index) migrationUp(tbName string) []string {
 
 		switch i.Typ {
 		case ast.IndexKeyTypeNone:
-			return []string{fmt.Sprintf(mysql_templates.CreateIndexStm(isLower),
+			return []string{fmt.Sprintf(mysql_templates.CreateIndexStm(isLower, i.IndexType.String()),
 				utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName),
 				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
 
 		case ast.IndexKeyTypeUnique:
-			return []string{fmt.Sprintf(mysql_templates.CreateUniqueIndexStm(isLower),
+			return []string{fmt.Sprintf(mysql_templates.CreateUniqueIndexStm(isLower, i.IndexType.String()),
 				utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName),
 				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
 
