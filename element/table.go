@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/pingcap/parser/ast"
-	"github.com/sunary/sqlize/mysql-templates"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -291,10 +290,10 @@ func (t Table) MigrationColumnUp() []string {
 			}
 		}
 
-		return []string{fmt.Sprintf(mysql_templates.CreateTableStm(isLower), utils.EscapeSqlName(t.Name), strings.Join(strCols, ",\n"))}
+		return []string{fmt.Sprintf(sql.CreateTableStm(), utils.EscapeSqlName(t.Name), strings.Join(strCols, ",\n"))}
 
 	case MigrateRemoveAction:
-		return []string{fmt.Sprintf(mysql_templates.DropTableStm(isLower), utils.EscapeSqlName(t.Name))}
+		return []string{fmt.Sprintf(sql.DropTableStm(), utils.EscapeSqlName(t.Name))}
 
 	case MigrateModifyAction:
 		// TODO

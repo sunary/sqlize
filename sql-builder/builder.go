@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sunary/sqlize/mysql-templates"
+	"github.com/sunary/sqlize/sql-templates"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -35,8 +35,8 @@ var (
 )
 
 type SqlBuilder struct {
+	sql        *sql_templates.Sql
 	isPostgres bool
-	isLower    bool
 	sqlTag     string
 }
 
@@ -51,8 +51,8 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	}
 
 	return &SqlBuilder{
+		sql:        sql_templates.NewSql(o.isPostgres, o.isLower),
 		isPostgres: o.isPostgres,
-		isLower:    o.isLower,
 		sqlTag:     o.sqlTag,
 	}
 }
@@ -61,7 +61,7 @@ func (s SqlBuilder) AddTable(obj interface{}) string {
 	tableName := getTableName(obj)
 	columns, columnsHistory, indexes := s.parseStruct(tableName, obj)
 
-	sqlPrimaryKey := mysql_templates.PrimaryOption(s.isLower)
+	sqlPrimaryKey := s.sql.PrimaryOption()
 	for i := range columns {
 		if strings.Index(columns[i], sqlPrimaryKey) > 0 {
 			columns[0], columns[i] = columns[i], columns[0]
@@ -69,9 +69,9 @@ func (s SqlBuilder) AddTable(obj interface{}) string {
 		}
 	}
 
-	sql := []string{fmt.Sprintf(mysql_templates.CreateTableStm(s.isLower), utils.EscapeSqlName(tableName), strings.Join(columns, ",\n"))}
+	sql := []string{fmt.Sprintf(s.sql.CreateTableStm(), utils.EscapeSqlName(tableName), strings.Join(columns, ",\n"))}
 	for _, h := range columnsHistory {
-		sql = append(sql, fmt.Sprintf(mysql_templates.AlterTableRenameColumnStm(s.isLower), utils.EscapeSqlName(tableName), utils.EscapeSqlName(h[0]), utils.EscapeSqlName(h[1])))
+		sql = append(sql, fmt.Sprintf(s.sql.AlterTableRenameColumnStm(), utils.EscapeSqlName(tableName), utils.EscapeSqlName(h[0]), utils.EscapeSqlName(h[1])))
 	}
 
 	sql = append(sql, indexes...)
@@ -135,7 +135,7 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 				typeDeclare = gt[len(typePrefix):]
 
 			case strings.HasPrefix(gtLower, defaultPrefix):
-				defaultDeclare = fmt.Sprintf(mysql_templates.DefaultOption(s.isLower), gt[len(defaultPrefix):])
+				defaultDeclare = fmt.Sprintf(s.sql.DefaultOption(), gt[len(defaultPrefix):])
 
 			case strings.HasPrefix(gtLower, indexPrefix):
 				indexDeclare = gt[len(indexPrefix):]
@@ -176,9 +176,9 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 		if indexDeclare != "" {
 			var strIndex string
 			if isUniqueDeclare {
-				strIndex = fmt.Sprintf(mysql_templates.CreateUniqueIndexStm(s.isLower, indexTypeDeclare), utils.EscapeSqlName(indexDeclare), utils.EscapeSqlName(tableName), indexColumns)
+				strIndex = fmt.Sprintf(s.sql.CreateUniqueIndexStm(indexTypeDeclare), utils.EscapeSqlName(indexDeclare), utils.EscapeSqlName(tableName), indexColumns)
 			} else {
-				strIndex = fmt.Sprintf(mysql_templates.CreateIndexStm(s.isLower, indexTypeDeclare), utils.EscapeSqlName(indexDeclare), utils.EscapeSqlName(tableName), indexColumns)
+				strIndex = fmt.Sprintf(s.sql.CreateIndexStm(indexTypeDeclare), utils.EscapeSqlName(indexDeclare), utils.EscapeSqlName(tableName), indexColumns)
 			}
 
 			indexes = append(indexes, strIndex)
@@ -211,10 +211,10 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 			col = append(col, defaultDeclare)
 		}
 		if isAutoDeclare {
-			col = append(col, mysql_templates.AutoIncrementOption(s.isLower))
+			col = append(col, s.sql.AutoIncrementOption())
 		}
 		if isPkDeclare {
-			col = append(col, mysql_templates.PrimaryOption(s.isLower))
+			col = append(col, s.sql.PrimaryOption())
 		}
 
 		rawCols = append(rawCols, col)
@@ -225,14 +225,14 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 	}
 
 	if len(primaryKey) > 0 {
-		columns = append(columns, fmt.Sprintf("  %s (%s)", mysql_templates.PrimaryOption(s.isLower), primaryKey))
+		columns = append(columns, fmt.Sprintf("  %s (%s)", s.sql.PrimaryOption(), primaryKey))
 	}
 
 	return append(columns, embedColumns...), append(columnsHistory, embedColumnsHistory...), append(indexes, embedIndexes...)
 }
 
 func (s SqlBuilder) RemoveTable(tb interface{}) string {
-	return fmt.Sprintf(mysql_templates.DropTableStm(s.isLower), utils.EscapeSqlName(getTableName(tb)))
+	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(getTableName(tb)))
 }
 
 func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
@@ -240,10 +240,10 @@ func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
 	case reflect.Ptr:
 		vv := reflect.Indirect(reflect.ValueOf(v))
 		if reflect.ValueOf(v).Pointer() == 0 || vv.IsZero() {
-			return mysql_templates.PointerType(s.isLower), false
+			return s.sql.PointerType(), false
 		}
 
-		return s.sqlType(vv.Interface(), mysql_templates.NullValue(s.isLower))
+		return s.sqlType(vv.Interface(), s.sql.NullValue())
 
 	case reflect.Struct:
 		if _, ok := v.(time.Time); ok {
@@ -263,34 +263,34 @@ func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
 func (s SqlBuilder) sqlPrimitiveType(v interface{}, suffix string) string {
 	switch v.(type) {
 	case bool:
-		return mysql_templates.BooleanType(s.isLower) + suffix
+		return s.sql.BooleanType() + suffix
 
 	case int8, uint8:
-		return mysql_templates.TinyIntType(s.isLower) + suffix
+		return s.sql.TinyIntType() + suffix
 
 	case int16, uint16:
-		return mysql_templates.SmallIntType(s.isLower) + suffix
+		return s.sql.SmallIntType() + suffix
 
 	case int, int32, uint32:
-		return mysql_templates.IntType(s.isLower) + suffix
+		return s.sql.IntType() + suffix
 
 	case int64, uint64:
-		return mysql_templates.BigIntType(s.isLower) + suffix
+		return s.sql.BigIntType() + suffix
 
 	case float32:
-		return mysql_templates.FloatType(s.isLower) + suffix
+		return s.sql.FloatType() + suffix
 
 	case float64:
-		return mysql_templates.DoubleType(s.isLower) + suffix
+		return s.sql.DoubleType() + suffix
 
 	case string:
-		return mysql_templates.TextType(s.isLower) + suffix
+		return s.sql.TextType() + suffix
 
 	case time.Time:
-		return mysql_templates.DatetimeType(s.isLower) + suffix
+		return s.sql.DatetimeType() + suffix
 
 	default:
-		return mysql_templates.UnspecificType(s.isLower)
+		return s.sql.UnspecificType()
 	}
 }
 

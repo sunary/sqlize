@@ -6,8 +6,8 @@ import (
 
 	_ "github.com/pingcap/parser/test_driver"
 	"github.com/sunary/sqlize/avro"
-	"github.com/sunary/sqlize/mysql-parser"
 	"github.com/sunary/sqlize/sql-builder"
+	"github.com/sunary/sqlize/sql-parser"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -24,7 +24,7 @@ type Sqlize struct {
 	isPostgres          bool
 	isLower             bool
 	sqlBuilder          *sql_builder.SqlBuilder
-	mysqlParser         *mysql_parser.Parser
+	parser              *sql_parser.Parser
 }
 
 func NewSqlize(opts ...SqlizeOption) *Sqlize {
@@ -57,8 +57,8 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		isPostgres:          o.isPostgres,
 		isLower:             o.isLower,
 
-		sqlBuilder:  sb,
-		mysqlParser: mysql_parser.NewParser(o.isLower),
+		sqlBuilder: sb,
+		parser:     sql_parser.NewParser(o.isPostgres, o.isLower),
 	}
 }
 
@@ -73,7 +73,7 @@ func (s *Sqlize) FromObjects(objs ...interface{}) error {
 }
 
 func (s *Sqlize) FromString(sql string) error {
-	return s.mysqlParser.Parser(sql)
+	return s.parser.Parser(sql)
 }
 
 func (s *Sqlize) FromMigrationFolder() error {
@@ -92,15 +92,15 @@ func (s *Sqlize) FromMigrationFolder() error {
 }
 
 func (s *Sqlize) Diff(old Sqlize) {
-	s.mysqlParser.Diff(*old.mysqlParser)
+	s.parser.Diff(*old.parser)
 }
 
 func (s *Sqlize) StringUp() string {
-	return s.mysqlParser.MigrationUp()
+	return s.parser.MigrationUp()
 }
 
 func (s *Sqlize) StringDown() string {
-	return s.mysqlParser.MigrationDown()
+	return s.parser.MigrationDown()
 }
 
 func (s *Sqlize) WriteFiles(name string) error {
@@ -126,9 +126,9 @@ func (s *Sqlize) WriteFiles(name string) error {
 
 func (s Sqlize) ArvoSchema(needTables ...string) []string {
 	schemas := make([]string, 0)
-	for i := range s.mysqlParser.Migration.Tables {
-		if len(needTables) == 0 || utils.ContainStr(needTables, s.mysqlParser.Migration.Tables[i].Name) {
-			record := avro.NewArvoSchema(s.mysqlParser.Migration.Tables[i])
+	for i := range s.parser.Migration.Tables {
+		if len(needTables) == 0 || utils.ContainStr(needTables, s.parser.Migration.Tables[i].Name) {
+			record := avro.NewArvoSchema(s.parser.Migration.Tables[i])
 			jsonData, _ := json.Marshal(record)
 			schemas = append(schemas, string(jsonData))
 		}

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	ptypes "github.com/auxten/postgresql-parser/pkg/sql/types"
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/format"
 	"github.com/pingcap/parser/types"
-	"github.com/sunary/sqlize/mysql-templates"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -20,6 +20,7 @@ const (
 type Column struct {
 	Node
 	Typ     *types.FieldType
+	PgTyp   *ptypes.InternalType
 	Options []*ast.ColumnOption
 }
 
@@ -55,7 +56,7 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		for _, opt := range c.Options {
 			b := bytes.NewBufferString("")
 			var ctx *format.RestoreCtx
-			if isLower {
+			if sql.IsLower {
 				ctx = format.NewRestoreCtx(LowerRestoreFlag, b)
 			} else {
 				ctx = format.NewRestoreCtx(UppercaseRestoreFlag, b)
@@ -66,22 +67,22 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 
 		if ident < 0 {
 			if after != "" {
-				return []string{fmt.Sprintf(mysql_templates.AlterTableAddColumnAfterStm(isLower), utils.EscapeSqlName(tbName), strSql, utils.EscapeSqlName(after))}
+				return []string{fmt.Sprintf(sql.AlterTableAddColumnAfterStm(), utils.EscapeSqlName(tbName), strSql, utils.EscapeSqlName(after))}
 			} else {
-				return []string{fmt.Sprintf(mysql_templates.AlterTableAddColumnFirstStm(isLower), utils.EscapeSqlName(tbName), strSql)}
+				return []string{fmt.Sprintf(sql.AlterTableAddColumnFirstStm(), utils.EscapeSqlName(tbName), strSql)}
 			}
 		}
 
 		return []string{strSql}
 
 	case MigrateRemoveAction:
-		return []string{fmt.Sprintf(mysql_templates.AlterTableDropColumnStm(isLower), utils.EscapeSqlName(tbName), utils.EscapeSqlName(c.Name))}
+		return []string{fmt.Sprintf(sql.AlterTableDropColumnStm(), utils.EscapeSqlName(tbName), utils.EscapeSqlName(c.Name))}
 
 	case MigrateModifyAction:
 		return nil
 
 	case MigrateRenameAction:
-		return []string{fmt.Sprintf(mysql_templates.AlterTableRenameColumnStm(isLower), utils.EscapeSqlName(tbName), utils.EscapeSqlName(c.OldName), utils.EscapeSqlName(c.Name))}
+		return []string{fmt.Sprintf(sql.AlterTableRenameColumnStm(), utils.EscapeSqlName(tbName), utils.EscapeSqlName(c.OldName), utils.EscapeSqlName(c.Name))}
 
 	default:
 		return nil

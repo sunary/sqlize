@@ -4,10 +4,11 @@ import (
 	"strings"
 
 	"github.com/pingcap/parser/ast"
+	"github.com/sunary/sqlize/sql-templates"
 )
 
 var (
-	isLower bool
+	sql *sql_templates.Sql
 )
 
 type Migration struct {
@@ -16,8 +17,8 @@ type Migration struct {
 	tableIndexes map[string]int
 }
 
-func NewMigration(isLowercase bool) Migration {
-	isLower = isLowercase
+func NewMigration(isPostgres, isLower bool) Migration {
+	sql = sql_templates.NewSql(isPostgres, isLower)
 	return Migration{
 		Tables:       []Table{},
 		tableIndexes: map[string]int{},

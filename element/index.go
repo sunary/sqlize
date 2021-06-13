@@ -6,7 +6,6 @@ import (
 
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/model"
-	"github.com/sunary/sqlize/mysql-templates"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -25,19 +24,19 @@ func (i Index) migrationUp(tbName string) []string {
 
 	case MigrateAddAction:
 		if i.CnsTyp == ast.ConstraintPrimaryKey {
-			return []string{fmt.Sprintf(mysql_templates.CreatePrimaryKeyStm(isLower),
+			return []string{fmt.Sprintf(sql.CreatePrimaryKeyStm(),
 				utils.EscapeSqlName(tbName),
 				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
 		}
 
 		switch i.Typ {
 		case ast.IndexKeyTypeNone:
-			return []string{fmt.Sprintf(mysql_templates.CreateIndexStm(isLower, i.IndexType.String()),
+			return []string{fmt.Sprintf(sql.CreateIndexStm(i.IndexType.String()),
 				utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName),
 				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
 
 		case ast.IndexKeyTypeUnique:
-			return []string{fmt.Sprintf(mysql_templates.CreateUniqueIndexStm(isLower, i.IndexType.String()),
+			return []string{fmt.Sprintf(sql.CreateUniqueIndexStm(i.IndexType.String()),
 				utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName),
 				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
 
@@ -47,11 +46,11 @@ func (i Index) migrationUp(tbName string) []string {
 
 	case MigrateRemoveAction:
 		if i.CnsTyp == ast.ConstraintPrimaryKey {
-			return []string{fmt.Sprintf(mysql_templates.DropPrimaryKeyStm(isLower),
+			return []string{fmt.Sprintf(sql.DropPrimaryKeyStm(),
 				utils.EscapeSqlName(tbName))}
 		}
 
-		return []string{fmt.Sprintf(mysql_templates.DropIndexStm(isLower),
+		return []string{fmt.Sprintf(sql.DropIndexStm(),
 			utils.EscapeSqlName(i.Name),
 			utils.EscapeSqlName(tbName))}
 
@@ -64,7 +63,7 @@ func (i Index) migrationUp(tbName string) []string {
 		return strRems
 
 	case MigrateRenameAction:
-		return []string{fmt.Sprintf(mysql_templates.AlterTableRenameIndexStm(isLower),
+		return []string{fmt.Sprintf(sql.AlterTableRenameIndexStm(),
 			utils.EscapeSqlName(tbName),
 			utils.EscapeSqlName(i.OldName),
 			utils.EscapeSqlName(i.Name))}
