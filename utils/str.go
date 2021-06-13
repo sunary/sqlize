@@ -2,16 +2,21 @@ package utils
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 )
 
 const (
-	DefaultMigrationTimeFormat = "20060102150405"
+	defaultMigrationTimeFormat = "20060102150405"
 )
 
 func MigrationFileName(name string) string {
-	return time.Now().Format(DefaultMigrationTimeFormat) + "-" + strings.Replace(strings.ToLower(name), " ", "_", -1)
+	re, _ := regexp.Compile(`[^\w\d\s]`)
+	name = re.ReplaceAllString(name, "")
+	name = strings.Replace(strings.ToLower(name), "  ", " ", -1)
+	name = strings.Replace(strings.ToLower(name), " ", "_", -1)
+	return fmt.Sprintf("%s_%s", time.Now().Format(defaultMigrationTimeFormat), name)
 }
 
 func ToSnakeCase(input string) string {
