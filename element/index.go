@@ -25,20 +25,20 @@ func (i Index) migrationUp(tbName string) []string {
 	case MigrateAddAction:
 		if i.CnsTyp == ast.ConstraintPrimaryKey {
 			return []string{fmt.Sprintf(sql.CreatePrimaryKeyStm(),
-				utils.EscapeSqlName(tbName),
-				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
+				utils.EscapeSqlName(sql.IsPostgres, tbName),
+				strings.Join(utils.EscapeSqlNames(sql.IsPostgres, i.Columns), ", "))}
 		}
 
 		switch i.Typ {
 		case ast.IndexKeyTypeNone:
 			return []string{fmt.Sprintf(sql.CreateIndexStm(i.IndexType.String()),
-				utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName),
-				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
+				utils.EscapeSqlName(sql.IsPostgres, i.Name), utils.EscapeSqlName(sql.IsPostgres, tbName),
+				strings.Join(utils.EscapeSqlNames(sql.IsPostgres, i.Columns), ", "))}
 
 		case ast.IndexKeyTypeUnique:
 			return []string{fmt.Sprintf(sql.CreateUniqueIndexStm(i.IndexType.String()),
-				utils.EscapeSqlName(i.Name), utils.EscapeSqlName(tbName),
-				strings.Join(utils.EscapeSqlNames(i.Columns), ", "))}
+				utils.EscapeSqlName(sql.IsPostgres, i.Name), utils.EscapeSqlName(sql.IsPostgres, tbName),
+				strings.Join(utils.EscapeSqlNames(sql.IsPostgres, i.Columns), ", "))}
 
 		default:
 			return nil
@@ -47,12 +47,12 @@ func (i Index) migrationUp(tbName string) []string {
 	case MigrateRemoveAction:
 		if i.CnsTyp == ast.ConstraintPrimaryKey {
 			return []string{fmt.Sprintf(sql.DropPrimaryKeyStm(),
-				utils.EscapeSqlName(tbName))}
+				utils.EscapeSqlName(sql.IsPostgres, tbName))}
 		}
 
 		return []string{fmt.Sprintf(sql.DropIndexStm(),
-			utils.EscapeSqlName(i.Name),
-			utils.EscapeSqlName(tbName))}
+			utils.EscapeSqlName(sql.IsPostgres, i.Name),
+			utils.EscapeSqlName(sql.IsPostgres, tbName))}
 
 	case MigrateModifyAction:
 		strRems := make([]string, 2)
@@ -64,9 +64,9 @@ func (i Index) migrationUp(tbName string) []string {
 
 	case MigrateRenameAction:
 		return []string{fmt.Sprintf(sql.AlterTableRenameIndexStm(),
-			utils.EscapeSqlName(tbName),
-			utils.EscapeSqlName(i.OldName),
-			utils.EscapeSqlName(i.Name))}
+			utils.EscapeSqlName(sql.IsPostgres, tbName),
+			utils.EscapeSqlName(sql.IsPostgres, i.OldName),
+			utils.EscapeSqlName(sql.IsPostgres, i.Name))}
 
 	default:
 		return nil

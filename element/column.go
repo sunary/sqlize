@@ -44,13 +44,16 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		return nil
 
 	case MigrateAddAction:
-		strSql := utils.EscapeSqlName(c.Name)
+		strSql := utils.EscapeSqlName(sql.IsPostgres, c.Name)
 
 		if ident > len(c.Name) {
 			strSql += strings.Repeat(" ", ident-len(c.Name))
 		}
-		if c.Typ != nil {
+
+		if !sql.IsPostgres && c.Typ != nil {
 			strSql += " " + c.Typ.String()
+		} else if sql.IsPostgres && c.PgTyp != nil {
+			strSql += " " + sql.FamilyName(int32(c.PgTyp.Family))
 		}
 
 		for _, opt := range c.Options {
@@ -61,28 +64,34 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 			} else {
 				ctx = format.NewRestoreCtx(UppercaseRestoreFlag, b)
 			}
+
+			if sql.IsPostgres && opt.Tp == ast.ColumnOptionDefaultValue {
+				strSql += " " + b.String()
+				continue
+			}
+
 			_ = opt.Restore(ctx)
 			strSql += " " + b.String()
 		}
 
 		if ident < 0 {
 			if after != "" {
-				return []string{fmt.Sprintf(sql.AlterTableAddColumnAfterStm(), utils.EscapeSqlName(tbName), strSql, utils.EscapeSqlName(after))}
+				return []string{fmt.Sprintf(sql.AlterTableAddColumnAfterStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), strSql, utils.EscapeSqlName(sql.IsPostgres, after))}
 			} else {
-				return []string{fmt.Sprintf(sql.AlterTableAddColumnFirstStm(), utils.EscapeSqlName(tbName), strSql)}
+				return []string{fmt.Sprintf(sql.AlterTableAddColumnFirstStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), strSql)}
 			}
 		}
 
 		return []string{strSql}
 
 	case MigrateRemoveAction:
-		return []string{fmt.Sprintf(sql.AlterTableDropColumnStm(), utils.EscapeSqlName(tbName), utils.EscapeSqlName(c.Name))}
+		return []string{fmt.Sprintf(sql.AlterTableDropColumnStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), utils.EscapeSqlName(sql.IsPostgres, c.Name))}
 
 	case MigrateModifyAction:
 		return nil
 
 	case MigrateRenameAction:
-		return []string{fmt.Sprintf(sql.AlterTableRenameColumnStm(), utils.EscapeSqlName(tbName), utils.EscapeSqlName(c.OldName), utils.EscapeSqlName(c.Name))}
+		return []string{fmt.Sprintf(sql.AlterTableRenameColumnStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), utils.EscapeSqlName(sql.IsPostgres, c.OldName), utils.EscapeSqlName(sql.IsPostgres, c.Name))}
 
 	default:
 		return nil

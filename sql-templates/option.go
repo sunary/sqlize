@@ -5,6 +5,9 @@ func (s Sql) PrimaryOption() string {
 }
 
 func (s Sql) AutoIncrementOption() string {
+	if s.IsPostgres {
+		return s.apply("SERIAL")
+	}
 	return s.apply("AUTO_INCREMENT")
 }
 

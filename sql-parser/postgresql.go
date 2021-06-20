@@ -94,6 +94,7 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 				col := element.Column{
 					Node: element.Node{Name: nc.Column.String(), Action: element.MigrateModifyAction},
 					Options: []*ast.ColumnOption{{
+						Expr:     nil,
 						Tp:       ast.ColumnOptionDefaultValue,
 						StrValue: nc.Default.String(),
 					}},

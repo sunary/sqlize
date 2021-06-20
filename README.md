@@ -1,12 +1,11 @@
 ### SQLize
 
-[![From Vietnam with <3](https://raw.githubusercontent.com/webuild-community/badge/master/svg/love.svg)](https://webuild.community)
 
 Migration MySQL Compatible SQL
 
 #### Features
 
-+ Sql parser (Mysql)
++ Sql parser (Mysql/Postgres)
 + Sql builder from objects
 + Generate `sql migration` from diff between existed sql and objects
 + Generate `arvo` schema

@@ -290,10 +290,10 @@ func (t Table) MigrationColumnUp() []string {
 			}
 		}
 
-		return []string{fmt.Sprintf(sql.CreateTableStm(), utils.EscapeSqlName(t.Name), strings.Join(strCols, ",\n"))}
+		return []string{fmt.Sprintf(sql.CreateTableStm(), utils.EscapeSqlName(sql.IsPostgres, t.Name), strings.Join(strCols, ",\n"))}
 
 	case MigrateRemoveAction:
-		return []string{fmt.Sprintf(sql.DropTableStm(), utils.EscapeSqlName(t.Name))}
+		return []string{fmt.Sprintf(sql.DropTableStm(), utils.EscapeSqlName(sql.IsPostgres, t.Name))}
 
 	case MigrateModifyAction:
 		// TODO

@@ -69,9 +69,15 @@ func (s SqlBuilder) AddTable(obj interface{}) string {
 		}
 	}
 
-	sql := []string{fmt.Sprintf(s.sql.CreateTableStm(), utils.EscapeSqlName(tableName), strings.Join(columns, ",\n"))}
+	sql := []string{fmt.Sprintf(s.sql.CreateTableStm(),
+		utils.EscapeSqlName(s.isPostgres, tableName),
+		strings.Join(columns, ",\n"))}
 	for _, h := range columnsHistory {
-		sql = append(sql, fmt.Sprintf(s.sql.AlterTableRenameColumnStm(), utils.EscapeSqlName(tableName), utils.EscapeSqlName(h[0]), utils.EscapeSqlName(h[1])))
+		sql = append(sql,
+			fmt.Sprintf(s.sql.AlterTableRenameColumnStm(),
+				utils.EscapeSqlName(s.isPostgres, tableName),
+				utils.EscapeSqlName(s.isPostgres, h[0]),
+				utils.EscapeSqlName(s.isPostgres, h[1])))
 	}
 
 	sql = append(sql, indexes...)
@@ -141,9 +147,9 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 				indexDeclare = gt[len(indexPrefix):]
 				if idxFields := strings.Split(indexDeclare, ","); len(idxFields) > 1 {
 					indexDeclare = fmt.Sprintf("idx_%s", strings.Join(idxFields, "_"))
-					indexColumns = strings.Join(utils.EscapeSqlNames(idxFields), ", ")
+					indexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
 				} else {
-					indexColumns = utils.EscapeSqlName(columnDeclare)
+					indexColumns = utils.EscapeSqlName(s.isPostgres, columnDeclare)
 				}
 			case strings.HasPrefix(gtLower, indexTypePrefix):
 				indexTypeDeclare = gt[len(indexTypePrefix):]
@@ -154,7 +160,7 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 				} else {
 					pkDeclare := gt[len(isPrimaryKey)+1:]
 					idxFields := strings.Split(pkDeclare, ",")
-					primaryKey = strings.Join(utils.EscapeSqlNames(idxFields), ", ")
+					primaryKey = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
 				}
 
 			case gtLower == isUnique:
@@ -176,9 +182,13 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 		if indexDeclare != "" {
 			var strIndex string
 			if isUniqueDeclare {
-				strIndex = fmt.Sprintf(s.sql.CreateUniqueIndexStm(indexTypeDeclare), utils.EscapeSqlName(indexDeclare), utils.EscapeSqlName(tableName), indexColumns)
+				strIndex = fmt.Sprintf(s.sql.CreateUniqueIndexStm(indexTypeDeclare),
+					utils.EscapeSqlName(s.isPostgres, indexDeclare),
+					utils.EscapeSqlName(s.isPostgres, tableName), indexColumns)
 			} else {
-				strIndex = fmt.Sprintf(s.sql.CreateIndexStm(indexTypeDeclare), utils.EscapeSqlName(indexDeclare), utils.EscapeSqlName(tableName), indexColumns)
+				strIndex = fmt.Sprintf(s.sql.CreateIndexStm(indexTypeDeclare),
+					utils.EscapeSqlName(s.isPostgres, indexDeclare),
+					utils.EscapeSqlName(s.isPostgres, tableName), indexColumns)
 			}
 
 			indexes = append(indexes, strIndex)
@@ -211,7 +221,11 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 			col = append(col, defaultDeclare)
 		}
 		if isAutoDeclare {
-			col = append(col, s.sql.AutoIncrementOption())
+			if s.sql.IsPostgres {
+				col = []string{col[0], s.sql.AutoIncrementOption()}
+			} else {
+				col = append(col, s.sql.AutoIncrementOption())
+			}
 		}
 		if isPkDeclare {
 			col = append(col, s.sql.PrimaryOption())
@@ -221,7 +235,7 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 	}
 
 	for _, f := range rawCols {
-		columns = append(columns, fmt.Sprintf("  %s%s%s", utils.EscapeSqlName(f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
+		columns = append(columns, fmt.Sprintf("  %s%s%s", utils.EscapeSqlName(s.isPostgres, f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
 	}
 
 	if len(primaryKey) > 0 {
@@ -232,7 +246,7 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 }
 
 func (s SqlBuilder) RemoveTable(tb interface{}) string {
-	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(getTableName(tb)))
+	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(s.isPostgres, getTableName(tb)))
 }
 
 func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
