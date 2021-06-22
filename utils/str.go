@@ -80,18 +80,18 @@ func isUppercase(r rune) bool {
 	return r >= 'A' && r <= 'Z'
 }
 
-func EscapeSqlName(name string) string {
-	if name == "" {
-		return ""
+func EscapeSqlName(isPostgres bool, name string) string {
+	if isPostgres || name == "" {
+		return name
 	}
 
 	return fmt.Sprintf("`%s`", strings.Trim(name, "`"))
 }
 
-func EscapeSqlNames(names []string) []string {
+func EscapeSqlNames(isPostgres bool, names []string) []string {
 	ns := make([]string, len(names))
 	for i := range names {
-		ns[i] = EscapeSqlName(names[i])
+		ns[i] = EscapeSqlName(isPostgres, names[i])
 	}
 
 	return ns

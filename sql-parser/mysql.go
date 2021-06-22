@@ -1,4 +1,4 @@
-package mysql_parser
+package sql_parser
 
 import (
 	"github.com/pingcap/parser"
@@ -6,17 +6,7 @@ import (
 	"github.com/sunary/sqlize/element"
 )
 
-type Parser struct {
-	Migration element.Migration
-}
-
-func NewParser(isLowercase bool) *Parser {
-	return &Parser{
-		Migration: element.NewMigration(isLowercase),
-	}
-}
-
-func (p *Parser) Parser(sql string) error {
+func (p *Parser) ParserMysql(sql string) error {
 	ps := parser.New()
 	stmtNodes, _, err := ps.Parse(sql, "", "")
 	if err != nil {
@@ -60,16 +50,22 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 				p.Migration.RemoveColumn(alter.Table.Name.O, alter.Specs[i].OldColumnName.Name.O)
 
 			case ast.AlterTableModifyColumn:
-				// TODO
+				if len(alter.Specs[i].NewColumns) > 0 {
+					col := element.Column{
+						Node: element.Node{Name: alter.Specs[i].OldColumnName.Name.O, Action: element.MigrateModifyAction},
+						Typ:  alter.Specs[i].NewColumns[0].Tp,
+					}
+					p.Migration.AddColumn(alter.Table.Name.O, col)
+				}
 
 			case ast.AlterTableRenameColumn:
-				p.Migration.RenameColumn("", alter.Specs[i].OldColumnName.Name.O, alter.Specs[i].NewColumnName.Name.O)
+				p.Migration.RenameColumn(alter.Table.Name.O, alter.Specs[i].OldColumnName.Name.O, alter.Specs[i].NewColumnName.Name.O)
 
 			case ast.AlterTableRenameTable:
-				// TODO
+				p.Migration.RenameTable(alter.Table.Name.O, alter.Specs[i].NewTable.Name.O)
 
 			case ast.AlterTableRenameIndex:
-				p.Migration.RenameIndex("", alter.Specs[i].FromKey.O, alter.Specs[i].ToKey.O)
+				p.Migration.RenameIndex(alter.Table.Name.O, alter.Specs[i].FromKey.O, alter.Specs[i].ToKey.O)
 			}
 		}
 	}
@@ -81,9 +77,10 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 
 	// create Table
 	if tab, ok := in.(*ast.CreateTableStmt); ok {
-		p.Migration.Using(tab.Table.Name.O)
+		tbName := tab.Table.Name.O
+		tb := element.NewTable(tbName)
 
-		tb := element.NewTable(tab.Table.Name.O)
+		p.Migration.Using(tbName)
 		for i := range tab.Constraints {
 			cols := make([]string, len(tab.Constraints[i].Keys))
 			for j, key := range tab.Constraints[i].Keys {
@@ -170,16 +167,4 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 
 func (p *Parser) Leave(in ast.Node) (ast.Node, bool) {
 	return in, true
-}
-
-func (p *Parser) Diff(old Parser) {
-	p.Migration.Diff(old.Migration)
-}
-
-func (p Parser) MigrationUp() string {
-	return p.Migration.MigrationUp()
-}
-
-func (p Parser) MigrationDown() string {
-	return p.Migration.MigrationDown()
 }
