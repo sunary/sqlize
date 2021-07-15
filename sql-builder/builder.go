@@ -251,6 +251,14 @@ func (s SqlBuilder) RemoveTable(tb interface{}) string {
 }
 
 func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
+	if suffix != "" {
+		suffix = " " + suffix
+	}
+
+	if t, ok := s.sqlNullType(v, suffix); ok {
+		return t, false
+	}
+
 	switch reflect.ValueOf(v).Kind() {
 	case reflect.Ptr:
 		vv := reflect.Indirect(reflect.ValueOf(v))
@@ -268,16 +276,37 @@ func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
 		return "", true
 	}
 
-	if suffix != "" {
-		suffix = " " + suffix
-	}
-
 	return s.sqlPrimitiveType(v, suffix), false
+}
+
+func (s SqlBuilder) sqlNullType(v interface{}, suffix string) (string, bool) {
+	switch v.(type) {
+	case sql.NullBool:
+		return s.sql.BooleanType() + suffix, true
+
+	case sql.NullInt32:
+		return s.sql.IntType() + suffix, true
+
+	case sql.NullInt64:
+		return s.sql.BigIntType() + suffix, true
+
+	case sql.NullFloat64:
+		return s.sql.DoubleType() + suffix, true
+
+	case sql.NullString:
+		return s.sql.TextType() + suffix, true
+
+	case sql.NullTime:
+		return s.sql.DatetimeType() + suffix, true
+
+	default:
+		return "", false
+	}
 }
 
 func (s SqlBuilder) sqlPrimitiveType(v interface{}, suffix string) string {
 	switch v.(type) {
-	case sql.NullBool, bool:
+	case bool:
 		return s.sql.BooleanType() + suffix
 
 	case int8, uint8:
@@ -286,22 +315,22 @@ func (s SqlBuilder) sqlPrimitiveType(v interface{}, suffix string) string {
 	case int16, uint16:
 		return s.sql.SmallIntType() + suffix
 
-	case sql.NullInt32, int, int32, uint32:
+	case int, int32, uint32:
 		return s.sql.IntType() + suffix
 
-	case sql.NullInt64, int64, uint64:
+	case int64, uint64:
 		return s.sql.BigIntType() + suffix
 
 	case float32:
 		return s.sql.FloatType() + suffix
 
-	case sql.NullFloat64, float64:
+	case float64:
 		return s.sql.DoubleType() + suffix
 
-	case sql.NullString, string:
+	case string:
 		return s.sql.TextType() + suffix
 
-	case sql.NullTime, time.Time:
+	case time.Time:
 		return s.sql.DatetimeType() + suffix
 
 	default:
