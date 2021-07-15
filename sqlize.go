@@ -125,6 +125,10 @@ func (s *Sqlize) WriteFiles(name string) error {
 }
 
 func (s Sqlize) ArvoSchema(needTables ...string) []string {
+	if s.isPostgres {
+		panic("arvo support mysql only")
+	}
+
 	schemas := make([]string, 0)
 	for i := range s.parser.Migration.Tables {
 		if len(needTables) == 0 || utils.ContainStr(needTables, s.parser.Migration.Tables[i].Name) {

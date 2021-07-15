@@ -25,7 +25,11 @@ type Column struct {
 }
 
 func (c Column) GetType() byte {
-	return c.Typ.Tp
+	if c.Typ != nil {
+		return c.Typ.Tp
+	}
+
+	return 0
 }
 
 func (c Column) HasDefaultValue() bool {

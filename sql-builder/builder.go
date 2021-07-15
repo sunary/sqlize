@@ -1,6 +1,7 @@
 package sql_builder
 
 import (
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
@@ -276,7 +277,7 @@ func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
 
 func (s SqlBuilder) sqlPrimitiveType(v interface{}, suffix string) string {
 	switch v.(type) {
-	case bool:
+	case sql.NullBool, bool:
 		return s.sql.BooleanType() + suffix
 
 	case int8, uint8:
@@ -285,22 +286,22 @@ func (s SqlBuilder) sqlPrimitiveType(v interface{}, suffix string) string {
 	case int16, uint16:
 		return s.sql.SmallIntType() + suffix
 
-	case int, int32, uint32:
+	case sql.NullInt32, int, int32, uint32:
 		return s.sql.IntType() + suffix
 
-	case int64, uint64:
+	case sql.NullInt64, int64, uint64:
 		return s.sql.BigIntType() + suffix
 
 	case float32:
 		return s.sql.FloatType() + suffix
 
-	case float64:
+	case sql.NullFloat64, float64:
 		return s.sql.DoubleType() + suffix
 
-	case string:
+	case sql.NullString, string:
 		return s.sql.TextType() + suffix
 
-	case time.Time:
+	case sql.NullTime, time.Time:
 		return s.sql.DatetimeType() + suffix
 
 	default:

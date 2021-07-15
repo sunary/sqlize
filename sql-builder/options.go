@@ -30,6 +30,12 @@ func WithSqlTag(sqlTag string) SqlBuilderOption {
 	})
 }
 
+func WithMysql() SqlBuilderOption {
+	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
+		o.isPostgres = false
+	})
+}
+
 func WithPostgresql() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.isPostgres = true
@@ -44,6 +50,6 @@ func WithSqlUppercase() SqlBuilderOption {
 
 func WithSqlLowercase() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
-		o.isLower = false
+		o.isLower = true
 	})
 }

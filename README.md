@@ -1,16 +1,17 @@
 ### SQLize
 
 
-Migration MySQL Compatible SQL
+Generate MySQL/PostgreSQL Migration from golang struct and existing sql
 
 #### Features
 
-+ Sql parser (Mysql/Postgres)
++ Sql parser
 + Sql builder from objects
 + Generate `sql migration` from diff between existed sql and objects
-+ Generate `arvo` schema
-+ Compatible with `gorm` tag
++ Generate `arvo` schema (Mysql only)
 + Support embedded struct
++ Compatible with `golang-migrate/migrate`
++ Compatible with `gorm` tag
 
 
 ### Getting Started
@@ -102,6 +103,8 @@ func main() {
 
 ### Convention
 
+* Mysql by default, using option `sql_builder.WithPostgresql()` for postgresql
+* sql uppercase default, using option `sql_builder.WithSqlLowercase()` for sql lowercase
 * primary key: `sql:"primary_key"`
 * auto increment: `sql:"auto_increment"`
 * index on a single column: `sql:"index:idx_name"`
