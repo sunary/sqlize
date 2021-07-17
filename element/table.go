@@ -46,11 +46,12 @@ func (t *Table) AddColumn(col Column) {
 	default:
 		t.Columns[id].Options = append(t.Columns[id].Options, col.Options...)
 
-		size := len(t.Columns[id].Options)
-		for i := range t.Columns[id].Options[:size-1] {
-			if t.Columns[id].Options[i].Tp == ast.ColumnOptionPrimaryKey {
-				t.Columns[id].Options[i], t.Columns[id].Options[size-1] = t.Columns[id].Options[size-1], t.Columns[id].Options[i]
-				break
+		if size := len(t.Columns[id].Options); size > 0 {
+			for i := range t.Columns[id].Options[:size-1] {
+				if t.Columns[id].Options[i].Tp == ast.ColumnOptionPrimaryKey {
+					t.Columns[id].Options[i], t.Columns[id].Options[size-1] = t.Columns[id].Options[size-1], t.Columns[id].Options[i]
+					break
+				}
 			}
 		}
 
@@ -194,7 +195,8 @@ func (t Table) getIndexIndex(idxName string) int {
 func (t *Table) Diff(old Table) {
 	for i := range t.Columns {
 		if j := old.getIndexColumn(t.Columns[i].Name); t.Columns[i].Action == MigrateAddAction && j >= 0 {
-			if t.Columns[i].Typ == old.Columns[j].Typ {
+			if (t.Columns[i].Typ != nil && t.Columns[i].Typ.String() == old.Columns[j].Typ.String()) ||
+				(t.Columns[i].PgTyp != nil && t.Columns[i].PgTyp == old.Columns[j].PgTyp) {
 				t.Columns[i].Action = MigrateNoAction
 			} else {
 				t.Columns[i] = old.Columns[j]

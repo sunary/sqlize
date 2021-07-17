@@ -51,11 +51,13 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 
 			case ast.AlterTableModifyColumn:
 				if len(alter.Specs[i].NewColumns) > 0 {
-					col := element.Column{
-						Node: element.Node{Name: alter.Specs[i].OldColumnName.Name.O, Action: element.MigrateModifyAction},
-						Typ:  alter.Specs[i].NewColumns[0].Tp,
+					for j := range alter.Specs[i].NewColumns {
+						col := element.Column{
+							Node: element.Node{Name: alter.Specs[i].NewColumns[j].Name.Name.O, Action: element.MigrateModifyAction},
+							Typ:  alter.Specs[i].NewColumns[j].Tp,
+						}
+						p.Migration.AddColumn(alter.Table.Name.O, col)
 					}
-					p.Migration.AddColumn(alter.Table.Name.O, col)
 				}
 
 			case ast.AlterTableRenameColumn:
