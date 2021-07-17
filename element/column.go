@@ -54,29 +54,7 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 			strSql += strings.Repeat(" ", ident-len(c.Name))
 		}
 
-		if !sql.IsPostgres && c.Typ != nil {
-			strSql += " " + c.Typ.String()
-		} else if sql.IsPostgres && c.PgTyp != nil {
-			strSql += " " + sql.FamilyName(int32(c.PgTyp.Family))
-		}
-
-		for _, opt := range c.Options {
-			b := bytes.NewBufferString("")
-			var ctx *format.RestoreCtx
-			if sql.IsLower {
-				ctx = format.NewRestoreCtx(LowerRestoreFlag, b)
-			} else {
-				ctx = format.NewRestoreCtx(UppercaseRestoreFlag, b)
-			}
-
-			if sql.IsPostgres && opt.Tp == ast.ColumnOptionDefaultValue {
-				strSql += " " + b.String()
-				continue
-			}
-
-			_ = opt.Restore(ctx)
-			strSql += " " + b.String()
-		}
+		strSql += c.definition()
 
 		if ident < 0 {
 			if after != "" {
@@ -92,7 +70,7 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		return []string{fmt.Sprintf(sql.AlterTableDropColumnStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), utils.EscapeSqlName(sql.IsPostgres, c.Name))}
 
 	case MigrateModifyAction:
-		return nil
+		return []string{fmt.Sprintf(sql.AlterTableModifyColumnStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), utils.EscapeSqlName(sql.IsPostgres, c.Name)+c.definition())}
 
 	case MigrateRenameAction:
 		return []string{fmt.Sprintf(sql.AlterTableRenameColumnStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), utils.EscapeSqlName(sql.IsPostgres, c.OldName), utils.EscapeSqlName(sql.IsPostgres, c.Name))}
@@ -114,6 +92,7 @@ func (c Column) migrationDown(tbName, after string) []string {
 		c.Action = MigrateAddAction
 
 	case MigrateModifyAction:
+		return nil
 
 	case MigrateRenameAction:
 		c.Name, c.OldName = c.OldName, c.Name
@@ -123,4 +102,33 @@ func (c Column) migrationDown(tbName, after string) []string {
 	}
 
 	return c.migrationUp(tbName, after, -1)
+}
+
+func (c Column) definition() string {
+	strSql := ""
+	if !sql.IsPostgres && c.Typ != nil {
+		strSql += " " + c.Typ.String()
+	} else if sql.IsPostgres && c.PgTyp != nil {
+		strSql += " " + sql.FamilyName(int32(c.PgTyp.Family))
+	}
+
+	for _, opt := range c.Options {
+		b := bytes.NewBufferString("")
+		var ctx *format.RestoreCtx
+		if sql.IsLower {
+			ctx = format.NewRestoreCtx(LowerRestoreFlag, b)
+		} else {
+			ctx = format.NewRestoreCtx(UppercaseRestoreFlag, b)
+		}
+
+		if sql.IsPostgres && opt.Tp == ast.ColumnOptionDefaultValue {
+			strSql += " " + b.String()
+			continue
+		}
+
+		_ = opt.Restore(ctx)
+		strSql += " " + b.String()
+	}
+
+	return strSql
 }
