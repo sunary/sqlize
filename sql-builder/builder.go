@@ -251,11 +251,7 @@ func (s SqlBuilder) RemoveTable(tb interface{}) string {
 }
 
 func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
-	if suffix != "" {
-		suffix = " " + suffix
-	}
-
-	if t, ok := s.sqlNullType(v, suffix); ok {
+	if t, ok := s.sqlNullType(v, s.sql.NullValue()); ok {
 		return t, false
 	}
 
@@ -280,6 +276,10 @@ func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
 }
 
 func (s SqlBuilder) sqlNullType(v interface{}, suffix string) (string, bool) {
+	if suffix != "" {
+		suffix = " " + suffix
+	}
+
 	switch v.(type) {
 	case sql.NullBool:
 		return s.sql.BooleanType() + suffix, true
@@ -305,6 +305,10 @@ func (s SqlBuilder) sqlNullType(v interface{}, suffix string) (string, bool) {
 }
 
 func (s SqlBuilder) sqlPrimitiveType(v interface{}, suffix string) string {
+	if suffix != "" {
+		suffix = " " + suffix
+	}
+
 	switch v.(type) {
 	case bool:
 		return s.sql.BooleanType() + suffix

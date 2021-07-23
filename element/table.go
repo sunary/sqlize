@@ -66,20 +66,21 @@ func (t *Table) AddColumn(col Column) {
 
 		switch t.columnPosition.Tp {
 		case ast.ColumnPositionFirst:
-			t.swapOrder(id, 0)
+			t.swapOrder(col.Name, id, 0)
 
 		case ast.ColumnPositionAfter:
 			if afterID := t.getIndexColumn(t.columnPosition.RelativeColumn.Name.O); afterID >= 0 {
-				t.swapOrder(id, afterID+1)
+				t.swapOrder(col.Name, id, afterID+1)
 			}
 		}
 	}
 }
 
-func (t *Table) swapOrder(oldID, newID int) {
+func (t *Table) swapOrder(colName string, oldID, newID int) {
 	if oldID == newID {
 		return
 	}
+
 	if newID == len(t.Columns)-1 {
 		t.Columns = append(t.Columns, t.Columns[oldID])
 	} else {
@@ -111,6 +112,8 @@ func (t *Table) swapOrder(oldID, newID int) {
 
 		t.Columns = append(t.Columns[:oldID-1], t.Columns[oldID:]...)
 	}
+
+	t.columnIndexes[colName] = newID
 }
 
 func (t *Table) removeColumn(colName string) {
