@@ -204,11 +204,11 @@ func (m Migration) MigrationDown() string {
 	strTables := make([]string, 0)
 	for i := range m.Tables {
 		strTb := make([]string, 0)
-		if mColumn := m.Tables[i].MigrationColumnDown(); len(mColumn) > 0 {
-			strTb = append(strTb, strings.Join(mColumn, "\n"))
-		}
 		if mIndex := m.Tables[i].MigrationIndexDown(); len(mIndex) > 0 {
 			strTb = append(strTb, strings.Join(mIndex, "\n"))
+		}
+		if mColumn := m.Tables[i].MigrationColumnDown(); len(mColumn) > 0 {
+			strTb = append(strTb, strings.Join(mColumn, "\n"))
 		}
 
 		if len(strTb) > 0 {
