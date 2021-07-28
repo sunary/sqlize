@@ -2,6 +2,7 @@ package element
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/pingcap/parser/ast"
@@ -251,6 +252,33 @@ func (t *Table) Diff(old Table) {
 	}
 }
 
+type mOrder struct {
+	k string
+	v int
+}
+
+func (t *Table) Arrange() {
+	orders := make([]mOrder, 0, len(t.columnIndexes))
+	for k, v := range t.columnIndexes {
+		orders = append(orders, mOrder{
+			k: k,
+			v: v,
+		})
+	}
+	sort.Slice(orders, func(i, j int) bool {
+		return orders[i].v < orders[j].v
+	})
+
+	for i := range orders {
+		for j := range t.Columns {
+			if orders[i].k == t.Columns[j].Name {
+				t.Columns[i], t.Columns[j] = t.Columns[j], t.Columns[i]
+				break
+			}
+		}
+	}
+}
+
 func (t Table) MigrationColumnUp() []string {
 	switch t.Action {
 	case MigrateNoAction:
@@ -258,9 +286,9 @@ func (t Table) MigrationColumnUp() []string {
 		for i := range t.Columns {
 			if t.Columns[i].Action != MigrateNoAction {
 				after := ""
-				for k, v := range t.columnIndexes {
-					if v == t.columnIndexes[t.Columns[i].Name]-1 {
-						after = k
+				for j := i - 1; j >= 0; j-- {
+					if t.Columns[j].Action != MigrateRemoveAction {
+						after = t.Columns[j].Name
 						break
 					}
 				}

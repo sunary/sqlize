@@ -184,6 +184,8 @@ func (m *Migration) Diff(old Migration) {
 func (m Migration) MigrationUp() string {
 	strTables := make([]string, 0)
 	for i := range m.Tables {
+		m.Tables[i].Arrange()
+
 		strTb := make([]string, 0)
 		if mColumn := m.Tables[i].MigrationColumnUp(); len(mColumn) > 0 {
 			strTb = append(strTb, strings.Join(mColumn, "\n"))
@@ -203,6 +205,8 @@ func (m Migration) MigrationUp() string {
 func (m Migration) MigrationDown() string {
 	strTables := make([]string, 0)
 	for i := range m.Tables {
+		m.Tables[i].Arrange()
+
 		strTb := make([]string, 0)
 		if mIndex := m.Tables[i].MigrationIndexDown(); len(mIndex) > 0 {
 			strTb = append(strTb, strings.Join(mIndex, "\n"))
