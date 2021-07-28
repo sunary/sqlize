@@ -187,11 +187,12 @@ func (m Migration) MigrationUp() string {
 		m.Tables[i].Arrange()
 
 		strTb := make([]string, 0)
-		if mColumn := m.Tables[i].MigrationColumnUp(); len(mColumn) > 0 {
-			strTb = append(strTb, strings.Join(mColumn, "\n"))
+		mCols, dropCols := m.Tables[i].MigrationColumnUp()
+		if len(mCols) > 0 {
+			strTb = append(strTb, strings.Join(mCols, "\n"))
 		}
-		if mIndex := m.Tables[i].MigrationIndexUp(); len(mIndex) > 0 {
-			strTb = append(strTb, strings.Join(mIndex, "\n"))
+		if mIdxs := m.Tables[i].MigrationIndexUp(dropCols); len(mIdxs) > 0 {
+			strTb = append(strTb, strings.Join(mIdxs, "\n"))
 		}
 
 		if len(strTb) > 0 {
@@ -208,11 +209,12 @@ func (m Migration) MigrationDown() string {
 		m.Tables[i].Arrange()
 
 		strTb := make([]string, 0)
-		if mIndex := m.Tables[i].MigrationIndexDown(); len(mIndex) > 0 {
-			strTb = append(strTb, strings.Join(mIndex, "\n"))
+		mCols, dropCols := m.Tables[i].MigrationColumnDown()
+		if len(mCols) > 0 {
+			strTb = append(strTb, strings.Join(mCols, "\n"))
 		}
-		if mColumn := m.Tables[i].MigrationColumnDown(); len(mColumn) > 0 {
-			strTb = append(strTb, strings.Join(mColumn, "\n"))
+		if mIdxs := m.Tables[i].MigrationIndexDown(dropCols); len(mIdxs) > 0 {
+			strTb = append(strTb, strings.Join(mIdxs, "\n"))
 		}
 
 		if len(strTb) > 0 {

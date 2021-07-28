@@ -12,9 +12,7 @@ import (
 )
 
 const (
-	migrationUpSuffix   = ".up.sql"
-	migrationDownSuffix = ".down.sql"
-	genDescription      = "# generate by sqlize\n\n"
+	genDescription = "# generate by sqlize\n\n"
 )
 
 type Sqlize struct {
@@ -30,8 +28,8 @@ type Sqlize struct {
 func NewSqlize(opts ...SqlizeOption) *Sqlize {
 	o := sqlizeOptions{
 		migrationFolder:     "",
-		migrationUpSuffix:   migrationUpSuffix,
-		migrationDownSuffix: migrationDownSuffix,
+		migrationUpSuffix:   utils.MigrationUpSuffix,
+		migrationDownSuffix: utils.MigrationDownSuffix,
 
 		isPostgres: false,
 		isLower:    false,

@@ -279,18 +279,23 @@ func (t *Table) Arrange() {
 	}
 }
 
-func (t Table) MigrationColumnUp() []string {
+func (t Table) MigrationColumnUp() ([]string, map[string]struct{}) {
 	switch t.Action {
 	case MigrateNoAction:
 		strSqls := make([]string, 0)
+		dropCols := make(map[string]struct{})
 		for i := range t.Columns {
 			if t.Columns[i].Action != MigrateNoAction {
 				after := ""
-				for j := i - 1; j >= 0; j-- {
-					if t.Columns[j].Action != MigrateRemoveAction {
-						after = t.Columns[j].Name
-						break
+				if t.Columns[i].Action == MigrateAddAction {
+					for j := i - 1; j >= 0; j-- {
+						if t.Columns[j].Action != MigrateRemoveAction {
+							after = t.Columns[j].Name
+							break
+						}
 					}
+				} else if t.Columns[i].Action == MigrateRemoveAction {
+					dropCols[t.Columns[i].Name] = struct{}{}
 				}
 
 				if after != "" {
@@ -300,7 +305,7 @@ func (t Table) MigrationColumnUp() []string {
 				}
 			}
 		}
-		return strSqls
+		return strSqls, dropCols
 
 	case MigrateAddAction:
 		maxIdent := len(t.Columns[0].Name)
@@ -323,26 +328,27 @@ func (t Table) MigrationColumnUp() []string {
 			}
 		}
 
-		return []string{fmt.Sprintf(sql.CreateTableStm(), utils.EscapeSqlName(sql.IsPostgres, t.Name), strings.Join(strCols, ",\n"))}
+		return []string{fmt.Sprintf(sql.CreateTableStm(), utils.EscapeSqlName(sql.IsPostgres, t.Name), strings.Join(strCols, ",\n"))}, nil
 
 	case MigrateRemoveAction:
-		return []string{fmt.Sprintf(sql.DropTableStm(), utils.EscapeSqlName(sql.IsPostgres, t.Name))}
+		return []string{fmt.Sprintf(sql.DropTableStm(), utils.EscapeSqlName(sql.IsPostgres, t.Name))}, nil
 
 	case MigrateModifyAction:
 		// TODO
-		return nil
+		return nil, nil
 
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
-func (t Table) MigrationIndexUp() []string {
+func (t Table) MigrationIndexUp(dropCols map[string]struct{}) []string {
 	switch t.Action {
 	case MigrateNoAction:
 		strSqls := make([]string, 0)
 		for i := range t.Indexes {
-			if t.Indexes[i].Action != MigrateNoAction {
+			if _, ok := dropCols[t.Indexes[i].Columns[0]]; t.Indexes[i].Action != MigrateNoAction &&
+				(t.Indexes[i].Action != MigrateRemoveAction || !ok) {
 				strSqls = append(strSqls, t.Indexes[i].migrationUp(t.Name)...)
 			}
 		}
@@ -368,18 +374,23 @@ func (t Table) MigrationIndexUp() []string {
 	}
 }
 
-func (t Table) MigrationColumnDown() []string {
+func (t Table) MigrationColumnDown() ([]string, map[string]struct{}) {
 	switch t.Action {
 	case MigrateNoAction:
 		strSqls := make([]string, 0)
+		dropCols := make(map[string]struct{})
 		for i := range t.Columns {
 			if t.Columns[i].Action != MigrateNoAction {
 				after := ""
-				for k, v := range t.columnIndexes {
-					if v == t.columnIndexes[t.Columns[i].Name]-1 {
-						after = k
-						break
+				if t.Columns[i].Action == MigrateAddAction {
+					for k, v := range t.columnIndexes {
+						if v == t.columnIndexes[t.Columns[i].Name]-1 {
+							after = k
+							break
+						}
 					}
+				} else if t.Columns[i].Action == MigrateRemoveAction {
+					dropCols[t.Columns[i].Name] = struct{}{}
 				}
 
 				if after != "" {
@@ -389,7 +400,7 @@ func (t Table) MigrationColumnDown() []string {
 				}
 			}
 		}
-		return strSqls
+		return strSqls, dropCols
 
 	case MigrateAddAction:
 		t.Action = MigrateRemoveAction
@@ -401,19 +412,20 @@ func (t Table) MigrationColumnDown() []string {
 
 	case MigrateModifyAction:
 		// TODO
-		return nil
+		return nil, nil
 
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
-func (t Table) MigrationIndexDown() []string {
+func (t Table) MigrationIndexDown(dropCols map[string]struct{}) []string {
 	switch t.Action {
 	case MigrateNoAction:
 		strSqls := make([]string, 0)
 		for i := range t.Indexes {
-			if t.Indexes[i].Action != MigrateNoAction {
+			if _, ok := dropCols[t.Indexes[i].Columns[0]]; t.Indexes[i].Action != MigrateNoAction &&
+				(t.Indexes[i].Action != MigrateRemoveAction || !ok) {
 				strSqls = append(strSqls, t.Indexes[i].migrationDown(t.Name)...)
 			}
 		}
@@ -421,11 +433,11 @@ func (t Table) MigrationIndexDown() []string {
 
 	case MigrateAddAction:
 		t.Action = MigrateRemoveAction
-		return t.MigrationIndexUp()
+		return t.MigrationIndexUp(dropCols)
 
 	case MigrateRemoveAction:
 		t.Action = MigrateAddAction
-		return t.MigrationIndexUp()
+		return t.MigrationIndexUp(dropCols)
 
 	case MigrateModifyAction:
 		// TODO

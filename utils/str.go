@@ -9,6 +9,8 @@ import (
 
 const (
 	defaultMigrationTimeFormat = "20060102150405"
+	MigrationUpSuffix          = ".up.sql"
+	MigrationDownSuffix        = ".down.sql"
 )
 
 func MigrationFileName(name string) string {
