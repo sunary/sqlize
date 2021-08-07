@@ -382,14 +382,14 @@ func (t Table) MigrationColumnDown() ([]string, map[string]struct{}) {
 		for i := range t.Columns {
 			if t.Columns[i].Action != MigrateNoAction {
 				after := ""
-				if t.Columns[i].Action == MigrateAddAction {
-					for k, v := range t.columnIndexes {
-						if v == t.columnIndexes[t.Columns[i].Name]-1 {
-							after = k
+				if t.Columns[i].Action == MigrateRemoveAction {
+					for j := i - 1; j >= 0; j-- {
+						if t.Columns[j].Action != MigrateAddAction {
+							after = t.Columns[j].Name
 							break
 						}
 					}
-				} else if t.Columns[i].Action == MigrateRemoveAction {
+				} else if t.Columns[i].Action == MigrateAddAction {
 					dropCols[t.Columns[i].Name] = struct{}{}
 				}
 

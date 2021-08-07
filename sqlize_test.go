@@ -246,15 +246,15 @@ func TestSqlize_FromObjects(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSqlize()
 			if err := s.FromObjects(tt.args.objs...); (err != nil) != tt.wantErr {
-				t.Errorf("Mysql FromObjects() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Mysql FromObjects() error = %v,\n wantErr = %v", err, tt.wantErr)
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Mysql StringUp() string = %s, wantErr %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Mysql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Mysql StringDown() string = %s, wantErr %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Mysql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -264,15 +264,15 @@ func TestSqlize_FromObjects(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSqlize(WithPostgresql())
 			if err := s.FromObjects(tt.args.objs...); (err != nil) != tt.wantErr {
-				t.Errorf("Postgresql FromObjects() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Postgresql FromObjects() error = %v,\n wantErr = %v", err, tt.wantErr)
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Postgresql StringUp() string = %s, wantErr %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Postgresql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Postgresql StringDown() string = %s, wantErr %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Postgresql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -322,15 +322,15 @@ func TestSqlize_FromString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSqlize()
 			if err := s.FromString(tt.args.sql); (err != nil) != tt.wantErr {
-				t.Errorf("Mysql FromString() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Mysql FromString() error = %v,\n wantErr = %v", err, tt.wantErr)
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Mysql StringUp() string = %s, wantErr %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Mysql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Mysql StringDown() string = %s, wantErr %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Mysql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -340,15 +340,15 @@ func TestSqlize_FromString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSqlize(WithPostgresql())
 			if err := s.FromString(tt.args.sql); (err != nil) != tt.wantErr {
-				t.Errorf("Postgresql FromString() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Postgresql FromString() error = %v,\n wantErr = %v", err, tt.wantErr)
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Postgresql StringUp() string = %s, wantErr %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Postgresql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Postgresql StringDown() string = %s, wantErr %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Postgresql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -424,11 +424,11 @@ func TestSqlize_Diff(t *testing.T) {
 
 			s.Diff(*o)
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Mysql StringUp() string = %s, wantErr %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Mysql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Mysql StringDown() string = %s, wantErr %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Mysql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -444,11 +444,11 @@ func TestSqlize_Diff(t *testing.T) {
 
 			s.Diff(*o)
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Postgresql StringUp() string = %s, wantErr %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Postgresql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Postgresql StringDown() string = %s, wantErr %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Postgresql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
