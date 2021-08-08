@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	// SqlTagDefault ...
 	SqlTagDefault       = "sql"
 	columnPrefix        = "column:"     // column:column_name
 	oldNameMark         = ",old:"       // column:column_name,old:old_name

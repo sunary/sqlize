@@ -13,7 +13,9 @@ import (
 )
 
 const (
+	// UppercaseRestoreFlag ...
 	UppercaseRestoreFlag = format.RestoreStringSingleQuotes | format.RestoreKeyWordUppercase | format.RestoreNameUppercase | format.RestoreNameBackQuotes
+	// LowerRestoreFlag ...
 	LowerRestoreFlag     = format.RestoreStringSingleQuotes | format.RestoreKeyWordLowercase | format.RestoreNameLowercase | format.RestoreNameBackQuotes
 )
 
@@ -62,9 +64,8 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		if ident < 0 {
 			if after != "" {
 				return []string{fmt.Sprintf(sql.AlterTableAddColumnAfterStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), strSql, utils.EscapeSqlName(sql.IsPostgres, after))}
-			} else {
-				return []string{fmt.Sprintf(sql.AlterTableAddColumnFirstStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), strSql)}
 			}
+			return []string{fmt.Sprintf(sql.AlterTableAddColumnFirstStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), strSql)}
 		}
 
 		return []string{strSql}
