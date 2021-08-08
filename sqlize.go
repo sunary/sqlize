@@ -134,7 +134,7 @@ func (s *Sqlize) WriteFiles(name string) error {
 // ArvoSchema export arvo schema
 func (s Sqlize) ArvoSchema(needTables ...string) []string {
 	if s.isPostgres {
-		panic("arvo support mysql only")
+		return nil
 	}
 
 	schemas := make([]string, 0)

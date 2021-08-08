@@ -199,8 +199,7 @@ ALTER TABLE request DROP COLUMN response_message;`
 {"type":"record","name":"hotel","namespace":"hotel","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"grand_opening","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"created_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"updated_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"hotel"}`
 	expectCityArvo = `
 {"type":"record","name":"city","namespace":"city","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"region","type":["null",{"connect.default":"init","connect.name":"io.debezium.data.Enum","connect.parameters":{"allowed":"northern,southern"},"connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"city"}`
-	expectMovieArvo = `
-{"type":"record","name":"movie","namespace":"movie","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"title","type":"string"},{"name":"director","type":"string"},{"name":"year_released","type":"string"}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"movie"}`
+	expectMovieArvo = ``
 )
 
 func TestSqlize_FromObjects(t *testing.T) {
@@ -478,8 +477,9 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 	now := time.Now()
 
 	type args struct {
-		models     []interface{}
-		needTables []string
+		models       []interface{}
+		needTables   []string
+		isPostgresql bool
 	}
 	tests := []struct {
 		name string
@@ -491,6 +491,7 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 			args: args{
 				[]interface{}{person{}},
 				[]string{"person"},
+				false,
 			},
 			want: []string{expectPersonArvo},
 		},
@@ -499,6 +500,7 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 			args: args{
 				[]interface{}{hotel{GrandOpening: &now}},
 				[]string{"hotel"},
+				false,
 			},
 			want: []string{expectHotelArvo},
 		},
@@ -507,6 +509,7 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 			args: args{
 				[]interface{}{city{}},
 				[]string{"city"},
+				false,
 			},
 			want: []string{expectCityArvo},
 		}, {
@@ -514,16 +517,22 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 			args: args{
 				[]interface{}{movie{}},
 				[]string{"movie"},
+				true,
 			},
-			want: []string{expectMovieArvo},
+			want: nil,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSqlize()
+			opts := []SqlizeOption{}
+			if tt.args.isPostgresql {
+				opts = append(opts, WithPostgresql())
+			}
+			s := NewSqlize(opts...)
+
 			s.FromObjects(tt.args.models...)
-			if got := s.ArvoSchema(tt.args.needTables...); !areEqualJSON(got[0], tt.want[0]) {
-				t.Errorf("ArvoSchema() got = %v,\n expected = %v", got[0], tt.want[0])
+			if got := s.ArvoSchema(tt.args.needTables...); (got != nil || tt.want != nil) && !areEqualJSON(got[0], tt.want[0]) {
+				t.Errorf("ArvoSchema() got = %v,\n expected = %v", got, tt.want)
 			}
 		})
 	}
