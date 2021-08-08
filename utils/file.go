@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// ReadPath ...
 func ReadPath(path string, suffix string) ([]string, error) {
 	files, err := glob(path, suffix)
 	if err != nil {

@@ -11,12 +11,14 @@ var (
 	sql *sql_templates.Sql
 )
 
+// Migration ...
 type Migration struct {
 	currentTable string
 	Tables       []Table
 	tableIndexes map[string]int
 }
 
+// NewMigration ...
 func NewMigration(isPostgres, isLower bool) Migration {
 	sql = sql_templates.NewSql(isPostgres, isLower)
 	return Migration{
@@ -25,12 +27,14 @@ func NewMigration(isPostgres, isLower bool) Migration {
 	}
 }
 
+// Using set current table
 func (m *Migration) Using(tbName string) {
 	if tbName != "" {
 		m.currentTable = tbName
 	}
 }
 
+// AddTable ...
 func (m *Migration) AddTable(tb Table) {
 	id := m.getIndexTable(tb.Name)
 	if id == -1 {
@@ -42,6 +46,7 @@ func (m *Migration) AddTable(tb Table) {
 	m.Tables[id] = tb
 }
 
+// RemoveTable ...
 func (m *Migration) RemoveTable(tbName string) {
 	id := m.getIndexTable(tbName)
 	if id == -1 {
@@ -59,6 +64,7 @@ func (m *Migration) RemoveTable(tbName string) {
 	}
 }
 
+// RenameTable ...
 func (m *Migration) RenameTable(oldName, newName string) {
 	if id := m.getIndexTable(oldName); id >= 0 {
 		m.Tables[id].Action = MigrateRemoveAction
@@ -69,6 +75,7 @@ func (m *Migration) RenameTable(oldName, newName string) {
 	}
 }
 
+// AddColumn ...
 func (m *Migration) AddColumn(tbName string, col Column) {
 	if tbName == "" {
 		tbName = m.currentTable
@@ -85,6 +92,7 @@ func (m *Migration) AddColumn(tbName string, col Column) {
 	m.Tables[id].AddColumn(col)
 }
 
+// SetColumnPosition ...
 func (m *Migration) SetColumnPosition(tbName string, pos *ast.ColumnPosition) {
 	if tbName == "" {
 		tbName = m.currentTable
@@ -95,6 +103,7 @@ func (m *Migration) SetColumnPosition(tbName string, pos *ast.ColumnPosition) {
 	}
 }
 
+// RemoveColumn ...
 func (m *Migration) RemoveColumn(tbName, colName string) {
 	if tbName == "" {
 		tbName = m.currentTable
@@ -109,6 +118,7 @@ func (m *Migration) RemoveColumn(tbName, colName string) {
 	m.Tables[id].removeColumn(colName)
 }
 
+// RenameColumn ...
 func (m *Migration) RenameColumn(tbName, oldName, newName string) {
 	if tbName == "" {
 		tbName = m.currentTable
@@ -119,6 +129,7 @@ func (m *Migration) RenameColumn(tbName, oldName, newName string) {
 	}
 }
 
+// AddIndex ...
 func (m *Migration) AddIndex(tbName string, idx Index) {
 	if tbName == "" {
 		tbName = m.currentTable
@@ -133,6 +144,7 @@ func (m *Migration) AddIndex(tbName string, idx Index) {
 	m.Tables[id].AddIndex(idx)
 }
 
+// RemoveIndex ...
 func (m *Migration) RemoveIndex(tbName string, idxName string) {
 	if tbName == "" {
 		tbName = m.currentTable
@@ -147,6 +159,7 @@ func (m *Migration) RemoveIndex(tbName string, idxName string) {
 	m.Tables[id].RemoveIndex(idxName)
 }
 
+// RenameIndex ...
 func (m *Migration) RenameIndex(tbName, oldName, newName string) {
 	if tbName == "" {
 		tbName = m.currentTable
@@ -165,6 +178,7 @@ func (m Migration) getIndexTable(tableName string) int {
 	return -1
 }
 
+// Diff differ between 2 migrations
 func (m *Migration) Diff(old Migration) {
 	for i := range m.Tables {
 		if j := old.getIndexTable(m.Tables[i].Name); j >= 0 {
@@ -181,6 +195,7 @@ func (m *Migration) Diff(old Migration) {
 	}
 }
 
+// MigrationUp ...
 func (m Migration) MigrationUp() string {
 	strTables := make([]string, 0)
 	for i := range m.Tables {
@@ -203,6 +218,7 @@ func (m Migration) MigrationUp() string {
 	return strings.Join(strTables, "\n\n")
 }
 
+// MigrationDown ...
 func (m Migration) MigrationDown() string {
 	strTables := make([]string, 0)
 	for i := range m.Tables {

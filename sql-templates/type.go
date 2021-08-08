@@ -25,38 +25,47 @@ var familyName = map[int32]string{
 	100: "any",
 }
 
+// BooleanType ...
 func (s Sql) BooleanType() string {
 	return s.apply("BOOLEAN")
 }
 
+// TinyIntType ...
 func (s Sql) TinyIntType() string {
 	return s.apply("TINYINT")
 }
 
+// SmallIntType ...
 func (s Sql) SmallIntType() string {
 	return s.apply("SMALLINT")
 }
 
+// IntType ...
 func (s Sql) IntType() string {
 	return s.apply("INT")
 }
 
+// BigIntType ...
 func (s Sql) BigIntType() string {
 	return s.apply("BIGINT")
 }
 
+// FloatType ...
 func (s Sql) FloatType() string {
 	return s.apply("FLOAT")
 }
 
+// DoubleType ...
 func (s Sql) DoubleType() string {
 	return s.apply("DOUBLE")
 }
 
+// TextType ...
 func (s Sql) TextType() string {
 	return s.apply("TEXT")
 }
 
+// DatetimeType ...
 func (s Sql) DatetimeType() string {
 	if s.IsPostgres {
 		return s.apply("TIMESTAMP")
@@ -65,14 +74,17 @@ func (s Sql) DatetimeType() string {
 	return s.apply("DATETIME")
 }
 
+// PointerType ...
 func (s Sql) PointerType() string {
 	return s.apply("POINTER")
 }
 
+// UnspecificType ...
 func (s Sql) UnspecificType() string {
 	return s.apply("UNSPECIFIED")
 }
 
+// FamilyName ...
 func (s Sql) FamilyName(f int32) string {
 	return familyName[f]
 }

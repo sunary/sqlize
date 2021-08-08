@@ -1,5 +1,6 @@
 package utils
 
+// SlideStrEqual ...
 func SlideStrEqual(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
@@ -14,6 +15,7 @@ func SlideStrEqual(a, b []string) bool {
 	return true
 }
 
+// ContainStr ...
 func ContainStr(ss []string, s string) bool {
 	for i := range ss {
 		if s == ss[i] {

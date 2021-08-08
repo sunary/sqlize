@@ -9,6 +9,7 @@ import (
 	"github.com/sunary/sqlize/element"
 )
 
+// NewArvoSchema ...
 func NewArvoSchema(table element.Table) *RecordSchema {
 	fields := buildFieldsFromTable(table)
 	record := newRecordSchema(table.Name, table.Name)

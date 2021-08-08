@@ -13,6 +13,7 @@ const (
 	MigrationDownSuffix        = ".down.sql"
 )
 
+// MigrationFileName ...
 func MigrationFileName(name string) string {
 	re, _ := regexp.Compile(`[^\w\d\s]`)
 	name = re.ReplaceAllString(name, "")
@@ -21,6 +22,7 @@ func MigrationFileName(name string) string {
 	return fmt.Sprintf("%s_%s", time.Now().Format(defaultMigrationTimeFormat), name)
 }
 
+// ToSnakeCase ...
 func ToSnakeCase(input string) string {
 	var sb strings.Builder
 	var upperCount int
@@ -82,6 +84,7 @@ func isUppercase(r rune) bool {
 	return r >= 'A' && r <= 'Z'
 }
 
+// EscapeSqlName
 func EscapeSqlName(isPostgres bool, name string) string {
 	if isPostgres || name == "" {
 		return name
@@ -90,6 +93,7 @@ func EscapeSqlName(isPostgres bool, name string) string {
 	return fmt.Sprintf("`%s`", strings.Trim(name, "`"))
 }
 
+// EscapeSqlNames
 func EscapeSqlNames(isPostgres bool, names []string) []string {
 	ns := make([]string, len(names))
 	for i := range names {

@@ -9,6 +9,7 @@ import (
 	"github.com/sunary/sqlize/utils"
 )
 
+// Table ...
 type Table struct {
 	Node
 
@@ -20,6 +21,7 @@ type Table struct {
 	indexIndexes map[string]int
 }
 
+// NewTable ...
 func NewTable(name string) *Table {
 	return &Table{
 		Node: Node{
@@ -33,6 +35,7 @@ func NewTable(name string) *Table {
 	}
 }
 
+// AddColumn ...
 func (t *Table) AddColumn(col Column) {
 	id := t.getIndexColumn(col.Name)
 	switch {
@@ -133,6 +136,7 @@ func (t *Table) removeColumn(colName string) {
 	}
 }
 
+// RenameColumn ...
 func (t *Table) RenameColumn(oldName, newName string) {
 	if id := t.getIndexColumn(oldName); id >= 0 {
 		t.Columns[id].Action = MigrateRenameAction
@@ -143,6 +147,7 @@ func (t *Table) RenameColumn(oldName, newName string) {
 	}
 }
 
+// AddIndex ...
 func (t *Table) AddIndex(idx Index) {
 	id := t.getIndexColumn(idx.Name)
 	if id == -1 {
@@ -154,6 +159,7 @@ func (t *Table) AddIndex(idx Index) {
 	t.Indexes[id] = idx
 }
 
+// RemoveIndex ...
 func (t *Table) RemoveIndex(idxName string) {
 	id := t.getIndexIndex(idxName)
 	if id == -1 {
@@ -170,6 +176,7 @@ func (t *Table) RemoveIndex(idxName string) {
 	}
 }
 
+// RenameIndex ...
 func (t *Table) RenameIndex(oldName, newName string) {
 	if id := t.getIndexIndex(oldName); id >= 0 {
 		t.Indexes[id].Action = MigrateRenameAction
@@ -196,6 +203,7 @@ func (t Table) getIndexIndex(idxName string) int {
 	return -1
 }
 
+// Diff differ between 2 migrations
 func (t *Table) Diff(old Table) {
 	for i := range t.Columns {
 		if j := old.getIndexColumn(t.Columns[i].Name); t.Columns[i].Action == MigrateAddAction && j >= 0 {
@@ -257,6 +265,7 @@ type mOrder struct {
 	v int
 }
 
+// Arrange correct column order
 func (t *Table) Arrange() {
 	orders := make([]mOrder, 0, len(t.columnIndexes))
 	for k, v := range t.columnIndexes {
@@ -279,6 +288,7 @@ func (t *Table) Arrange() {
 	}
 }
 
+// MigrationColumnUp ...
 func (t Table) MigrationColumnUp() ([]string, map[string]struct{}) {
 	switch t.Action {
 	case MigrateNoAction:
@@ -342,6 +352,7 @@ func (t Table) MigrationColumnUp() ([]string, map[string]struct{}) {
 	}
 }
 
+// MigrationIndexUp ...
 func (t Table) MigrationIndexUp(dropCols map[string]struct{}) []string {
 	switch t.Action {
 	case MigrateNoAction:
@@ -374,6 +385,7 @@ func (t Table) MigrationIndexUp(dropCols map[string]struct{}) []string {
 	}
 }
 
+// MigrationColumnDown ...
 func (t Table) MigrationColumnDown() ([]string, map[string]struct{}) {
 	switch t.Action {
 	case MigrateNoAction:
@@ -419,6 +431,7 @@ func (t Table) MigrationColumnDown() ([]string, map[string]struct{}) {
 	}
 }
 
+// MigrationIndexDown ...
 func (t Table) MigrationIndexDown(dropCols map[string]struct{}) []string {
 	switch t.Action {
 	case MigrateNoAction:

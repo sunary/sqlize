@@ -6,6 +6,7 @@ import (
 	"github.com/sunary/sqlize/element"
 )
 
+// ParserMysql ...
 func (p *Parser) ParserMysql(sql string) error {
 	ps := parser.New()
 	stmtNodes, _, err := ps.Parse(sql, "", "")
@@ -24,6 +25,7 @@ func (p *Parser) ParserMysql(sql string) error {
 	return nil
 }
 
+// Enter ...
 func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 	// get Table name
 	if tb, ok := in.(*ast.TableName); ok {
@@ -167,6 +169,7 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 	return in, false
 }
 
+// Leave ...
 func (p *Parser) Leave(in ast.Node) (ast.Node, bool) {
 	return in, true
 }

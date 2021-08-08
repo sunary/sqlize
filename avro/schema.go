@@ -1,11 +1,13 @@
 package avro
 
+// Field ...
 type Field struct {
 	Name    string      `json:"name"`
 	Type    interface{} `json:"type"`
 	Default interface{} `json:"default,omitempty"`
 }
 
+// RecordSchema ...
 type RecordSchema struct {
 	Type      string `json:"type"`
 	Name      string `json:"name"`

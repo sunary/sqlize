@@ -1,9 +1,11 @@
 package sql_templates
 
+// PrimaryOption ...
 func (s Sql) PrimaryOption() string {
 	return s.apply("PRIMARY KEY")
 }
 
+// AutoIncrementOption ...
 func (s Sql) AutoIncrementOption() string {
 	if s.IsPostgres {
 		return s.apply("SERIAL")
@@ -11,10 +13,12 @@ func (s Sql) AutoIncrementOption() string {
 	return s.apply("AUTO_INCREMENT")
 }
 
+// DefaultOption ...
 func (s Sql) DefaultOption() string {
 	return s.apply("DEFAULT %s")
 }
 
+// NullValue ...
 func (s Sql) NullValue() string {
 	return s.apply("NULL")
 }

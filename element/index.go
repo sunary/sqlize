@@ -9,6 +9,7 @@ import (
 	"github.com/sunary/sqlize/utils"
 )
 
+// Index ...
 type Index struct {
 	Node
 	Typ       ast.IndexKeyType

@@ -24,16 +24,19 @@ func newFuncSqlizeOption(f func(*sqlizeOptions)) *funcSqlizeOption {
 	}
 }
 
+// SqlizeOption ...
 type SqlizeOption interface {
 	apply(*sqlizeOptions)
 }
 
+// WithMigrationFolder ...
 func WithMigrationFolder(path string) SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.migrationFolder = path
 	})
 }
 
+// WithMigrationSuffix default
 func WithMigrationSuffix(upSuffix, downSuffix string) SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.migrationUpSuffix = upSuffix
@@ -41,24 +44,28 @@ func WithMigrationSuffix(upSuffix, downSuffix string) SqlizeOption {
 	})
 }
 
+// WithPostgresql default is mysql
 func WithPostgresql() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.isPostgres = true
 	})
 }
 
+// WithSqlTag default is `sql`
 func WithSqlTag(sqlTag string) SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.sqlTag = sqlTag
 	})
 }
 
+// WithSqlUppercase default
 func WithSqlUppercase() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.isLower = false
 	})
 }
 
+// WithSqlLowercase default is uppercase
 func WithSqlLowercase() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.isLower = false

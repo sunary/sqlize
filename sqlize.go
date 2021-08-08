@@ -15,6 +15,7 @@ const (
 	genDescription = "# generate by sqlize\n\n"
 )
 
+// Sqlize ...
 type Sqlize struct {
 	migrationFolder     string
 	migrationUpSuffix   string
@@ -25,6 +26,7 @@ type Sqlize struct {
 	parser              *sql_parser.Parser
 }
 
+// NewSqlize ...
 func NewSqlize(opts ...SqlizeOption) *Sqlize {
 	o := sqlizeOptions{
 		migrationFolder:     "",
@@ -60,6 +62,7 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 	}
 }
 
+// FromObjects load from objects
 func (s *Sqlize) FromObjects(objs ...interface{}) error {
 	for i := range objs {
 		if err := s.FromString(s.sqlBuilder.AddTable(objs[i])); err != nil {
@@ -70,10 +73,12 @@ func (s *Sqlize) FromObjects(objs ...interface{}) error {
 	return nil
 }
 
+// FromString load migration from sql
 func (s *Sqlize) FromString(sql string) error {
 	return s.parser.Parser(sql)
 }
 
+// FromMigrationFolder load migration from folder `migrations`
 func (s *Sqlize) FromMigrationFolder() error {
 	sqls, err := utils.ReadPath(s.migrationFolder, s.migrationUpSuffix)
 	if err != nil {
@@ -89,18 +94,22 @@ func (s *Sqlize) FromMigrationFolder() error {
 	return nil
 }
 
+// Diff differ between 2 migrations
 func (s *Sqlize) Diff(old Sqlize) {
 	s.parser.Diff(*old.parser)
 }
 
+// StringUp migration up
 func (s *Sqlize) StringUp() string {
 	return s.parser.MigrationUp()
 }
 
+// StringDown migration down
 func (s *Sqlize) StringDown() string {
 	return s.parser.MigrationDown()
 }
 
+// WriteFiles create migration file
 func (s *Sqlize) WriteFiles(name string) error {
 	migrationUp := s.StringUp()
 	if len(migrationUp) > 0 {
@@ -122,6 +131,7 @@ func (s *Sqlize) WriteFiles(name string) error {
 	return nil
 }
 
+// WriteFiles export arvo schema
 func (s Sqlize) ArvoSchema(needTables ...string) []string {
 	if s.isPostgres {
 		panic("arvo support mysql only")

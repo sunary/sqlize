@@ -17,6 +17,7 @@ const (
 	LowerRestoreFlag     = format.RestoreStringSingleQuotes | format.RestoreKeyWordLowercase | format.RestoreNameLowercase | format.RestoreNameBackQuotes
 )
 
+// Column ...
 type Column struct {
 	Node
 	Typ     *types.FieldType
@@ -24,6 +25,7 @@ type Column struct {
 	Options []*ast.ColumnOption
 }
 
+// GetType ...
 func (c Column) GetType() byte {
 	if c.Typ != nil {
 		return c.Typ.Tp
@@ -32,6 +34,7 @@ func (c Column) GetType() byte {
 	return 0
 }
 
+// HasDefaultValue ...
 func (c Column) HasDefaultValue() bool {
 	for _, opt := range c.Options {
 		if opt.Tp == ast.ColumnOptionDefaultValue {

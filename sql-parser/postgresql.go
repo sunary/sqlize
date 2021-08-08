@@ -7,6 +7,7 @@ import (
 	"github.com/sunary/sqlize/element"
 )
 
+// ParserPostgresql ...
 func (p *Parser) ParserPostgresql(sql string) error {
 	w := &walk.AstWalker{
 		Fn: p.walker,

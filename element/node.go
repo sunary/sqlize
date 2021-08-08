@@ -10,6 +10,7 @@ const (
 	MigrateRenameAction
 )
 
+// Node primitive element
 type Node struct {
 	Name    string
 	OldName string

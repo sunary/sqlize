@@ -20,34 +20,40 @@ func newFuncSqlBuilderOption(f func(*sqlBuilderOptions)) *funcSqlBuilderOption {
 	}
 }
 
+// SqlBuilderOption ...
 type SqlBuilderOption interface {
 	apply(*sqlBuilderOptions)
 }
 
+// WithSqlTag default tag is `sql`
 func WithSqlTag(sqlTag string) SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.sqlTag = sqlTag
 	})
 }
 
+// WithMysql default
 func WithMysql() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.isPostgres = false
 	})
 }
 
+// WithPostgresql default is mysql
 func WithPostgresql() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.isPostgres = true
 	})
 }
 
+// WithSqlUppercase default
 func WithSqlUppercase() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.isLower = false
 	})
 }
 
+// WithSqlUppercase default is uppercase
 func WithSqlLowercase() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.isLower = true

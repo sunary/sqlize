@@ -35,12 +35,14 @@ var (
 	}
 )
 
+// SqlBuilder ...
 type SqlBuilder struct {
 	sql        *sql_templates.Sql
 	isPostgres bool
 	sqlTag     string
 }
 
+// NewSqlBuilder ...
 func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	o := sqlBuilderOptions{
 		isLower:    false,
@@ -58,6 +60,7 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	}
 }
 
+// AddTable ...
 func (s SqlBuilder) AddTable(obj interface{}) string {
 	tableName := getTableName(obj)
 	columns, columnsHistory, indexes := s.parseStruct(tableName, obj)
@@ -246,6 +249,7 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 	return append(columns, embedColumns...), append(columnsHistory, embedColumnsHistory...), append(indexes, embedIndexes...)
 }
 
+// RemoveTable ...
 func (s SqlBuilder) RemoveTable(tb interface{}) string {
 	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(s.isPostgres, getTableName(tb)))
 }
