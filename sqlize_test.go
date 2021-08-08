@@ -255,7 +255,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSqlize(WithMigrationSuffix(".up.test", ".down.test"))
+			s := NewSqlize(WithMigrationSuffix(".up.test", ".down.test"), WithMigrationFolder(""))
 			if err := s.FromMigrationFolder(); err == nil {
 				t.Errorf("Mysql FromMigrationFolder() error = %v,\n wantErr = %v", nil, utils.PathDoesNotExistErr)
 			}
@@ -339,7 +339,7 @@ func TestSqlize_FromString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSqlize()
+			s := NewSqlize(WithSqlUppercase())
 			if err := s.FromString(tt.args.sql); (err != nil) != tt.wantErr {
 				t.Errorf("Mysql FromString() error = %v,\n wantErr = %v", err, tt.wantErr)
 			}
@@ -435,7 +435,7 @@ func TestSqlize_Diff(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSqlize()
+			s := NewSqlize(WithSqlLowercase(), WithSqlTag("sql"))
 			_ = s.FromObjects(tt.args.newObj)
 
 			o := NewSqlize()

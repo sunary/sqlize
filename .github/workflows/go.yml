@@ -25,6 +25,6 @@ jobs:
       run: go test -v ./...
 
     - name: Run coverage
-      run: go test `go list ./... | grep -v options.go` -race -coverprofile=coverage.txt -covermode=atomic
+      run: go test -race -coverprofile=coverage.txt -covermode=atomic
     - name: Upload coverage to Codecov
       run: bash <(curl -s https://codecov.io/bash)
