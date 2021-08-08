@@ -53,7 +53,7 @@ func WithSqlUppercase() SqlBuilderOption {
 	})
 }
 
-// WithSqlUppercase default is uppercase
+// WithSqlLowercase default is uppercase
 func WithSqlLowercase() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.isLower = true

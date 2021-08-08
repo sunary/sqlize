@@ -1,11 +1,16 @@
 package utils
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+)
+
+var (
+	// PathDoesNotExistErr ...
+	PathDoesNotExistErr = errors.Errorf("path does not exist")
 )
 
 // ReadPath ...
@@ -32,7 +37,7 @@ func ReadPath(path string, suffix string) ([]string, error) {
 func glob(path string, suffix string) ([]string, error) {
 	f, err := os.Stat(path)
 	if err != nil {
-		return nil, fmt.Errorf("path %s does not exist", path)
+		return nil, PathDoesNotExistErr
 	}
 
 	files := []string{}

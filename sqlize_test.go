@@ -1,10 +1,14 @@
 package sqlize
 
 import (
+	"encoding/json"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sunary/sqlize/utils"
 )
 
 type Base struct {
@@ -189,6 +193,14 @@ ALTER TABLE request ADD COLUMN in_coming_quantity double AFTER remain_quantity;
 ALTER TABLE request ADD COLUMN reference_message varchar(255) AFTER reference_id;
 ALTER TABLE request ADD COLUMN purchase_reference_message varchar(255) AFTER purchase_reference_id;
 ALTER TABLE request DROP COLUMN response_message;`
+	expectPersonArvo = `
+{"type":"record","name":"person","namespace":"person","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"age","type":"int"},{"name":"is_female","type":"bool"},{"name":"created_at","type":["null",{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"person"}`
+	expectHotelArvo = `
+{"type":"record","name":"hotel","namespace":"hotel","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"grand_opening","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"created_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"updated_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"hotel"}`
+	expectCityArvo = `
+{"type":"record","name":"city","namespace":"city","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"region","type":["null",{"connect.default":"init","connect.name":"io.debezium.data.Enum","connect.parameters":{"allowed":"northern,southern"},"connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"city"}`
+	expectMovieArvo = `
+{"type":"record","name":"movie","namespace":"movie","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"title","type":"string"},{"name":"director","type":"string"},{"name":"year_released","type":"string"}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"movie"}`
 )
 
 func TestSqlize_FromObjects(t *testing.T) {
@@ -244,7 +256,11 @@ func TestSqlize_FromObjects(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSqlize()
+			s := NewSqlize(WithMigrationSuffix(".up.test", ".down.test"))
+			if err := s.FromMigrationFolder(); err == nil {
+				t.Errorf("Mysql FromMigrationFolder() error = %v,\n wantErr = %v", nil, utils.PathDoesNotExistErr)
+			}
+
 			if err := s.FromObjects(tt.args.objs...); (err != nil) != tt.wantErr {
 				t.Errorf("Mysql FromObjects() error = %v,\n wantErr = %v", err, tt.wantErr)
 			}
@@ -255,6 +271,10 @@ func TestSqlize_FromObjects(t *testing.T) {
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
 				t.Errorf("Mysql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
+			}
+
+			if err := s.WriteFiles("demo"); err != nil {
+				t.Errorf("Mysql WriteFiles() error = %v,\n wantErr = %v", err, nil)
 			}
 		})
 	}
@@ -454,6 +474,61 @@ func TestSqlize_Diff(t *testing.T) {
 	}
 }
 
+func TestSqlize_ArvoSchema(t *testing.T) {
+	now := time.Now()
+
+	type args struct {
+		models     []interface{}
+		needTables []string
+	}
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "person arvo",
+			args: args{
+				[]interface{}{person{}},
+				[]string{"person"},
+			},
+			want: []string{expectPersonArvo},
+		},
+		{
+			name: "hotel arvo",
+			args: args{
+				[]interface{}{hotel{GrandOpening: &now}},
+				[]string{"hotel"},
+			},
+			want: []string{expectHotelArvo},
+		},
+		{
+			name: "city arvo",
+			args: args{
+				[]interface{}{city{}},
+				[]string{"city"},
+			},
+			want: []string{expectCityArvo},
+		}, {
+			name: "movie arvo",
+			args: args{
+				[]interface{}{movie{}},
+				[]string{"movie"},
+			},
+			want: []string{expectMovieArvo},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSqlize()
+			s.FromObjects(tt.args.models...)
+			if got := s.ArvoSchema(tt.args.needTables...); !areEqualJSON(got[0], tt.want[0]) {
+				t.Errorf("ArvoSchema() got = %v,\n expected = %v", got[0], tt.want[0])
+			}
+		})
+	}
+}
+
 func normSql(s string) string {
 	s = strings.Replace(s, "`", "", -1)
 	return strings.TrimSpace(space.ReplaceAllString(s, " "))
@@ -461,4 +536,21 @@ func normSql(s string) string {
 
 func joinSql(s ...string) string {
 	return strings.Join(s, "\n")
+}
+
+func areEqualJSON(s1, s2 string) bool {
+	var o1 interface{}
+	var o2 interface{}
+
+	var err error
+	err = json.Unmarshal([]byte(s1), &o1)
+	if err != nil {
+		return false
+	}
+	err = json.Unmarshal([]byte(s2), &o2)
+	if err != nil {
+		return false
+	}
+
+	return reflect.DeepEqual(o1, o2)
 }

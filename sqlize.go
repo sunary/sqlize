@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
-	_ "github.com/pingcap/parser/test_driver"
+	_ "github.com/pingcap/parser/test_driver" // driver parser
 	"github.com/sunary/sqlize/avro"
 	"github.com/sunary/sqlize/sql-builder"
 	"github.com/sunary/sqlize/sql-parser"

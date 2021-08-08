@@ -1,5 +1,6 @@
 package element
 
+// MigrateAction ...
 type MigrateAction int8
 
 const (

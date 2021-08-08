@@ -10,9 +10,9 @@ import (
 const (
 	defaultMigrationTimeFormat = "20060102150405"
 	// MigrationUpSuffix ...
-	MigrationUpSuffix          = ".up.sql"
+	MigrationUpSuffix = ".up.sql"
 	// MigrationDownSuffix ...
-	MigrationDownSuffix        = ".down.sql"
+	MigrationDownSuffix = ".down.sql"
 )
 
 // MigrationFileName ...
