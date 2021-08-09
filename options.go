@@ -36,7 +36,7 @@ func WithMigrationFolder(path string) SqlizeOption {
 	})
 }
 
-// WithMigrationSuffix default
+// WithMigrationSuffix ...
 func WithMigrationSuffix(upSuffix, downSuffix string) SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.migrationUpSuffix = upSuffix
@@ -68,6 +68,6 @@ func WithSqlUppercase() SqlizeOption {
 // WithSqlLowercase default is uppercase
 func WithSqlLowercase() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.isLower = false
+		o.isLower = true
 	})
 }
