@@ -8,6 +8,7 @@ type sqlizeOptions struct {
 	isPostgres bool
 	isLower    bool
 	sqlTag     string
+	hasComment bool
 }
 
 type funcSqlizeOption struct {
@@ -69,5 +70,12 @@ func WithSqlUppercase() SqlizeOption {
 func WithSqlLowercase() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.isLower = true
+	})
+}
+
+// HasComment default is off
+func HasComment() SqlizeOption {
+	return newFuncSqlizeOption(func(o *sqlizeOptions) {
+		o.hasComment = true
 	})
 }

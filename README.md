@@ -108,8 +108,9 @@ func main() {
 * sql uppercase default, using option `sql_builder.WithSqlLowercase()` for sql lowercase
 * primary key: `sql:"primary_key"`
 * auto increment: `sql:"auto_increment"`
-* index on a single column: `sql:"index:idx_name"`
-* composite index: `sql:"index:col1,col2"`, index name will be `idx_col1_col2`
+* index on a single column: `sql:"index"` or `sql:"index:col_name"`, index name will be `idx_col_name`
+* index on a single column (custom name): `sql:"index:idx_name"`
+* composite index (can not custom): `sql:"index:col1,col2"`, index name will be `idx_col1_col2`
 * index type: `sql:"index_type:btree"`
 * unique: `sql:"unique"`
 * set default value: `sql:"default:CURRENT_TIMESTAMP"`

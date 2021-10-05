@@ -22,3 +22,8 @@ func (s Sql) DefaultOption() string {
 func (s Sql) NullValue() string {
 	return s.apply("NULL")
 }
+
+// NullValue ...
+func (s Sql) Comment() string {
+	return s.apply("COMMENT '%s'")
+}

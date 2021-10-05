@@ -36,6 +36,7 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		isPostgres: false,
 		isLower:    false,
 		sqlTag:     sql_builder.SqlTagDefault,
+		hasComment: false,
 	}
 	for i := range opts {
 		opts[i].apply(&o)
@@ -45,8 +46,13 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 	if o.isPostgres {
 		opt = append(opt, sql_builder.WithPostgresql())
 	}
+
 	if o.isLower {
 		opt = append(opt, sql_builder.WithSqlLowercase())
+	}
+
+	if o.hasComment {
+		opt = append(opt, sql_builder.HasComment())
 	}
 	sb := sql_builder.NewSqlBuilder(opt...)
 

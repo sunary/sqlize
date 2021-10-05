@@ -4,6 +4,7 @@ type sqlBuilderOptions struct {
 	isPostgres bool
 	isLower    bool
 	sqlTag     string
+	hasComment bool
 }
 
 type funcSqlBuilderOption struct {
@@ -57,5 +58,12 @@ func WithSqlUppercase() SqlBuilderOption {
 func WithSqlLowercase() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.isLower = true
+	})
+}
+
+// HasComment default is off
+func HasComment() SqlBuilderOption {
+	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
+		o.hasComment = true
 	})
 }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 	"time"
 
@@ -14,17 +15,19 @@ import (
 const (
 	// SqlTagDefault ...
 	SqlTagDefault       = "sql"
-	columnPrefix        = "column:"     // column:column_name
-	oldNameMark         = ",old:"       // column:column_name,old:old_name
-	typePrefix          = "type:"       // type:VARCHAR(64)
-	defaultPrefix       = "default:"    // default:0
-	indexPrefix         = "index:"      // index:idx_name or index:col1,col2 (=> idx_col1_col2)
-	indexTypePrefix     = "index_type:" // index_type:btree (default) or index_type:hash
-	foreignKeyPrefix    = "foreignkey:"
-	associationFkPrefix = "association_foreignkey:"
+	columnPrefix        = "column:"  // 'column:column_name'
+	oldNameMark         = ",old:"    // 'column:column_name,old:old_name'
+	typePrefix          = "type:"    // 'type:VARCHAR(64)'
+	defaultPrefix       = "default:" // 'default:0'
+	isAutoIncrement     = "auto_increment"
 	isPrimaryKey        = "primary_key"
 	isUnique            = "unique"
-	isAutoIncrement     = "auto_increment"
+	isIndex             = "index"       // 'index' (=> idx_column_name)
+	indexPrefix         = "index:"      // 'index:idx_name' or 'index:col_name' (=> idx_col_name) or 'index:col1,col2' (=> idx_col1_col2)
+	indexTypePrefix     = "index_type:" // 'index_type:btree' (default) or 'index_type:hash'
+	foreignKeyPrefix    = "foreignkey:"
+	associationFkPrefix = "association_foreignkey:"
+	enumTag             = "enum"
 	funcTableName       = "TableName"
 )
 
@@ -34,6 +37,13 @@ var (
 		"ptr":  {},
 		"flag": {},
 	}
+	ignoredFieldComment = map[string]struct{}{
+		"id":         {},
+		"created_at": {},
+		"updated_at": {},
+		"deleted_at": {},
+	}
+	compileEnumValues = regexp.MustCompile("[\\s\"'()]+")
 )
 
 // SqlBuilder ...
@@ -41,6 +51,7 @@ type SqlBuilder struct {
 	sql        *sql_templates.Sql
 	isPostgres bool
 	sqlTag     string
+	hasComment bool
 }
 
 // NewSqlBuilder ...
@@ -58,6 +69,7 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 		sql:        sql_templates.NewSql(o.isPostgres, o.isLower),
 		isPostgres: o.isPostgres,
 		sqlTag:     o.sqlTag,
+		hasComment: o.hasComment,
 	}
 }
 
@@ -74,20 +86,20 @@ func (s SqlBuilder) AddTable(obj interface{}) string {
 		}
 	}
 
-	sql := []string{fmt.Sprintf(s.sql.CreateTableStm(),
+	sqls := []string{fmt.Sprintf(s.sql.CreateTableStm(),
 		utils.EscapeSqlName(s.isPostgres, tableName),
 		strings.Join(columns, ",\n"))}
 	for _, h := range columnsHistory {
-		sql = append(sql,
+		sqls = append(sqls,
 			fmt.Sprintf(s.sql.AlterTableRenameColumnStm(),
 				utils.EscapeSqlName(s.isPostgres, tableName),
 				utils.EscapeSqlName(s.isPostgres, h[0]),
 				utils.EscapeSqlName(s.isPostgres, h[1])))
 	}
 
-	sql = append(sql, indexes...)
+	sqls = append(sqls, indexes...)
 
-	return strings.Join(sql, "\n")
+	return strings.Join(sqls, "\n")
 }
 
 func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, [][2]string, []string) {
@@ -124,6 +136,7 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 		indexTypeDeclare := ""
 		indexColumns := ""
 		isAutoDeclare := false
+		comment := ""
 		for _, gt := range gts {
 			hasBreak := false
 
@@ -144,14 +157,21 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 
 			case strings.HasPrefix(gtLower, typePrefix):
 				typeDeclare = gt[len(typePrefix):]
+				if s.hasComment && strings.HasPrefix(gtLower[len(typePrefix):], enumTag) {
+					enumRaw := gt[len(typePrefix)+len(enumTag):]
+					enumStr := compileEnumValues.ReplaceAllString(enumRaw, "")
+					comment = createComment(columnDeclare, strings.Split(enumStr, ","))
+				}
 
 			case strings.HasPrefix(gtLower, defaultPrefix):
 				defaultDeclare = fmt.Sprintf(s.sql.DefaultOption(), gt[len(defaultPrefix):])
-
+			case gtLower == isIndex:
+				indexDeclare = createIndexName([]string{columnDeclare}, columnDeclare)
+				indexColumns = utils.EscapeSqlName(s.isPostgres, columnDeclare)
 			case strings.HasPrefix(gtLower, indexPrefix):
-				indexDeclare = gt[len(indexPrefix):]
-				if idxFields := strings.Split(indexDeclare, ","); len(idxFields) > 1 {
-					indexDeclare = fmt.Sprintf("idx_%s", strings.Join(idxFields, "_"))
+				idxFields := strings.Split(gt[len(indexPrefix):], ",")
+				indexDeclare = createIndexName(idxFields, columnDeclare)
+				if len(idxFields) > 1 {
 					indexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
 				} else {
 					indexColumns = utils.EscapeSqlName(s.isPostgres, columnDeclare)
@@ -222,9 +242,11 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 				col = append(col, strType)
 			}
 		}
+
 		if defaultDeclare != "" {
 			col = append(col, defaultDeclare)
 		}
+
 		if isAutoDeclare {
 			if s.sql.IsPostgres {
 				col = []string{col[0], s.sql.AutoIncrementOption()}
@@ -232,8 +254,19 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 				col = append(col, s.sql.AutoIncrementOption())
 			}
 		}
+
 		if isPkDeclare {
 			col = append(col, s.sql.PrimaryOption())
+		}
+
+		if s.hasComment {
+			if comment == "" {
+				comment = createComment(columnDeclare, nil)
+			}
+
+			if comment != "" {
+				col = append(col, fmt.Sprintf(s.sql.Comment(), comment))
+			}
 		}
 
 		rawCols = append(rawCols, col)
@@ -253,6 +286,26 @@ func (s SqlBuilder) parseStruct(tableName string, obj interface{}) ([]string, []
 // RemoveTable ...
 func (s SqlBuilder) RemoveTable(tb interface{}) string {
 	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(s.isPostgres, getTableName(tb)))
+}
+
+func createIndexName(indexColumns []string, column string) string {
+	if len(indexColumns) == 1 && indexColumns[0] != column {
+		return indexColumns[0]
+	}
+
+	return fmt.Sprintf("idx_%s", strings.Join(indexColumns, "_"))
+}
+
+func createComment(column string, enums []string) string {
+	if _, ok := ignoredFieldComment[column]; ok {
+		return ""
+	}
+
+	if len(enums) > 0 {
+		return fmt.Sprintf("enum values: %s", strings.Join(enums, ", "))
+	}
+
+	return strings.Replace(column, "_", " ", -1)
 }
 
 func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
