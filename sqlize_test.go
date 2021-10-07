@@ -47,8 +47,8 @@ type movie struct {
 
 type request struct {
 	ID                       int32   `sql:"primary_key;auto_increment"`
-	Sku                      string  `sql:"type:VARCHAR(64);index:idx_sku"`
-	SiteID                   string  `sql:"type:VARCHAR(64);index:idx_site_id"`
+	Sku                      string  `sql:"type:VARCHAR(64);index"`
+	SiteID                   string  `sql:"type:VARCHAR(64);index:site_id"`
 	CategoryID               string  `sql:"type:VARCHAR(64);index:idx_category_id"`
 	FromSiteIDs              string  `sql:"type:VARCHAR(255);index:idx_from_site_ids"`
 	SupplierIDs              string  `sql:"type:VARCHAR(255)"`
@@ -154,6 +154,12 @@ CREATE TABLE city (
  name   text,
  region enum('northern','southern') DEFAULT 'northern'
 );`
+	expectCreateCityHasCommentUp = `
+CREATE TABLE city (
+ id     int(11) AUTO_INCREMENT PRIMARY KEY,
+ name   text COMMENT 'name',
+ region enum('northern','southern') DEFAULT 'northern' COMMENT 'enum values: northern, southern'
+);`
 	expectCreateCityDown = `
 DROP TABLE IF EXISTS city;`
 
@@ -210,6 +216,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 	}
 	tests := []struct {
 		name              string
+		hasComment        bool
 		args              args
 		wantMigrationUp   string
 		wantMigrationDown string
@@ -235,10 +242,11 @@ func TestSqlize_FromObjects(t *testing.T) {
 		},
 		{
 			name: "from city object",
+			hasComment: true,
 			args: args{
 				[]interface{}{city{}},
 			},
-			wantMigrationUp:   expectCreateCityUp,
+			wantMigrationUp:   expectCreateCityHasCommentUp,
 			wantMigrationDown: expectCreateCityDown,
 			wantErr:           false,
 		},
@@ -255,7 +263,14 @@ func TestSqlize_FromObjects(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSqlize(WithMigrationSuffix(".up.test", ".down.test"), WithMigrationFolder(""))
+			opts := []SqlizeOption{
+				WithMigrationSuffix(".up.test", ".down.test"), WithMigrationFolder(""),
+			}
+			if tt.hasComment {
+				opts = append(opts, HasComment())
+			}
+
+			s := NewSqlize(opts...)
 			if err := s.FromMigrationFolder(); err == nil {
 				t.Errorf("Mysql FromMigrationFolder() error = %v,\n wantErr = %v", nil, utils.PathDoesNotExistErr)
 			}
