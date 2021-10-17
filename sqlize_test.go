@@ -241,7 +241,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 			wantErr:           false,
 		},
 		{
-			name: "from city object",
+			name:       "from city object",
 			hasComment: true,
 			args: args{
 				[]interface{}{city{}},
