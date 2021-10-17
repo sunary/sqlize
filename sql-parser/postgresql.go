@@ -1,6 +1,7 @@
 package sql_parser
 
 import (
+	"github.com/auxten/postgresql-parser/pkg/sql/parser"
 	"github.com/auxten/postgresql-parser/pkg/sql/sem/tree"
 	"github.com/auxten/postgresql-parser/pkg/walk"
 	"github.com/pingcap/parser/ast"
@@ -12,7 +13,13 @@ func (p *Parser) ParserPostgresql(sql string) error {
 	w := &walk.AstWalker{
 		Fn: p.walker,
 	}
-	_, err := w.Walk(sql, nil)
+
+	stmts, err := parser.Parse(sql)
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Walk(stmts, nil)
 	return err
 }
 
