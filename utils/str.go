@@ -17,10 +17,11 @@ const (
 
 // MigrationFileName ...
 func MigrationFileName(name string) string {
-	re, _ := regexp.Compile(`[^\w\d\s]`)
-	name = re.ReplaceAllString(name, "")
-	name = strings.Replace(strings.ToLower(name), "  ", " ", -1)
-	name = strings.Replace(strings.ToLower(name), " ", "_", -1)
+	re, _ := regexp.Compile(`[^\w\d\s-_]`)
+	name = strings.ToLower(re.ReplaceAllString(name, ""))
+	name = strings.Replace(name, "  ", " ", -1)
+	name = strings.Replace(name, " ", "_", -1)
+	name = strings.Replace(name, "-", "_", -1)
 	return fmt.Sprintf("%s_%s", time.Now().Format(defaultMigrationTimeFormat), name)
 }
 
