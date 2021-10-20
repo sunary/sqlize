@@ -211,7 +211,6 @@ func (t *Table) Diff(old Table) {
 				(t.Columns[i].PgTyp != nil && t.Columns[i].PgTyp == old.Columns[j].PgTyp) {
 				t.Columns[i].Action = MigrateNoAction
 			} else {
-				t.Columns[i] = old.Columns[j]
 				t.Columns[i].Action = MigrateModifyAction
 			}
 		}
@@ -315,6 +314,7 @@ func (t Table) MigrationColumnUp() ([]string, map[string]struct{}) {
 				}
 			}
 		}
+
 		return strSqls, dropCols
 
 	case MigrateAddAction:
@@ -412,6 +412,7 @@ func (t Table) MigrationColumnDown() ([]string, map[string]struct{}) {
 				}
 			}
 		}
+
 		return strSqls, dropCols
 
 	case MigrateAddAction:
