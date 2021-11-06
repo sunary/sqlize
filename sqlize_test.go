@@ -27,7 +27,7 @@ type person struct {
 
 type hotel struct {
 	B1           Base
-	B2           Base  `sql:"prefix:base_"`
+	B2           Base  `sql:"embeddedPrefix:base_"`
 	ID           int32 `sql:"primary_key"`
 	Name         string
 	GrandOpening *time.Time
