@@ -15,11 +15,11 @@ import (
 const (
 	// SqlTagDefault ...
 	SqlTagDefault       = "sql"
-	columnPrefix        = "column:"    // 'column:column_name'
-	prefixPrefix        = "prefix:"    // 'prefix:base_'
-	previousNamePrefix  = ",previous:" // 'column:column_name,previous:old_name'
-	typePrefix          = "type:"      // 'type:VARCHAR(64)'
-	defaultPrefix       = "default:"   // 'default:0'
+	columnPrefix        = "column:"         // 'column:column_name'
+	embeddedPrefix      = "embeddedprefix:" // 'embeddedPrefix:base_'
+	previousNamePrefix  = ",previous:"      // 'column:column_name,previous:old_name'
+	typePrefix          = "type:"           // 'type:VARCHAR(64)'
+	defaultPrefix       = "default:"        // 'default:0'
 	isAutoIncrement     = "auto_increment"
 	isPrimaryKey        = "primary_key"
 	isUnique            = "unique"
@@ -162,8 +162,8 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				}
 				at.Name = prefix + at.Name
 
-			case strings.HasPrefix(gtLower, prefixPrefix):
-				at.Prefix = gt[len(prefixPrefix):]
+			case strings.HasPrefix(gtLower, embeddedPrefix):
+				at.Prefix = gt[len(embeddedPrefix):]
 
 			case strings.HasPrefix(gtLower, foreignKeyPrefix) || strings.HasPrefix(gtLower, associationFkPrefix):
 				at.IsFk = true
