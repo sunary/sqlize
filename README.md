@@ -129,7 +129,7 @@ newMigration.FromObjects(sample{DeletedAt: &now})
 ```
 
 * fields belong to embedded struct have the lowest order, except `primary key` always first
-* an embedded struct can not be pointer
+* an embedded struct can not be pointer, also support prefix: `sql:"prefix:base_"`
 
 ```golang
 type Base struct {
