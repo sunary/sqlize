@@ -28,7 +28,7 @@ func (s Sql) apply(t string) string {
 
 // CreateTableStm ...
 func (s Sql) CreateTableStm() string {
-	return s.apply("CREATE TABLE %s (\n%s\n);")
+	return s.apply("CREATE TABLE %s (\n%s\n)%s;")
 }
 
 // DropTableStm ...

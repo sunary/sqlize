@@ -52,7 +52,7 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 	}
 
 	if o.hasComment {
-		opt = append(opt, sql_builder.HasComment())
+		opt = append(opt, sql_builder.WithComment())
 	}
 	sb := sql_builder.NewSqlBuilder(opt...)
 

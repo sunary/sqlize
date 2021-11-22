@@ -272,7 +272,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 				WithMigrationSuffix(".up.test", ".down.test"), WithMigrationFolder(""),
 			}
 			if tt.hasComment {
-				opts = append(opts, HasComment())
+				opts = append(opts, WithComment())
 			}
 
 			s := NewSqlize(opts...)

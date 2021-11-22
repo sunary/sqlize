@@ -338,7 +338,7 @@ func (t Table) MigrationColumnUp() ([]string, map[string]struct{}) {
 			}
 		}
 
-		return []string{fmt.Sprintf(sql.CreateTableStm(), utils.EscapeSqlName(sql.IsPostgres, t.Name), strings.Join(strCols, ",\n"))}, nil
+		return []string{fmt.Sprintf(sql.CreateTableStm(), utils.EscapeSqlName(sql.IsPostgres, t.Name), strings.Join(strCols, ",\n"), "")}, nil
 
 	case MigrateRemoveAction:
 		return []string{fmt.Sprintf(sql.DropTableStm(), utils.EscapeSqlName(sql.IsPostgres, t.Name))}, nil

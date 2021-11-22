@@ -87,9 +87,13 @@ func (s SqlBuilder) AddTable(obj interface{}) string {
 		}
 	}
 
+	tableComment := ""
+	if s.hasComment {
+		tableComment = fmt.Sprintf(` COMMENT "%s"`, tableName)
+	}
 	sqls := []string{fmt.Sprintf(s.sql.CreateTableStm(),
 		utils.EscapeSqlName(s.isPostgres, tableName),
-		strings.Join(columns, ",\n"))}
+		strings.Join(columns, ",\n"), tableComment)}
 	for _, h := range columnsHistory {
 		sqls = append(sqls,
 			fmt.Sprintf(s.sql.AlterTableRenameColumnStm(),

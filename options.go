@@ -73,8 +73,8 @@ func WithSqlLowercase() SqlizeOption {
 	})
 }
 
-// HasComment default is off
-func HasComment() SqlizeOption {
+// WithComment default is off
+func WithComment() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.hasComment = true
 	})

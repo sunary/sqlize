@@ -104,8 +104,9 @@ func main() {
 
 ### Convention
 
-* Mysql by default, using option `sql_builder.WithPostgresql()` for postgresql
+* `mysql` by default, using option `sql_builder.WithPostgresql()` for `postgresql`
 * sql uppercase default, using option `sql_builder.WithSqlLowercase()` for sql lowercase
+* support **generate** comment, using option `sql_builder.WithComment()`
 * primary key: `sql:"primary_key"`
 * auto increment: `sql:"auto_increment"`
 * index on a single column: `sql:"index"` or `sql:"index:col_name"`, index name will be `idx_col_name`
@@ -126,6 +127,14 @@ type sample struct {
 
 now := time.Now()
 newMigration.FromObjects(sample{DeletedAt: &now})
+```
+
+* `mysql` data type will be changed implicitly:
+
+```sql
+TINYINT => tinyint(4)
+INT     => int(11)
+BIGINT  => bigint(20)
 ```
 
 * fields belong to embedded struct have the lowest order, except `primary key` always first

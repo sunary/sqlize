@@ -61,8 +61,8 @@ func WithSqlLowercase() SqlBuilderOption {
 	})
 }
 
-// HasComment default is off
-func HasComment() SqlBuilderOption {
+// WithComment default is off
+func WithComment() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.hasComment = true
 	})
