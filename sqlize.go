@@ -33,10 +33,10 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationUpSuffix:   utils.MigrationUpSuffix,
 		migrationDownSuffix: utils.MigrationDownSuffix,
 
-		isPostgres: false,
-		isLower:    false,
-		sqlTag:     sql_builder.SqlTagDefault,
-		hasComment: false,
+		isPostgres:      false,
+		isLower:         false,
+		sqlTag:          sql_builder.SqlTagDefault,
+		generateComment: false,
 	}
 	for i := range opts {
 		opts[i].apply(&o)
@@ -51,8 +51,8 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		opt = append(opt, sql_builder.WithSqlLowercase())
 	}
 
-	if o.hasComment {
-		opt = append(opt, sql_builder.WithComment())
+	if o.generateComment {
+		opt = append(opt, sql_builder.WithCommentGenerate())
 	}
 	sb := sql_builder.NewSqlBuilder(opt...)
 

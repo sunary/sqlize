@@ -5,10 +5,10 @@ type sqlizeOptions struct {
 	migrationUpSuffix   string
 	migrationDownSuffix string
 
-	isPostgres bool
-	isLower    bool
-	sqlTag     string
-	hasComment bool
+	isPostgres      bool
+	isLower         bool
+	sqlTag          string
+	generateComment bool
 }
 
 type funcSqlizeOption struct {
@@ -73,9 +73,9 @@ func WithSqlLowercase() SqlizeOption {
 	})
 }
 
-// WithComment default is off
-func WithComment() SqlizeOption {
+// WithCommentGenerate default is off
+func WithCommentGenerate() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.hasComment = true
+		o.generateComment = true
 	})
 }

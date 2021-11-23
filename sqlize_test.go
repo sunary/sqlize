@@ -221,7 +221,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 	}
 	tests := []struct {
 		name              string
-		hasComment        bool
+		generateComment   bool
 		args              args
 		wantMigrationUp   string
 		wantMigrationDown string
@@ -246,8 +246,8 @@ func TestSqlize_FromObjects(t *testing.T) {
 			wantErr:           false,
 		},
 		{
-			name:       "from city object",
-			hasComment: true,
+			name:            "from city object",
+			generateComment: true,
 			args: args{
 				[]interface{}{city{}},
 			},
@@ -271,8 +271,8 @@ func TestSqlize_FromObjects(t *testing.T) {
 			opts := []SqlizeOption{
 				WithMigrationSuffix(".up.test", ".down.test"), WithMigrationFolder(""),
 			}
-			if tt.hasComment {
-				opts = append(opts, WithComment())
+			if tt.generateComment {
+				opts = append(opts, WithCommentGenerate())
 			}
 
 			s := NewSqlize(opts...)

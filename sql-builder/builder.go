@@ -20,6 +20,7 @@ const (
 	previousNamePrefix  = ",previous:"      // 'column:column_name,previous:old_name'
 	typePrefix          = "type:"           // 'type:VARCHAR(64)'
 	defaultPrefix       = "default:"        // 'default:0'
+	commentPrefix       = "comment:"        // 'comment:sth you want to comment'
 	isAutoIncrement     = "auto_increment"
 	isPrimaryKey        = "primary_key"
 	isUnique            = "unique"
@@ -49,10 +50,10 @@ var (
 
 // SqlBuilder ...
 type SqlBuilder struct {
-	sql        *sql_templates.Sql
-	isPostgres bool
-	sqlTag     string
-	hasComment bool
+	sql             *sql_templates.Sql
+	isPostgres      bool
+	sqlTag          string
+	generateComment bool
 }
 
 // NewSqlBuilder ...
@@ -67,10 +68,10 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	}
 
 	return &SqlBuilder{
-		sql:        sql_templates.NewSql(o.isPostgres, o.isLower),
-		isPostgres: o.isPostgres,
-		sqlTag:     o.sqlTag,
-		hasComment: o.hasComment,
+		sql:             sql_templates.NewSql(o.isPostgres, o.isLower),
+		isPostgres:      o.isPostgres,
+		sqlTag:          o.sqlTag,
+		generateComment: o.generateComment,
 	}
 }
 
@@ -88,7 +89,7 @@ func (s SqlBuilder) AddTable(obj interface{}) string {
 	}
 
 	tableComment := ""
-	if s.hasComment {
+	if s.generateComment {
 		tableComment = fmt.Sprintf(` COMMENT "%s"`, tableName)
 	}
 	sqls := []string{fmt.Sprintf(s.sql.CreateTableStm(),
@@ -175,14 +176,17 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 			case strings.HasPrefix(gtLower, typePrefix):
 				at.Type = gt[len(typePrefix):]
-				if s.hasComment && strings.HasPrefix(gtLower[len(typePrefix):], enumTag) {
+				if s.generateComment && at.Comment == "" && strings.HasPrefix(gtLower[len(typePrefix):], enumTag) {
 					enumRaw := gt[len(typePrefix)+len(enumTag):]
 					enumStr := compileEnumValues.ReplaceAllString(enumRaw, "")
-					at.Comment = createComment(at.Name, strings.Split(enumStr, ","))
+					at.Comment = createCommentFromEnum(strings.Split(enumStr, ","))
 				}
 
 			case strings.HasPrefix(gtLower, defaultPrefix):
 				at.Value = fmt.Sprintf(s.sql.DefaultOption(), gt[len(defaultPrefix):])
+
+			case strings.HasPrefix(gtLower, commentPrefix):
+				at.Comment = fmt.Sprintf(s.sql.DefaultOption(), gt[len(commentPrefix):])
 
 			case gtLower == isIndex:
 				at.Index = createIndexName("", []string{at.Name}, at.Name)
@@ -280,14 +284,12 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 			col = append(col, s.sql.PrimaryOption())
 		}
 
-		if s.hasComment {
-			if at.Comment == "" {
-				at.Comment = createComment(at.Name, nil)
-			}
+		if s.generateComment && at.Comment == "" {
+			at.Comment = createCommentFromFieldName(at.Name)
+		}
 
-			if at.Comment != "" {
-				col = append(col, fmt.Sprintf(s.sql.Comment(), at.Comment))
-			}
+		if at.Comment != "" {
+			col = append(col, fmt.Sprintf(s.sql.Comment(), at.Comment))
 		}
 
 		rawCols = append(rawCols, col)
@@ -323,16 +325,20 @@ func createIndexName(prefix string, indexColumns []string, column string) string
 	return fmt.Sprintf("idx_%s", strings.Join(indexColumns, "_"))
 }
 
-// createComment by enum values or field name
-func createComment(column string, enums []string) string {
-	if _, ok := ignoredFieldComment[column]; ok {
-		return ""
-	}
-
+// createCommentFromEnum by enum values or field name
+func createCommentFromEnum(enums []string) string {
 	if len(enums) > 0 {
 		return fmt.Sprintf("enum values: %s", strings.Join(enums, ", "))
 	}
 
+	return ""
+}
+
+// createCommentFromFieldName by enum values or field name
+func createCommentFromFieldName(column string) string {
+	if _, ok := ignoredFieldComment[column]; ok {
+		return ""
+	}
 	return strings.Replace(column, "_", " ", -1)
 }
 

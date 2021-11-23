@@ -1,10 +1,10 @@
 package sql_builder
 
 type sqlBuilderOptions struct {
-	isPostgres bool
-	isLower    bool
-	sqlTag     string
-	hasComment bool
+	isPostgres      bool
+	isLower         bool
+	sqlTag          string
+	generateComment bool
 }
 
 type funcSqlBuilderOption struct {
@@ -61,9 +61,9 @@ func WithSqlLowercase() SqlBuilderOption {
 	})
 }
 
-// WithComment default is off
-func WithComment() SqlBuilderOption {
+// WithCommentGenerate default is off
+func WithCommentGenerate() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
-		o.hasComment = true
+		o.generateComment = true
 	})
 }
