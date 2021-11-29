@@ -1,6 +1,8 @@
 package element
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -16,6 +18,12 @@ type Index struct {
 	IndexType model.IndexType
 	CnsTyp    ast.ConstraintType
 	Columns   []string
+}
+
+func (i Index) hashValue() string {
+	strHash := strings.Join(i.migrationUp(""), " ")
+	hash := md5.Sum([]byte(strHash))
+	return hex.EncodeToString(hash[:])
 }
 
 func (i Index) migrationUp(tbName string) []string {

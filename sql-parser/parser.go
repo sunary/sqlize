@@ -27,6 +27,11 @@ func (p *Parser) Parser(sql string) error {
 	return p.ParserMysql(sql)
 }
 
+// HashValue ...
+func (p *Parser) HashValue() string {
+	return p.Migration.HashValue()
+}
+
 // Diff differ between 2 migrations
 func (p *Parser) Diff(old Parser) {
 	p.Migration.Diff(old.Migration)

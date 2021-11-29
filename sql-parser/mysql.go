@@ -55,8 +55,9 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 				if len(alter.Specs[i].NewColumns) > 0 {
 					for j := range alter.Specs[i].NewColumns {
 						col := element.Column{
-							Node: element.Node{Name: alter.Specs[i].NewColumns[j].Name.Name.O, Action: element.MigrateModifyAction},
-							Typ:  alter.Specs[i].NewColumns[j].Tp,
+							Node:    element.Node{Name: alter.Specs[i].NewColumns[j].Name.Name.O, Action: element.MigrateModifyAction},
+							Typ:     alter.Specs[i].NewColumns[j].Tp,
+							Comment: alter.Specs[i].Comment,
 						}
 						p.Migration.AddColumn(alter.Table.Name.O, col)
 					}
@@ -141,10 +142,17 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 
 	// define Column
 	if def, ok := in.(*ast.ColumnDef); ok {
+		comment := ""
+		for i := range def.Options {
+			if def.Options[i].Tp == ast.ColumnOptionComment {
+				comment = def.Options[i].StrValue
+			}
+		}
 		column := element.Column{
 			Node:    element.Node{Name: def.Name.Name.O, Action: element.MigrateAddAction},
 			Typ:     def.Tp,
 			Options: def.Options,
+			Comment: comment,
 		}
 		p.Migration.AddColumn("", column)
 	}

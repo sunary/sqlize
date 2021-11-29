@@ -1,6 +1,8 @@
 package element
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"sort"
 	"strings"
@@ -285,6 +287,27 @@ func (t *Table) Arrange() {
 			}
 		}
 	}
+}
+
+func (t Table) hashValue() string {
+	cols, idxs := make([]string, len(t.Columns)), make([]string, len(t.Indexes))
+	for i := range t.Columns {
+		cols[i] = t.Columns[i].hashValue()
+	}
+	sort.Slice(cols, func(i, j int) bool {
+		return i < j
+	})
+
+	for i := range t.Indexes {
+		idxs[i] = t.Indexes[i].hashValue()
+	}
+	sort.Slice(idxs, func(i, j int) bool {
+		return i < j
+	})
+
+	strHash := strings.Join(append(cols, idxs...), " ")
+	hash := md5.Sum([]byte(strHash))
+	return hex.EncodeToString(hash[:])
 }
 
 // MigrationColumnUp ...

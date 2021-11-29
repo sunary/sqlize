@@ -2,6 +2,8 @@ package element
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -25,6 +27,7 @@ type Column struct {
 	Typ     *types.FieldType
 	PgTyp   *ptypes.InternalType
 	Options []*ast.ColumnOption
+	Comment string
 }
 
 // GetType ...
@@ -45,6 +48,13 @@ func (c Column) HasDefaultValue() bool {
 	}
 
 	return false
+}
+
+func (c Column) hashValue() string {
+	strHash := utils.EscapeSqlName(sql.IsPostgres, c.Name)
+	strHash += c.definition()
+	hash := md5.Sum([]byte(strHash))
+	return hex.EncodeToString(hash[:])
 }
 
 func (c Column) migrationUp(tbName, after string, ident int) []string {

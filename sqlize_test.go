@@ -558,6 +558,66 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 	}
 }
 
+func TestSqlize_HashValue(t *testing.T) {
+	now := time.Now()
+
+	type args struct {
+		models       []interface{}
+		isPostgresql bool
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "person hashValue",
+			args: args{
+				[]interface{}{person{}},
+				false,
+			},
+			want: "6407f72457c35417e4fe10decd6e6b5d",
+		},
+		{
+			name: "hotel hashValue",
+			args: args{
+				[]interface{}{hotel{GrandOpening: &now}},
+				false,
+			},
+			want: "ac9ecaa75b887291a8a3b9ad4ac37ff8",
+		},
+		{
+			name: "city hashValue",
+			args: args{
+				[]interface{}{city{}},
+				false,
+			},
+			want: "ca73f90d402914ba9ae2eddf7868ecd3",
+		}, {
+			name: "movie hashValue",
+			args: args{
+				[]interface{}{movie{}},
+				false,
+			},
+			want: "776c367eaa542a156425dc8ef1da831a",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := []SqlizeOption{}
+			if tt.args.isPostgresql {
+				opts = append(opts, WithPostgresql())
+			}
+			s := NewSqlize(opts...)
+
+			s.FromObjects(tt.args.models...)
+			if got := s.HashValue(); got != tt.want {
+				t.Errorf("HashValue() got = %v,\n expected = %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func normSql(s string) string {
 	s = strings.Replace(s, "`", "", -1)
 	return strings.TrimSpace(space.ReplaceAllString(s, " "))

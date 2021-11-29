@@ -100,6 +100,11 @@ func (s *Sqlize) FromMigrationFolder() error {
 	return nil
 }
 
+// HashValue ...
+func (s *Sqlize) HashValue() string {
+	return s.parser.HashValue()
+}
+
 // Diff differ between 2 migrations
 func (s *Sqlize) Diff(old Sqlize) {
 	s.parser.Diff(*old.parser)
