@@ -210,7 +210,20 @@ ALTER TABLE request DROP COLUMN response_message;`
 {"type":"record","name":"hotel","namespace":"hotel","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"grand_opening","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"created_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"updated_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"base_created_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"base_updated_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"hotel"}`
 	expectCityArvo = `
 {"type":"record","name":"city","namespace":"city","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"region","type":["null",{"connect.default":"init","connect.name":"io.debezium.data.Enum","connect.parameters":{"allowed":"northern,southern"},"connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"city"}`
-	expectMovieArvo = ``
+	expectCreateMigrationTableUp = `CREATE TABLE IF NOT EXISTS schema_migration (
+ id         int(11) AUTO_INCREMENT PRIMARY KEY,
+ version    bigint(20),
+ dirty      BOOLEAN,
+ created_at datetime DEFAULT CURRENT_TIMESTAMP(),
+ updated_at datetime DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),
+ CONSTRAINT idx_version UNIQUE (version)
+);`
+	expectCreateMigrationTableDown = `
+DROP TABLE IF EXISTS schema_migration;`
+	expectMigrationVersion1Up = `
+INSERT INTO schema_migration (version, dirty) VALUES (1, false);`
+	expectMigrationVersion1Down = `
+UPDATE schema_migration SET dirty = FALSE WHERE version = 1;`
 )
 
 func TestSqlize_FromObjects(t *testing.T) {
@@ -493,6 +506,144 @@ func TestSqlize_Diff(t *testing.T) {
 	}
 }
 
+func TestSqlize_MigrationVersion(t *testing.T) {
+	now := time.Now()
+
+	type args struct {
+		models       []interface{}
+		isPostgresql bool
+		version      int64
+		isDirty      bool
+	}
+	tests := []struct {
+		name              string
+		args              args
+		wantMigrationUp   string
+		wantMigrationDown string
+	}{
+		{
+			name: "person migration version",
+			args: args{
+				[]interface{}{person{}},
+				false,
+				0,
+				false,
+			},
+			wantMigrationUp:   expectCreatePersonUp + "\n" + expectCreateMigrationTableUp,
+			wantMigrationDown: expectCreatePersonDown + "\n" + expectCreateMigrationTableDown,
+		},
+		{
+			name: "hotel migration version",
+			args: args{
+				[]interface{}{hotel{GrandOpening: &now}},
+				false,
+				1,
+				false,
+			},
+			wantMigrationUp:   expectCreateHotelUp + "\n" + expectMigrationVersion1Up,
+			wantMigrationDown: expectCreateHotelDown + "\n" + expectMigrationVersion1Down,
+		},
+		{
+			name: "city migration version",
+			args: args{
+				[]interface{}{city{}},
+				false,
+				1,
+				false,
+			},
+			wantMigrationUp:   expectCreateCityUp + "\n" + expectMigrationVersion1Up,
+			wantMigrationDown: expectCreateCityDown + "\n" + expectMigrationVersion1Down,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := []SqlizeOption{
+				WithMigrationSuffix(".up.test", ".down.test"),
+				WithMigrationFolder(""),
+				WithMigrationCheck(),
+				WithMigrationTable(utils.DefaultMigrationsTable),
+			}
+			if tt.args.isPostgresql {
+				opts = append(opts, WithPostgresql())
+			}
+			s := NewSqlize(opts...)
+
+			s.FromObjects(tt.args.models...)
+			if got := s.StringUpWithVersion(tt.args.version, tt.args.isDirty); normSql(got) != normSql(tt.wantMigrationUp) {
+				t.Errorf("StringUpWithVersion() got = %s,\n expected = %s", got, tt.wantMigrationUp)
+			}
+
+			if got := s.StringDownWithVersion(tt.args.version); normSql(got) != normSql(tt.wantMigrationDown) {
+				t.Errorf("StringDownWithVersion() got = %s,\n expected = %s", got, tt.wantMigrationDown)
+			}
+
+			if err := s.WriteFilesWithVersion("init", tt.args.version, tt.args.isDirty); err != nil {
+				t.Errorf("WriteFilesWithVersion() error = %v,\n wantErr = %v", err, nil)
+			}
+		})
+	}
+}
+
+func TestSqlize_HashValue(t *testing.T) {
+	now := time.Now()
+
+	type args struct {
+		models       []interface{}
+		isPostgresql bool
+	}
+	tests := []struct {
+		name string
+		args args
+		want int64
+	}{
+		{
+			name: "person hash value",
+			args: args{
+				[]interface{}{person{}},
+				false,
+			},
+			want: 7208001464093070359,
+		},
+		{
+			name: "hotel hash value",
+			args: args{
+				[]interface{}{hotel{GrandOpening: &now}},
+				false,
+			},
+			want: -6008142032721644911,
+		},
+		{
+			name: "city hash value",
+			args: args{
+				[]interface{}{city{}},
+				false,
+			},
+			want: -3858466620420057926,
+		}, {
+			name: "movie hash value",
+			args: args{
+				[]interface{}{movie{}},
+				false,
+			},
+			want: 8605312905649596949,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := []SqlizeOption{}
+			if tt.args.isPostgresql {
+				opts = append(opts, WithPostgresql())
+			}
+			s := NewSqlize(opts...)
+
+			s.FromObjects(tt.args.models...)
+			if got := s.HashValue(); got != tt.want {
+				t.Errorf("HashValue() got = %d,\n expected = %d", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestSqlize_ArvoSchema(t *testing.T) {
 	now := time.Now()
 
@@ -553,66 +704,6 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 			s.FromObjects(tt.args.models...)
 			if got := s.ArvoSchema(tt.args.needTables...); (got != nil || tt.want != nil) && !areEqualJSON(got[0], tt.want[0]) {
 				t.Errorf("ArvoSchema() got = %v,\n expected = %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestSqlize_HashValue(t *testing.T) {
-	now := time.Now()
-
-	type args struct {
-		models       []interface{}
-		isPostgresql bool
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "person hashValue",
-			args: args{
-				[]interface{}{person{}},
-				false,
-			},
-			want: "6407f72457c35417e4fe10decd6e6b5d",
-		},
-		{
-			name: "hotel hashValue",
-			args: args{
-				[]interface{}{hotel{GrandOpening: &now}},
-				false,
-			},
-			want: "ac9ecaa75b887291a8a3b9ad4ac37ff8",
-		},
-		{
-			name: "city hashValue",
-			args: args{
-				[]interface{}{city{}},
-				false,
-			},
-			want: "ca73f90d402914ba9ae2eddf7868ecd3",
-		}, {
-			name: "movie hashValue",
-			args: args{
-				[]interface{}{movie{}},
-				false,
-			},
-			want: "776c367eaa542a156425dc8ef1da831a",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			opts := []SqlizeOption{}
-			if tt.args.isPostgresql {
-				opts = append(opts, WithPostgresql())
-			}
-			s := NewSqlize(opts...)
-
-			s.FromObjects(tt.args.models...)
-			if got := s.HashValue(); got != tt.want {
-				t.Errorf("HashValue() got = %v,\n expected = %v", got, tt.want)
 			}
 		})
 	}

@@ -28,7 +28,7 @@ func (p *Parser) Parser(sql string) error {
 }
 
 // HashValue ...
-func (p *Parser) HashValue() string {
+func (p *Parser) HashValue() int64 {
 	return p.Migration.HashValue()
 }
 

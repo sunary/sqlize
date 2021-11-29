@@ -11,9 +11,10 @@ Generate MySQL/PostgreSQL Migration from golang struct and existing sql
 + Generate `sql migration` from diff between existed sql and objects
 + Generate `arvo` schema (Mysql only)
 + Support embedded struct
-+ Compatible with `golang-migrate/migrate`
-+ Compatible with `gorm` tag
++ Generate migration version - compatible with `golang-migrate/migrate`
++ Tag options - compatible with `gorm` tag
 
+> **WARNING**: some functions doesn't work on PostgreSQL, let me know of any issues
 
 ### Getting Started
 
