@@ -2,12 +2,14 @@ package sqlize
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 
 	_ "github.com/pingcap/parser/test_driver" // driver parser
 	"github.com/sunary/sqlize/avro"
 	"github.com/sunary/sqlize/sql-builder"
 	"github.com/sunary/sqlize/sql-parser"
+	sql_templates "github.com/sunary/sqlize/sql-templates"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -20,6 +22,8 @@ type Sqlize struct {
 	migrationFolder     string
 	migrationUpSuffix   string
 	migrationDownSuffix string
+	isMigrationCheck    bool
+	migrationTable      string
 	isPostgres          bool
 	isLower             bool
 	sqlBuilder          *sql_builder.SqlBuilder
@@ -29,9 +33,11 @@ type Sqlize struct {
 // NewSqlize ...
 func NewSqlize(opts ...SqlizeOption) *Sqlize {
 	o := sqlizeOptions{
-		migrationFolder:     "",
-		migrationUpSuffix:   utils.MigrationUpSuffix,
-		migrationDownSuffix: utils.MigrationDownSuffix,
+		migrationFolder:     utils.DefaultMigrationFolder,
+		migrationUpSuffix:   utils.DefaultMigrationUpSuffix,
+		migrationDownSuffix: utils.DefaultMigrationDownSuffix,
+		isMigrationCheck:    false,
+		migrationTable:      utils.DefaultMigrationsTable,
 
 		isPostgres:      false,
 		isLower:         false,
@@ -60,6 +66,8 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationFolder:     o.migrationFolder,
 		migrationUpSuffix:   o.migrationUpSuffix,
 		migrationDownSuffix: o.migrationDownSuffix,
+		isMigrationCheck:    o.isMigrationCheck,
+		migrationTable:      o.migrationTable,
 		isPostgres:          o.isPostgres,
 		isLower:             o.isLower,
 
@@ -101,38 +109,56 @@ func (s *Sqlize) FromMigrationFolder() error {
 }
 
 // HashValue ...
-func (s *Sqlize) HashValue() string {
+func (s Sqlize) HashValue() int64 {
 	return s.parser.HashValue()
 }
 
 // Diff differ between 2 migrations
-func (s *Sqlize) Diff(old Sqlize) {
+func (s Sqlize) Diff(old Sqlize) {
 	s.parser.Diff(*old.parser)
 }
 
 // StringUp migration up
-func (s *Sqlize) StringUp() string {
+func (s Sqlize) StringUp() string {
 	return s.parser.MigrationUp()
 }
 
+// StringUpWithVersion migration up with version
+func (s Sqlize) StringUpWithVersion(ver int64, dirty bool) string {
+	return s.StringUp() + "\n" + s.migrationUpVersion(ver, dirty)
+}
+
 // StringDown migration down
-func (s *Sqlize) StringDown() string {
+func (s Sqlize) StringDown() string {
 	return s.parser.MigrationDown()
 }
 
-// WriteFiles create migration file
-func (s *Sqlize) WriteFiles(name string) error {
+// StringDownWithVersion migration down with version
+func (s Sqlize) StringDownWithVersion(ver int64) string {
+	return s.StringDown() + "\n" + s.migrationDownVersion(ver)
+}
+
+func (s Sqlize) writeFiles(name string, ver int64, dirty bool) error {
 	migrationUp := s.StringUp()
 	if len(migrationUp) > 0 {
 		migrationName := utils.MigrationFileName(name)
 
-		err := ioutil.WriteFile(s.migrationFolder+migrationName+s.migrationUpSuffix, []byte(genDescription+migrationUp), 0644)
+		if ver >= 0 {
+			migrationUp = genDescription + migrationUp + "\n" + s.migrationUpVersion(ver, dirty)
+		} else {
+			migrationUp = genDescription + migrationUp
+		}
+		err := ioutil.WriteFile(s.migrationFolder+migrationName+s.migrationUpSuffix, []byte(migrationUp), 0644)
 		if err != nil {
 			return err
 		}
 
+		migrationDown := genDescription + s.StringDown()
+		if ver >= 0 {
+			migrationDown = migrationDown + "\n" + s.migrationDownVersion(ver)
+		}
 		if s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
-			err := ioutil.WriteFile(s.migrationFolder+migrationName+s.migrationDownSuffix, []byte(genDescription+s.StringDown()), 0644)
+			err := ioutil.WriteFile(s.migrationFolder+migrationName+s.migrationDownSuffix, []byte(migrationDown), 0644)
 			if err != nil {
 				return err
 			}
@@ -140,6 +166,34 @@ func (s *Sqlize) WriteFiles(name string) error {
 	}
 
 	return nil
+}
+
+// WriteFiles create migration files
+func (s Sqlize) WriteFiles(name string) error {
+	return s.writeFiles(name, -1, false)
+}
+
+// WriteFilesWithVersion create migration files with version
+func (s Sqlize) WriteFilesWithVersion(name string, ver int64, dirty bool) error {
+	return s.writeFiles(name, ver, dirty)
+}
+
+func (s Sqlize) migrationUpVersion(ver int64, dirty bool) string {
+	tmp := sql_templates.NewSql(s.isPostgres, s.isLower)
+	if ver == 0 {
+		return fmt.Sprintf(tmp.CreateTableMigration(), s.migrationTable)
+	}
+
+	return fmt.Sprintf(tmp.InsertMigrationVersion(), s.migrationTable, ver, dirty)
+}
+
+func (s Sqlize) migrationDownVersion(ver int64) string {
+	tmp := sql_templates.NewSql(s.isPostgres, s.isLower)
+	if ver == 0 {
+		return fmt.Sprintf(tmp.DropTableMigration(), s.migrationTable)
+	}
+
+	return fmt.Sprintf(tmp.RollbackMigrationVersion(), s.migrationTable, ver)
 }
 
 // ArvoSchema export arvo schema

@@ -2,7 +2,7 @@ package element
 
 import (
 	"crypto/md5"
-	"encoding/hex"
+	"encoding/binary"
 	"strings"
 
 	"github.com/pingcap/parser/ast"
@@ -198,7 +198,7 @@ func (m *Migration) Diff(old Migration) {
 }
 
 // HashValue ...
-func (m Migration) HashValue() string {
+func (m Migration) HashValue() int64 {
 	tbs := make([]string, len(m.Tables))
 	for i := range m.Tables {
 		tbs[i] = m.Tables[i].hashValue()
@@ -206,7 +206,7 @@ func (m Migration) HashValue() string {
 
 	strHash := strings.Join(tbs, " ")
 	hash := md5.Sum([]byte(strHash))
-	return hex.EncodeToString(hash[:])
+	return int64(binary.BigEndian.Uint64(hash[:]))
 }
 
 // MigrationUp ...
