@@ -37,7 +37,7 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationUpSuffix:   utils.DefaultMigrationUpSuffix,
 		migrationDownSuffix: utils.DefaultMigrationDownSuffix,
 		isMigrationCheck:    false,
-		migrationTable:      utils.DefaultMigrationsTable,
+		migrationTable:      utils.DefaultMigrationTable,
 
 		isPostgres:      false,
 		isLower:         false,
@@ -184,7 +184,7 @@ func (s Sqlize) migrationUpVersion(ver int64, dirty bool) string {
 		return fmt.Sprintf(tmp.CreateTableMigration(), s.migrationTable)
 	}
 
-	return fmt.Sprintf(tmp.InsertMigrationVersion(), s.migrationTable, ver, dirty)
+	return fmt.Sprintf(tmp.InsertMigrationVersion(), s.migrationTable, s.migrationTable, ver, dirty)
 }
 
 func (s Sqlize) migrationDownVersion(ver int64) string {
@@ -193,7 +193,7 @@ func (s Sqlize) migrationDownVersion(ver int64) string {
 		return fmt.Sprintf(tmp.DropTableMigration(), s.migrationTable)
 	}
 
-	return fmt.Sprintf(tmp.RollbackMigrationVersion(), s.migrationTable, ver)
+	return fmt.Sprintf(tmp.RollbackMigrationVersion(), s.migrationTable)
 }
 
 // ArvoSchema export arvo schema
