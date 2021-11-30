@@ -22,7 +22,6 @@ type Sqlize struct {
 	migrationFolder     string
 	migrationUpSuffix   string
 	migrationDownSuffix string
-	isMigrationCheck    bool
 	migrationTable      string
 	isPostgres          bool
 	isLower             bool
@@ -36,7 +35,6 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationFolder:     utils.DefaultMigrationFolder,
 		migrationUpSuffix:   utils.DefaultMigrationUpSuffix,
 		migrationDownSuffix: utils.DefaultMigrationDownSuffix,
-		isMigrationCheck:    false,
 		migrationTable:      utils.DefaultMigrationTable,
 
 		isPostgres:      false,
@@ -66,7 +64,6 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationFolder:     o.migrationFolder,
 		migrationUpSuffix:   o.migrationUpSuffix,
 		migrationDownSuffix: o.migrationDownSuffix,
-		isMigrationCheck:    o.isMigrationCheck,
 		migrationTable:      o.migrationTable,
 		isPostgres:          o.isPostgres,
 		isLower:             o.isLower,

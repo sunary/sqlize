@@ -4,7 +4,6 @@ type sqlizeOptions struct {
 	migrationFolder     string
 	migrationUpSuffix   string
 	migrationDownSuffix string
-	isMigrationCheck    bool
 	migrationTable      string
 
 	isPostgres      bool
@@ -47,17 +46,9 @@ func WithMigrationSuffix(upSuffix, downSuffix string) SqlizeOption {
 	})
 }
 
-// WithMigrationCheck default is off
-func WithMigrationCheck() SqlizeOption {
-	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.isMigrationCheck = true
-	})
-}
-
 // WithMigrationTable default is 'schema_migration'
 func WithMigrationTable(table string) SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.isMigrationCheck = true
 		o.migrationTable = table
 	})
 }

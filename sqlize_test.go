@@ -557,7 +557,6 @@ func TestSqlize_MigrationVersion(t *testing.T) {
 			opts := []SqlizeOption{
 				WithMigrationSuffix(".up.test", ".down.test"),
 				WithMigrationFolder(""),
-				WithMigrationCheck(),
 				WithMigrationTable(utils.DefaultMigrationTable),
 			}
 			if tt.args.isPostgresql {
