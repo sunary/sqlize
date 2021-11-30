@@ -2,6 +2,7 @@ package sqlize
 
 import (
 	"encoding/json"
+	"errors"
 	"reflect"
 	"regexp"
 	"strings"
@@ -227,7 +228,8 @@ func TestSqlize_FromObjects(t *testing.T) {
 	now := time.Now()
 
 	type args struct {
-		objs []interface{}
+		objs            []interface{}
+		migrationFolder string
 	}
 	tests := []struct {
 		name              string
@@ -241,6 +243,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 			name: "from person object",
 			args: args{
 				[]interface{}{person{}},
+				"",
 			},
 			wantMigrationUp:   expectCreatePersonUp,
 			wantMigrationDown: expectCreatePersonDown,
@@ -250,6 +253,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 			name: "from hotel object",
 			args: args{
 				[]interface{}{hotel{GrandOpening: &now}},
+				"",
 			},
 			wantMigrationUp:   expectCreateHotelUp,
 			wantMigrationDown: expectCreateHotelDown,
@@ -260,6 +264,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 			generateComment: true,
 			args: args{
 				[]interface{}{city{}},
+				"/",
 			},
 			wantMigrationUp:   expectCreateCityHasCommentUp,
 			wantMigrationDown: expectCreateCityDown,
@@ -269,6 +274,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 			name: "from all object",
 			args: args{
 				[]interface{}{person{}, hotel{GrandOpening: &now}, city{}},
+				"/",
 			},
 			wantMigrationUp:   joinSql(expectCreatePersonUp, expectCreateHotelUp, expectCreateCityUp),
 			wantMigrationDown: joinSql(expectCreatePersonDown, expectCreateHotelDown, expectCreateCityDown),
@@ -279,15 +285,21 @@ func TestSqlize_FromObjects(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := []SqlizeOption{
-				WithMigrationSuffix(".up.test", ".down.test"), WithMigrationFolder(""),
+				WithMigrationSuffix(".up.test", ".down.test"), WithMigrationFolder(tt.args.migrationFolder),
 			}
 			if tt.generateComment {
 				opts = append(opts, WithCommentGenerate())
 			}
 
 			s := NewSqlize(opts...)
-			if err := s.FromMigrationFolder(); err == nil {
-				t.Errorf("Mysql FromMigrationFolder() error = %v,\n wantErr = %v", nil, utils.PathDoesNotExistErr)
+			if tt.args.migrationFolder == "" {
+				if err := s.FromMigrationFolder(); err == nil {
+					t.Errorf("Mysql FromMigrationFolder() error = %v,\n wantErr = %v", err, utils.PathDoesNotExistErr)
+				}
+			} else if tt.args.migrationFolder == "/" {
+				if err := s.FromMigrationFolder(); err != nil {
+					t.Errorf("Mysql FromMigrationFolder() error = %v,\n wantErr = %v", err, nil)
+				}
 			}
 
 			if err := s.FromObjects(tt.args.objs...); (err != nil) != tt.wantErr {
@@ -302,8 +314,14 @@ func TestSqlize_FromObjects(t *testing.T) {
 				t.Errorf("Mysql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
 			}
 
-			if err := s.WriteFiles("demo"); err != nil {
-				t.Errorf("Mysql WriteFiles() error = %v,\n wantErr = %v", err, nil)
+			if tt.args.migrationFolder == "" {
+				if err := s.WriteFiles("demo"); err != nil {
+					t.Errorf("Mysql WriteFiles() error = %v,\n wantErr = %v", err, nil)
+				}
+			} else if tt.args.migrationFolder == "/" {
+				if err := s.WriteFiles("demo"); err == nil {
+					t.Errorf("Mysql WriteFiles() error = %v,\n wantErr = %v", err, errors.New("read-only file system"))
+				}
 			}
 		})
 	}
