@@ -7,6 +7,7 @@ import (
 
 	"github.com/pingcap/parser/ast"
 	"github.com/sunary/sqlize/sql-templates"
+	"github.com/sunary/sqlize/utils"
 )
 
 var (
@@ -213,6 +214,10 @@ func (m Migration) HashValue() int64 {
 func (m Migration) MigrationUp() string {
 	strTables := make([]string, 0)
 	for i := range m.Tables {
+		if m.Tables[i].Name == utils.DefaultMigrationTable {
+			continue
+		}
+
 		m.Tables[i].Arrange()
 
 		strTb := make([]string, 0)
@@ -236,6 +241,10 @@ func (m Migration) MigrationUp() string {
 func (m Migration) MigrationDown() string {
 	strTables := make([]string, 0)
 	for i := range m.Tables {
+		if m.Tables[i].Name == utils.DefaultMigrationTable {
+			continue
+		}
+
 		m.Tables[i].Arrange()
 
 		strTb := make([]string, 0)
