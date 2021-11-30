@@ -108,22 +108,14 @@ func (s Sql) AlterTableRenameIndexStm() string {
 func (s Sql) CreateTableMigration() string {
 	if s.IsPostgres {
 		return s.apply(`CREATE TABLE IF NOT EXISTS %s (
- id         SERIAL PRIMARY KEY,
- version    BIGINT,
- dirty      BOOLEAN,
- created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
- updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
- UNIQUE(version)
+ version    BIGINT PRIMARY KEY,
+ dirty      BOOLEAN
 );`)
 	}
 
 	return s.apply(`CREATE TABLE IF NOT EXISTS %s (
- id         int(11) AUTO_INCREMENT PRIMARY KEY,
- version    bigint(20),
- dirty      BOOLEAN,
- created_at datetime DEFAULT CURRENT_TIMESTAMP(),
- updated_at datetime DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),
- CONSTRAINT idx_version UNIQUE (version)
+ version    bigint(20) PRIMARY KEY,
+ dirty      BOOLEAN
 );`)
 }
 
@@ -134,14 +126,18 @@ func (s Sql) DropTableMigration() string {
 
 // InsertMigrationVersion ...
 func (s Sql) InsertMigrationVersion() string {
-	return s.apply("INSERT INTO %s (version, dirty) VALUES (%d, %t);")
+	if s.IsPostgres {
+		return s.apply("TRUNCATE TABLE %s;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
+	}
+
+	return s.apply("TRUNCATE %s;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
 }
 
 // RollbackMigrationVersion ...
 func (s Sql) RollbackMigrationVersion() string {
 	if s.IsPostgres {
-		return s.apply("UPDATE %s SET dirty = FALSE, updated_at = CURRENT_TIMESTAMP WHERE version = %d;")
+		return s.apply("TRUNCATE TABLE %s;")
 	}
 
-	return s.apply("UPDATE %s SET dirty = FALSE WHERE version = %d;")
+	return s.apply("TRUNCATE %s;")
 }

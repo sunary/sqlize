@@ -210,20 +210,17 @@ ALTER TABLE request DROP COLUMN response_message;`
 {"type":"record","name":"hotel","namespace":"hotel","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"grand_opening","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"created_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"updated_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"base_created_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"base_updated_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"hotel"}`
 	expectCityArvo = `
 {"type":"record","name":"city","namespace":"city","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"region","type":["null",{"connect.default":"init","connect.name":"io.debezium.data.Enum","connect.parameters":{"allowed":"northern,southern"},"connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"city"}`
-	expectCreateMigrationTableUp = `CREATE TABLE IF NOT EXISTS schema_migration (
- id         int(11) AUTO_INCREMENT PRIMARY KEY,
- version    bigint(20),
- dirty      BOOLEAN,
- created_at datetime DEFAULT CURRENT_TIMESTAMP(),
- updated_at datetime DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP(),
- CONSTRAINT idx_version UNIQUE (version)
+	expectCreateMigrationTableUp = `CREATE TABLE IF NOT EXISTS schema_migrations (
+ version    bigint(20) PRIMARY KEY,
+ dirty      BOOLEAN
 );`
 	expectCreateMigrationTableDown = `
-DROP TABLE IF EXISTS schema_migration;`
+DROP TABLE IF EXISTS schema_migrations;`
 	expectMigrationVersion1Up = `
-INSERT INTO schema_migration (version, dirty) VALUES (1, false);`
+TRUNCATE schema_migrations;
+INSERT INTO schema_migrations (version, dirty) VALUES (1, false);`
 	expectMigrationVersion1Down = `
-UPDATE schema_migration SET dirty = FALSE WHERE version = 1;`
+TRUNCATE schema_migrations;`
 )
 
 func TestSqlize_FromObjects(t *testing.T) {
@@ -561,7 +558,7 @@ func TestSqlize_MigrationVersion(t *testing.T) {
 				WithMigrationSuffix(".up.test", ".down.test"),
 				WithMigrationFolder(""),
 				WithMigrationCheck(),
-				WithMigrationTable(utils.DefaultMigrationsTable),
+				WithMigrationTable(utils.DefaultMigrationTable),
 			}
 			if tt.args.isPostgresql {
 				opts = append(opts, WithPostgresql())
