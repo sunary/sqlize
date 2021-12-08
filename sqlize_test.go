@@ -315,11 +315,11 @@ func TestSqlize_FromObjects(t *testing.T) {
 			}
 
 			if tt.args.migrationFolder == "" {
-				if err := s.WriteFiles("demo"); err != nil {
+				if err := s.WriteFiles(tt.name); err != nil {
 					t.Errorf("Mysql WriteFiles() error = %v,\n wantErr = %v", err, nil)
 				}
 			} else if tt.args.migrationFolder == "/" {
-				if err := s.WriteFiles("demo"); err == nil {
+				if err := s.WriteFiles(tt.name); err == nil {
 					t.Errorf("Mysql WriteFiles() error = %v,\n wantErr = %v", err, errors.New("read-only file system"))
 				}
 			}
@@ -591,8 +591,12 @@ func TestSqlize_MigrationVersion(t *testing.T) {
 				t.Errorf("StringDownWithVersion() got = %s,\n expected = %s", got, tt.wantMigrationDown)
 			}
 
-			if err := s.WriteFilesWithVersion("init", tt.args.version, tt.args.isDirty); err != nil {
+			if err := s.WriteFilesWithVersion(tt.name, tt.args.version, tt.args.isDirty); err != nil {
 				t.Errorf("WriteFilesWithVersion() error = %v,\n wantErr = %v", err, nil)
+			}
+
+			if err := s.WriteFilesVersion(tt.name, tt.args.version, tt.args.isDirty); err != nil {
+				t.Errorf("WriteFilesVersion() error = %v,\n wantErr = %v", err, nil)
 			}
 		})
 	}
