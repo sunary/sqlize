@@ -135,30 +135,22 @@ func (s Sqlize) StringDownWithVersion(ver int64) string {
 	return s.StringDown() + "\n" + s.migrationDownVersion(ver)
 }
 
-func (s Sqlize) writeFiles(name string, ver int64, dirty bool) error {
-	migrationUp := s.StringUp()
-	if len(migrationUp) > 0 {
-		migrationName := utils.MigrationFileName(name)
+func (s Sqlize) writeFiles(name, migUp, migDown string) error {
+	fileName := utils.MigrationFileName(name)
 
-		if ver >= 0 {
-			migrationUp = genDescription + migrationUp + "\n" + s.migrationUpVersion(ver, dirty)
-		} else {
-			migrationUp = genDescription + migrationUp
-		}
-		err := ioutil.WriteFile(s.migrationFolder+migrationName+s.migrationUpSuffix, []byte(migrationUp), 0644)
+	if migUp != "" {
+		migUp = genDescription + migUp
+		err := ioutil.WriteFile(s.migrationFolder+fileName+s.migrationUpSuffix, []byte(migUp), 0644)
 		if err != nil {
 			return err
 		}
+	}
 
-		migrationDown := genDescription + s.StringDown()
-		if ver >= 0 {
-			migrationDown = migrationDown + "\n" + s.migrationDownVersion(ver)
-		}
-		if s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
-			err := ioutil.WriteFile(s.migrationFolder+migrationName+s.migrationDownSuffix, []byte(migrationDown), 0644)
-			if err != nil {
-				return err
-			}
+	if migUp != "" && s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
+		migDown = genDescription + migDown
+		err := ioutil.WriteFile(s.migrationFolder+fileName+s.migrationDownSuffix, []byte(migDown), 0644)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -167,12 +159,23 @@ func (s Sqlize) writeFiles(name string, ver int64, dirty bool) error {
 
 // WriteFiles create migration files
 func (s Sqlize) WriteFiles(name string) error {
-	return s.writeFiles(name, -1, false)
+	return s.writeFiles(name,
+		s.StringUp(),
+		s.StringDown())
+}
+
+// WriteFilesVersion create migration version only
+func (s Sqlize) WriteFilesVersion(name string, ver int64, dirty bool) error {
+	return s.writeFiles(name,
+		s.migrationUpVersion(ver, dirty),
+		s.migrationDownVersion(ver))
 }
 
 // WriteFilesWithVersion create migration files with version
 func (s Sqlize) WriteFilesWithVersion(name string, ver int64, dirty bool) error {
-	return s.writeFiles(name, ver, dirty)
+	return s.writeFiles(name,
+		s.StringUp()+"\n\n"+s.migrationUpVersion(ver, dirty),
+		s.StringDown()+"\n\n"+s.migrationDownVersion(ver))
 }
 
 func (s Sqlize) migrationUpVersion(ver int64, dirty bool) string {

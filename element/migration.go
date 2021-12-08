@@ -200,6 +200,10 @@ func (m *Migration) Diff(old Migration) {
 
 // HashValue ...
 func (m Migration) HashValue() int64 {
+	if len(m.Tables) == 0 {
+		return 0
+	}
+
 	tbs := make([]string, len(m.Tables))
 	for i := range m.Tables {
 		tbs[i] = m.Tables[i].hashValue()
