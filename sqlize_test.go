@@ -620,7 +620,7 @@ func TestSqlize_HashValue(t *testing.T) {
 				[]interface{}{person{}},
 				false,
 			},
-			want: 7208001464093070359,
+			want: -5168892191412708041,
 		},
 		{
 			name: "hotel hash value",
@@ -628,7 +628,7 @@ func TestSqlize_HashValue(t *testing.T) {
 				[]interface{}{hotel{GrandOpening: &now}},
 				false,
 			},
-			want: -6008142032721644911,
+			want: -3590096811374758567,
 		},
 		{
 			name: "city hash value",
@@ -636,14 +636,14 @@ func TestSqlize_HashValue(t *testing.T) {
 				[]interface{}{city{}},
 				false,
 			},
-			want: -3858466620420057926,
+			want: -2026584327433441245,
 		}, {
 			name: "movie hash value",
 			args: args{
 				[]interface{}{movie{}},
 				false,
 			},
-			want: 8605312905649596949,
+			want: -5515853333036032887,
 		},
 	}
 	for _, tt := range tests {

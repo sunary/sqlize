@@ -209,7 +209,7 @@ func (m Migration) HashValue() int64 {
 		tbs[i] = m.Tables[i].hashValue()
 	}
 
-	strHash := strings.Join(tbs, " ")
+	strHash := strings.Join(tbs, ";")
 	hash := md5.Sum([]byte(strHash))
 	return int64(binary.BigEndian.Uint64(hash[:]))
 }
