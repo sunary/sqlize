@@ -139,16 +139,16 @@ func (s Sqlize) writeFiles(name, migUp, migDown string) error {
 	fileName := utils.MigrationFileName(name)
 
 	if migUp != "" {
-		migUp = genDescription + migUp
-		err := ioutil.WriteFile(s.migrationFolder+fileName+s.migrationUpSuffix, []byte(migUp), 0644)
+		err := ioutil.WriteFile(s.migrationFolder+fileName+s.migrationUpSuffix,
+			[]byte(genDescription+migUp), 0644)
 		if err != nil {
 			return err
 		}
 	}
 
-	if migUp != "" && s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
-		migDown = genDescription + migDown
-		err := ioutil.WriteFile(s.migrationFolder+fileName+s.migrationDownSuffix, []byte(migDown), 0644)
+	if migDown != "" && s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
+		err := ioutil.WriteFile(s.migrationFolder+fileName+s.migrationDownSuffix,
+			[]byte(genDescription+migDown), 0644)
 		if err != nil {
 			return err
 		}

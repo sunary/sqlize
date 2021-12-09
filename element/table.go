@@ -295,17 +295,17 @@ func (t Table) hashValue() string {
 		cols[i] = t.Columns[i].hashValue()
 	}
 	sort.Slice(cols, func(i, j int) bool {
-		return i < j
+		return cols[i] < cols[j]
 	})
 
 	for i := range t.Indexes {
 		idxs[i] = t.Indexes[i].hashValue()
 	}
 	sort.Slice(idxs, func(i, j int) bool {
-		return i < j
+		return idxs[i] < idxs[j]
 	})
 
-	strHash := strings.Join(append(cols, idxs...), " ")
+	strHash := strings.Join(append(cols, idxs...), ";")
 	hash := md5.Sum([]byte(strHash))
 	return hex.EncodeToString(hash[:])
 }

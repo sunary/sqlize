@@ -52,7 +52,7 @@ func (c Column) HasDefaultValue() bool {
 
 func (c Column) hashValue() string {
 	strHash := utils.EscapeSqlName(sql.IsPostgres, c.Name)
-	strHash += c.definition()
+	strHash += c.hashDefinition()
 	hash := md5.Sum([]byte(strHash))
 	return hex.EncodeToString(hash[:])
 }
@@ -142,6 +142,17 @@ func (c Column) definition() string {
 
 		_ = opt.Restore(ctx)
 		strSql += " " + b.String()
+	}
+
+	return strSql
+}
+
+func (c Column) hashDefinition() string {
+	strSql := ""
+	if !sql.IsPostgres && c.Typ != nil {
+		strSql += " " + c.Typ.String()
+	} else if sql.IsPostgres && c.PgTyp != nil {
+		strSql += " " + sql.FamilyName(int32(c.PgTyp.Family))
 	}
 
 	return strSql

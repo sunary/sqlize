@@ -21,7 +21,7 @@ type Index struct {
 }
 
 func (i Index) hashValue() string {
-	strHash := strings.Join(i.migrationUp(""), " ")
+	strHash := strings.Join(i.migrationUp(""), ";")
 	hash := md5.Sum([]byte(strHash))
 	return hex.EncodeToString(hash[:])
 }
