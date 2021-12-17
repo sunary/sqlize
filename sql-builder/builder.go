@@ -186,7 +186,7 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				at.Value = fmt.Sprintf(s.sql.DefaultOption(), gt[len(defaultPrefix):])
 
 			case strings.HasPrefix(gtLower, commentPrefix):
-				at.Comment = fmt.Sprintf(s.sql.DefaultOption(), gt[len(commentPrefix):])
+				at.Comment = gt[len(commentPrefix):]
 
 			case gtLower == isIndex:
 				at.Index = createIndexName("", []string{at.Name}, at.Name)
