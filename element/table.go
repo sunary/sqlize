@@ -208,7 +208,8 @@ func (t Table) getIndexIndex(idxName string) int {
 // Diff differ between 2 migrations
 func (t *Table) Diff(old Table) {
 	for i := range t.Columns {
-		if j := old.getIndexColumn(t.Columns[i].Name); t.Columns[i].Action == MigrateAddAction && j >= 0 {
+		if j := old.getIndexColumn(t.Columns[i].Name); t.Columns[i].Action == MigrateAddAction &&
+			j >= 0 && old.Columns[j].Action != MigrateNoAction {
 			if (t.Columns[i].Typ != nil && t.Columns[i].Typ.String() == old.Columns[j].Typ.String()) ||
 				(t.Columns[i].PgTyp != nil && t.Columns[i].PgTyp == old.Columns[j].PgTyp) {
 				t.Columns[i].Action = MigrateNoAction
@@ -243,7 +244,8 @@ func (t *Table) Diff(old Table) {
 	}
 
 	for i := range t.Indexes {
-		if j := old.getIndexIndex(t.Indexes[i].Name); t.Indexes[i].Action == MigrateAddAction && j >= 0 {
+		if j := old.getIndexIndex(t.Indexes[i].Name); t.Indexes[i].Action == MigrateAddAction &&
+			j >= 0 && old.Indexes[j].Action != MigrateNoAction {
 			if t.Indexes[i].Typ == old.Indexes[j].Typ && utils.SlideStrEqual(t.Indexes[i].Columns, old.Indexes[j].Columns) {
 				t.Indexes[i].Action = MigrateNoAction
 			} else {
