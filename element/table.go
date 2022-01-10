@@ -224,22 +224,11 @@ func (t *Table) Diff(old Table) {
 			old.Columns[j].Action = MigrateRemoveAction
 			t.AddColumn(old.Columns[j])
 
-			newID, currentID := 0, len(t.Columns)-1
-			for _, v := range t.columnIndexes {
-				if v+1 == j {
-					newID = v + 1
-					break
-				}
+			if j == 0 {
+				t.swapOrder(old.Columns[j].Name, len(t.Columns)-1, 0)
+			} else if newID, ok := old.columnIndexes[old.Columns[j-1].Name]; ok {
+				t.swapOrder(old.Columns[j].Name, len(t.Columns)-1, newID+1)
 			}
-
-			t.Columns[newID], t.Columns[currentID] = t.Columns[currentID], t.Columns[newID]
-
-			for k := range t.columnIndexes {
-				if t.columnIndexes[k] >= newID {
-					t.columnIndexes[k] += 1
-				}
-			}
-			t.columnIndexes[old.Columns[j].Name] = newID
 		}
 	}
 
