@@ -15,20 +15,22 @@ import (
 const (
 	// SqlTagDefault ...
 	SqlTagDefault       = "sql"
-	columnPrefix        = "column:"         // 'column:column_name'
-	embeddedPrefix      = "embeddedprefix:" // 'embeddedPrefix:base_'
-	previousNamePrefix  = ",previous:"      // 'column:column_name,previous:old_name'
-	typePrefix          = "type:"           // 'type:VARCHAR(64)'
-	defaultPrefix       = "default:"        // 'default:0'
-	commentPrefix       = "comment:"        // 'comment:sth you want to comment'
+	columnPrefix        = "column:"          // 'column:column_name'
+	embeddedPrefix      = "embedded_prefix:" // 'embedded_prefix:base_'
+	previousNamePrefix  = ",previous:"       // 'column:column_name,previous:old_name'
+	typePrefix          = "type:"            // 'type:VARCHAR(64)'
+	defaultPrefix       = "default:"         // 'default:0'
+	commentPrefix       = "comment:"         // 'comment:sth you want to comment'
+	isNullPrefix        = "null"
+	isNotNullPrefix     = "not_null"
 	isAutoIncrement     = "auto_increment"
 	isPrimaryKey        = "primary_key"
 	isUnique            = "unique"
-	isIndex             = "index"       // 'index' (=> idx_column_name)
-	indexPrefix         = "index:"      // 'index:idx_name' or 'index:col_name' (=> idx_col_name) or 'index:col1,col2' (=> idx_col1_col2)
-	indexTypePrefix     = "index_type:" // 'index_type:btree' (default) or 'index_type:hash'
-	foreignKeyPrefix    = "foreignkey:"
-	associationFkPrefix = "association_foreignkey:"
+	isIndex             = "index"                    // 'index' (=> idx_column_name)
+	indexPrefix         = "index:"                   // 'index:idx_name' or 'index:col_name' (=> idx_col_name) or 'index:col1,col2' (=> idx_col1_col2)
+	indexTypePrefix     = "index_type:"              // 'index_type:btree' (default) or 'index_type:hash'
+	foreignKeyPrefix    = "foreign_key:"             // 'foreignKey:'
+	associationFkPrefix = "association_foreign_key:" // 'association_foreign_key:'
 	enumTag             = "enum"
 	funcTableName       = "TableName"
 )
@@ -113,12 +115,14 @@ type attrs struct {
 	Prefix       string
 	Type         string
 	Value        string
-	IsFk         bool
 	IsPk         bool
+	IsFk         bool
 	IsUnique     bool
 	Index        string
 	IndexType    string
 	IndexColumns string
+	IsNull       bool
+	IsNotNull    bool
 	IsAutoIncr   bool
 	Comment      string
 }
@@ -137,7 +141,8 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 	columnsHistory := make([][2]string, 0)
 	indexes := make([]string, 0)
 
-	primaryKey := ""
+	hasPk := false
+	var pkFields []string
 	v := reflect.ValueOf(obj)
 	t := reflect.TypeOf(obj)
 	for j := 0; j < t.NumField(); j++ {
@@ -204,20 +209,26 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 			case strings.HasPrefix(gtLower, indexTypePrefix):
 				at.IndexType = gt[len(indexTypePrefix):]
 
+			case gtLower == isNullPrefix:
+				at.IsNotNull = true
+
+			case gtLower == isNotNullPrefix:
+				at.IsNotNull = true
+
+			case gtLower == isAutoIncrement:
+				at.IsAutoIncr = true
+
 			case strings.HasPrefix(gtLower, isPrimaryKey):
 				if gtLower == isPrimaryKey {
 					at.IsPk = true
+					hasPk = true
 				} else {
 					pkDeclare := gt[len(isPrimaryKey)+1:]
-					idxFields := strings.Split(pkDeclare, ",")
-					primaryKey = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
+					pkFields = append(pkFields, strings.Split(pkDeclare, ",")...)
 				}
 
 			case gtLower == isUnique:
 				at.IsUnique = true
-
-			case gtLower == isAutoIncrement:
-				at.IsAutoIncr = true
 			}
 
 			if hasBreak {
@@ -268,6 +279,12 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 			}
 		}
 
+		if at.IsNotNull {
+			col = append(col, s.sql.NotNullValue())
+		} else if at.IsNull {
+			col = append(col, s.sql.NullValue())
+		}
+
 		if at.Value != "" {
 			col = append(col, at.Value)
 		}
@@ -299,7 +316,8 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 		columns = append(columns, fmt.Sprintf("  %s%s%s", utils.EscapeSqlName(s.isPostgres, f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
 	}
 
-	if len(primaryKey) > 0 {
+	if len(pkFields) > 0 && !hasPk {
+		primaryKey := strings.Join(utils.EscapeSqlNames(s.isPostgres, pkFields), ", ")
 		columns = append(columns, fmt.Sprintf("  %s (%s)", s.sql.PrimaryOption(), primaryKey))
 	}
 

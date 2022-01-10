@@ -18,6 +18,11 @@ func (s Sql) DefaultOption() string {
 	return s.apply("DEFAULT %s")
 }
 
+// NotNullValue ...
+func (s Sql) NotNullValue() string {
+	return s.apply("NOT NULL")
+}
+
 // NullValue ...
 func (s Sql) NullValue() string {
 	return s.apply("NULL")
