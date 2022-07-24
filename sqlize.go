@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 
 	_ "github.com/pingcap/parser/test_driver" // driver parser
 	"github.com/sunary/sqlize/avro"
-	"github.com/sunary/sqlize/sql-builder"
-	"github.com/sunary/sqlize/sql-parser"
+	sql_builder "github.com/sunary/sqlize/sql-builder"
+	sql_parser "github.com/sunary/sqlize/sql-parser"
 	sql_templates "github.com/sunary/sqlize/sql-templates"
 	"github.com/sunary/sqlize/utils"
 )
@@ -139,16 +140,16 @@ func (s Sqlize) writeFiles(name, migUp, migDown string) error {
 	fileName := utils.MigrationFileName(name)
 
 	if migUp != "" {
-		err := ioutil.WriteFile(s.migrationFolder+fileName+s.migrationUpSuffix,
-			[]byte(genDescription+migUp), 0644)
+		filePath := filepath.Join(s.migrationFolder, fileName+s.migrationUpSuffix)
+		err := ioutil.WriteFile(filePath, []byte(genDescription+migUp), 0644)
 		if err != nil {
 			return err
 		}
 	}
 
 	if migDown != "" && s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
-		err := ioutil.WriteFile(s.migrationFolder+fileName+s.migrationDownSuffix,
-			[]byte(genDescription+migDown), 0644)
+		filePath := filepath.Join(s.migrationFolder, fileName+s.migrationDownSuffix)
+		err := ioutil.WriteFile(filePath, []byte(genDescription+migDown), 0644)
 		if err != nil {
 			return err
 		}
