@@ -31,7 +31,7 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 	case *tree.CreateTable:
 		tbName := n.Table.Table()
 
-		tb := element.NewTable(tbName)
+		tb := element.NewTableWithAction(tbName, element.MigrateAddAction)
 		p.Migration.AddTable(*tb)
 		p.Migration.Using(tbName)
 

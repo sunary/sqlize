@@ -25,10 +25,15 @@ type Table struct {
 
 // NewTable ...
 func NewTable(name string) *Table {
+	return NewTableWithAction(name, MigrateAddAction)
+}
+
+// NewTableWithAction ...
+func NewTableWithAction(name string, action MigrateAction) *Table {
 	return &Table{
 		Node: Node{
 			Name:   name,
-			Action: MigrateAddAction,
+			Action: action,
 		},
 		Columns:       []Column{},
 		columnIndexes: map[string]int{},
