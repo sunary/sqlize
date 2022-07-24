@@ -53,8 +53,7 @@ func (m *Migration) AddTable(tb Table) {
 func (m *Migration) RemoveTable(tbName string) {
 	id := m.getIndexTable(tbName)
 	if id == -1 {
-		tb := NewTable(tbName)
-		tb.Action = MigrateRemoveAction
+		tb := NewTableWithAction(tbName, MigrateRemoveAction)
 		m.Tables = append(m.Tables, *tb)
 		m.tableIndexes[tb.Name] = len(m.Tables) - 1
 		return
@@ -86,8 +85,7 @@ func (m *Migration) AddColumn(tbName string, col Column) {
 
 	id := m.getIndexTable(tbName)
 	if id == -1 {
-		tb := NewTable(tbName)
-		tb.Action = MigrateNoAction
+		tb := NewTableWithAction(tbName, MigrateModifyAction)
 		m.AddTable(*tb)
 		id = len(m.Tables) - 1
 	}
@@ -114,7 +112,8 @@ func (m *Migration) RemoveColumn(tbName, colName string) {
 
 	id := m.getIndexTable(tbName)
 	if id == -1 {
-		m.AddTable(*NewTable(tbName))
+		tb := NewTableWithAction(tbName, MigrateModifyAction)
+		m.AddTable(*tb)
 		id = len(m.Tables) - 1
 	}
 
@@ -140,7 +139,8 @@ func (m *Migration) AddIndex(tbName string, idx Index) {
 
 	id := m.getIndexTable(tbName)
 	if id == -1 {
-		m.AddTable(*NewTable(tbName))
+		tb := NewTableWithAction(tbName, MigrateModifyAction)
+		m.AddTable(*tb)
 		id = len(m.Tables) - 1
 	}
 
@@ -155,7 +155,8 @@ func (m *Migration) RemoveIndex(tbName string, idxName string) {
 
 	id := m.getIndexTable(tbName)
 	if id == -1 {
-		m.AddTable(*NewTable(tbName))
+		tb := NewTableWithAction(tbName, MigrateModifyAction)
+		m.AddTable(*tb)
 		id = len(m.Tables) - 1
 	}
 

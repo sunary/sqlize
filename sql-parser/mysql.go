@@ -83,7 +83,7 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 	// create Table
 	if tab, ok := in.(*ast.CreateTableStmt); ok {
 		tbName := tab.Table.Name.O
-		tb := element.NewTable(tbName)
+		tb := element.NewTableWithAction(tbName, element.MigrateAddAction)
 
 		p.Migration.Using(tbName)
 		for i := range tab.Constraints {
