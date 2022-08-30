@@ -52,7 +52,7 @@ func (c Column) HasDefaultValue() bool {
 
 func (c Column) hashValue() string {
 	strHash := utils.EscapeSqlName(sql.IsPostgres, c.Name)
-	strHash += c.hashDefinition()
+	strHash += c.typeDefinition()
 	hash := md5.Sum([]byte(strHash))
 	return hex.EncodeToString(hash[:])
 }
@@ -119,12 +119,7 @@ func (c Column) migrationDown(tbName, after string) []string {
 }
 
 func (c Column) definition() string {
-	strSql := ""
-	if !sql.IsPostgres && c.Typ != nil {
-		strSql += " " + c.Typ.String()
-	} else if sql.IsPostgres && c.PgTyp != nil {
-		strSql += " " + sql.FamilyName(int32(c.PgTyp.Family))
-	}
+	strSql := c.typeDefinition()
 
 	for _, opt := range c.Options {
 		b := bytes.NewBufferString("")
@@ -147,13 +142,12 @@ func (c Column) definition() string {
 	return strSql
 }
 
-func (c Column) hashDefinition() string {
-	strSql := ""
+func (c Column) typeDefinition() string {
 	if !sql.IsPostgres && c.Typ != nil {
-		strSql += " " + c.Typ.String()
+		return " " + c.Typ.String()
 	} else if sql.IsPostgres && c.PgTyp != nil {
-		strSql += " " + sql.FamilyName(int32(c.PgTyp.Family))
+		return " " + sql.FamilyName(int32(c.PgTyp.Family))
 	}
 
-	return strSql
+	return "" // column type is empty
 }
