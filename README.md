@@ -139,7 +139,7 @@ BIGINT  => bigint(20)
 ```
 
 * fields belong to embedded struct have the lowest order, except `primary key` always first
-* an embedded struct can not be pointer, also support prefix: `sql:"embedded_prefix:base_"`
+* an embedded struct (`sql:"squash"`) can not be pointer, also support prefix: `sql:"embedded_prefix:base_"`
 
 ```golang
 type Base struct {
@@ -147,7 +147,7 @@ type Base struct {
 	CreatedAt time.Time
 }
 type sample struct {
-	Base
+	Base `sql:"squash"`
 	User string
 }
 
