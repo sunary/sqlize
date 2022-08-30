@@ -113,6 +113,10 @@ func (s Sqlize) HashValue() int64 {
 
 // Diff differ between 2 migrations
 func (s Sqlize) Diff(old Sqlize) {
+	if s.isPostgres != old.isPostgres {
+		panic("could not diff between mysql and postgresql")
+	}
+
 	s.parser.Diff(*old.parser)
 }
 
