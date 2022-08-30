@@ -27,7 +27,7 @@ type person struct {
 }
 
 type hotel struct {
-	B1           Base
+	B1           Base  `sql:"squash"`
 	B2           Base  `sql:"embedded_prefix:base_"`
 	ID           int32 `sql:"primary_key"`
 	Name         string

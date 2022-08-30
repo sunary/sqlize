@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sunary/sqlize/sql-templates"
+	sql_templates "github.com/sunary/sqlize/sql-templates"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -32,6 +32,7 @@ const (
 	foreignKeyPrefix    = "foreign_key:"             // 'foreignKey:'
 	associationFkPrefix = "association_foreign_key:" // 'association_foreign_key:'
 	enumTag             = "enum"
+	isSquash            = "squash"
 	funcTableName       = "TableName"
 )
 
@@ -125,6 +126,7 @@ type attrs struct {
 	IsNotNull    bool
 	IsAutoIncr   bool
 	Comment      string
+	Squash       bool
 }
 
 // parseStruct return columns, columnsHistory, indexes
@@ -229,6 +231,9 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 			case gtLower == isUnique:
 				at.IsUnique = true
+
+			case gtLower == isSquash:
+				at.Squash = true
 			}
 
 			if hasBreak {
@@ -267,14 +272,17 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				continue
 			}
 
-			strType, isStruct := s.sqlType(v.Field(j).Interface(), "")
-			if isStruct {
+			strType, isEmbedded := s.sqlType(v.Field(j).Interface(), "")
+			if isEmbedded && (at.Squash || len(at.Prefix) > 0) {
 				_columns, _columnsHistory, _indexes := s.parseStruct(tableName, prefix+at.Prefix, v.Field(j).Interface())
 				embedColumns = append(embedColumns, _columns...)
 				embedColumnsHistory = append(embedColumnsHistory, _columnsHistory...)
 				embedIndexes = append(embedIndexes, _indexes...)
 				continue
 			} else {
+				if isEmbedded { // default type for struct is "TEXT"
+					strType = s.sql.TextType()
+				}
 				col = append(col, strType)
 			}
 		}
@@ -360,7 +368,7 @@ func createCommentFromFieldName(column string) string {
 	return strings.Replace(column, "_", " ", -1)
 }
 
-// prefix return sqlType, isStruct
+// prefix return sqlType, isEmbedded
 func (s SqlBuilder) sqlType(v interface{}, suffix string) (string, bool) {
 	if t, ok := s.sqlNullType(v, s.sql.NullValue()); ok {
 		return t, false
