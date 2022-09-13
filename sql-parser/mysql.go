@@ -3,6 +3,7 @@ package sql_parser
 import (
 	"github.com/pingcap/parser"
 	"github.com/pingcap/parser/ast"
+	"github.com/pingcap/parser/model"
 	"github.com/sunary/sqlize/element"
 )
 
@@ -114,24 +115,32 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 				}
 
 			case ast.ConstraintKey, ast.ConstraintIndex:
+				indexType := model.IndexTypeBtree
+				if tab.Constraints[i].Option != nil {
+					indexType = tab.Constraints[i].Option.Tp
+				}
 				tb.AddIndex(element.Index{
 					Node: element.Node{
 						Name:   tab.Constraints[i].Name,
 						Action: element.MigrateAddAction,
 					},
 					Typ:       ast.IndexKeyTypeNone,
-					IndexType: tab.Constraints[i].Option.Tp,
+					IndexType: indexType,
 					Columns:   cols,
 				})
 
 			case ast.ConstraintUniqKey, ast.ConstraintUniqIndex:
+				indexType := model.IndexTypeBtree
+				if tab.Constraints[i].Option != nil {
+					indexType = tab.Constraints[i].Option.Tp
+				}
 				tb.AddIndex(element.Index{
 					Node: element.Node{
 						Name:   tab.Constraints[i].Name,
 						Action: element.MigrateAddAction,
 					},
 					Typ:       ast.IndexKeyTypeUnique,
-					IndexType: tab.Constraints[i].Option.Tp,
+					IndexType: indexType,
 					Columns:   cols,
 				})
 			}
