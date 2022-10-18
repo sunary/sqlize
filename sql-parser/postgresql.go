@@ -94,7 +94,7 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 		case *tree.AlterTableAlterColumnType:
 			col := element.Column{
 				Node:  element.Node{Name: nc.Column.String(), Action: element.MigrateModifyAction},
-				PgTyp: &nc.ToType.InternalType,
+				PgTyp: nc.ToType,
 			}
 			p.Migration.AddColumn(n.Table.String(), col)
 		case *tree.AlterTableSetDefault:
@@ -157,7 +157,7 @@ func postgresColumn(n *tree.ColumnTableDef) (element.Column, []element.Index) {
 
 	return element.Column{
 		Node:    element.Node{Name: n.Name.String(), Action: element.MigrateAddAction},
-		PgTyp:   &n.Type.InternalType,
+		PgTyp:   n.Type,
 		Options: opts,
 	}, indexes
 }

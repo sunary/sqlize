@@ -25,7 +25,7 @@ const (
 type Column struct {
 	Node
 	Typ     *types.FieldType
-	PgTyp   *ptypes.InternalType
+	PgTyp   *ptypes.T
 	Options []*ast.ColumnOption
 	Comment string
 }
@@ -146,7 +146,7 @@ func (c Column) typeDefinition() string {
 	if !sql.IsPostgres && c.Typ != nil {
 		return " " + c.Typ.String()
 	} else if sql.IsPostgres && c.PgTyp != nil {
-		return " " + sql.FamilyName(int32(c.PgTyp.Family))
+		return " " + c.PgTyp.SQLString()
 	}
 
 	return "" // column type is empty
