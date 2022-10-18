@@ -216,7 +216,7 @@ func (t *Table) Diff(old Table) {
 		if j := old.getIndexColumn(t.Columns[i].Name); t.Columns[i].Action == MigrateAddAction &&
 			j >= 0 && old.Columns[j].Action != MigrateNoAction {
 			if (t.Columns[i].Typ != nil && t.Columns[i].Typ.String() == old.Columns[j].Typ.String()) ||
-				(t.Columns[i].PgTyp != nil && t.Columns[i].PgTyp == old.Columns[j].PgTyp) {
+				(t.Columns[i].PgTyp != nil && t.Columns[i].PgTyp.SQLString() == old.Columns[j].PgTyp.SQLString()) {
 				t.Columns[i].Action = MigrateNoAction
 			} else {
 				t.Columns[i].Action = MigrateModifyAction
