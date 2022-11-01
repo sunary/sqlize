@@ -49,6 +49,34 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 					p.Migration.SetColumnPosition("", alter.Specs[i].Position)
 				}
 
+			case ast.AlterTableAddConstraint:
+				switch alter.Specs[i].Constraint.Tp {
+				// TODO parse primary key only
+				case ast.ConstraintPrimaryKey:
+					cols := make([]string, len(alter.Specs[i].Constraint.Keys))
+					for j, key := range alter.Specs[i].Constraint.Keys {
+						cols[j] = key.Column.Name.O
+					}
+					if alter.Specs[i].Constraint.Keys != nil {
+						p.Migration.AddIndex(alter.Table.Text(), element.Index{
+							Node:    element.Node{Name: "primary_key", Action: element.MigrateAddAction},
+							Typ:     ast.IndexKeyTypeNone,
+							CnsTyp:  ast.ConstraintPrimaryKey,
+							Columns: cols,
+						})
+					} else {
+						p.Migration.AddColumn(alter.Table.Text(), element.Column{
+							Node: element.Node{Name: cols[0], Action: element.MigrateAddAction},
+							Typ:  nil,
+							Options: []*ast.ColumnOption{
+								{
+									Tp: ast.ColumnOptionPrimaryKey,
+								},
+							},
+						})
+					}
+				}
+
 			case ast.AlterTableDropColumn:
 				p.Migration.RemoveColumn(alter.Table.Name.O, alter.Specs[i].OldColumnName.Name.O)
 

@@ -14,22 +14,27 @@ import (
 
 const (
 	// SqlTagDefault ...
-	SqlTagDefault       = "sql"
-	columnPrefix        = "column:"          // 'column:column_name'
-	embeddedPrefix      = "embedded_prefix:" // 'embedded_prefix:base_'
-	previousNamePrefix  = ",previous:"       // 'column:column_name,previous:old_name'
-	typePrefix          = "type:"            // 'type:VARCHAR(64)'
-	defaultPrefix       = "default:"         // 'default:0'
-	commentPrefix       = "comment:"         // 'comment:sth you want to comment'
-	isNullPrefix        = "null"
-	isNotNullPrefix     = "not_null"
-	isAutoIncrement     = "auto_increment"
-	isPrimaryKey        = "primary_key"
-	isUnique            = "unique"
-	isIndex             = "index"                    // 'index' (=> idx_column_name)
-	indexPrefix         = "index:"                   // 'index:idx_name' or 'index:col_name' (=> idx_col_name) or 'index:col1,col2' (=> idx_col1_col2)
-	indexTypePrefix     = "index_type:"              // 'index_type:btree' (default) or 'index_type:hash'
-	foreignKeyPrefix    = "foreign_key:"             // 'foreignKey:'
+	SqlTagDefault      = "sql"
+	columnPrefix       = "column:"          // set column name, eg: 'column:column_name'
+	embeddedPrefix     = "embedded_prefix:" // set embed prefix for flatten struct, eg: 'embedded_prefix:base_'
+	previousNamePrefix = ",previous:"       // mark previous name-field, eg: 'column:column_name,previous:old_name'
+	typePrefix         = "type:"            // set field type, eg: 'type:VARCHAR(64)'
+	defaultPrefix      = "default:"         // set default value, eg: 'default:0'
+	commentPrefix      = "comment:"         // comment field, eg: 'comment:sth you want to comment'
+
+	isNullPrefix    = "null"
+	isNotNullPrefix = "not_null"
+	isAutoIncrement = "auto_increment"
+	isPrimaryKey    = "primary_key" // this field is primary key, eg: 'primary_key'
+	isIndex         = "index"       // indexing this field, eg: 'index' (=> idx_column_name)
+	isUniqueIndex   = "unique"      // unique indexing this field, eg: 'unique' (=> idx_column_name)
+
+	indexPrefix        = "index:"         // indexing with name, eg: 'index:idx_name'
+	uniqueIndexPrefix  = "unique:"        // unique indexing with name, eg: 'unique:idx_name'
+	indexColumnsPrefix = "index_columns:" // indexing these fields, eg: 'index_columns:col1,col2' (=> idx_col1_col2)
+	indexTypePrefix    = "index_type:"    // indexing with type, eg: 'index_type:btree' (default) or 'index_type:hash'
+
+	foreignKeyPrefix    = "foreign_key:"             // 'foreign_key:'
 	associationFkPrefix = "association_foreign_key:" // 'association_foreign_key:'
 	enumTag             = "enum"
 	isSquash            = "squash"
@@ -143,7 +148,6 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 	columnsHistory := make([][2]string, 0)
 	indexes := make([]string, 0)
 
-	hasPk := false
 	var pkFields []string
 	v := reflect.ValueOf(obj)
 	t := reflect.TypeOf(obj)
@@ -195,8 +199,16 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 			case strings.HasPrefix(gtLower, commentPrefix):
 				at.Comment = gt[len(commentPrefix):]
 
+			case gtLower == isPrimaryKey:
+				at.IsPk = true
+
 			case gtLower == isIndex:
-				at.Index = createIndexName("", []string{at.Name}, at.Name)
+				at.Index = createIndexName("", nil, at.Name)
+				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
+
+			case gtLower == isUniqueIndex:
+				at.IsUnique = true
+				at.Index = createIndexName("", nil, at.Name)
 				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 
 			case strings.HasPrefix(gtLower, indexPrefix):
@@ -208,7 +220,30 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 					at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 				}
 
+			case strings.HasPrefix(gtLower, uniqueIndexPrefix):
+				at.IsUnique = true
+				if at.Index == "" {
+					at.Index = createIndexName(prefix, []string{gt[len(uniqueIndexPrefix):]}, at.Name)
+				}
+				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
+
+			case strings.HasPrefix(gtLower, indexColumnsPrefix):
+				idxFields := strings.Split(gt[len(indexColumnsPrefix):], ",")
+				if at.IsPk {
+					pkFields = idxFields
+				} else if at.Index == "" {
+					at.Index = createIndexName(prefix, idxFields, at.Name)
+				}
+
+				at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
+
 			case strings.HasPrefix(gtLower, indexTypePrefix):
+				if at.Index == "" {
+					at.Index = createIndexName(prefix, nil, at.Name)
+				}
+				if len(at.IndexColumns) == 0 {
+					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, []string{at.Name}), ", ")
+				}
 				at.IndexType = gt[len(indexTypePrefix):]
 
 			case gtLower == isNullPrefix:
@@ -219,18 +254,6 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 			case gtLower == isAutoIncrement:
 				at.IsAutoIncr = true
-
-			case strings.HasPrefix(gtLower, isPrimaryKey):
-				if gtLower == isPrimaryKey {
-					at.IsPk = true
-					hasPk = true
-				} else {
-					pkDeclare := gt[len(isPrimaryKey)+1:]
-					pkFields = append(pkFields, strings.Split(pkDeclare, ",")...)
-				}
-
-			case gtLower == isUnique:
-				at.IsUnique = true
 
 			case gtLower == isSquash:
 				at.Squash = true
@@ -245,7 +268,13 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 			continue
 		}
 
-		if at.Index != "" {
+		if at.IsPk {
+			// create primary key multiple field as constraint
+			if len(pkFields) > 1 {
+				primaryKey := strings.Join(utils.EscapeSqlNames(s.isPostgres, pkFields), ", ")
+				indexes = append(indexes, fmt.Sprintf(s.sql.CreatePrimaryKeyStm(), tableName, primaryKey))
+			}
+		} else if at.Index != "" {
 			var strIndex string
 			if at.IsUnique {
 				strIndex = fmt.Sprintf(s.sql.CreateUniqueIndexStm(at.IndexType),
@@ -305,7 +334,8 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 			}
 		}
 
-		if at.IsPk {
+		// primary key attribute appended after field
+		if at.IsPk && len(pkFields) <= 1 {
 			col = append(col, s.sql.PrimaryOption())
 		}
 
@@ -322,11 +352,6 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 	for _, f := range rawCols {
 		columns = append(columns, fmt.Sprintf("  %s%s%s", utils.EscapeSqlName(s.isPostgres, f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
-	}
-
-	if len(pkFields) > 0 && !hasPk {
-		primaryKey := strings.Join(utils.EscapeSqlNames(s.isPostgres, pkFields), ", ")
-		columns = append(columns, fmt.Sprintf("  %s (%s)", s.sql.PrimaryOption(), primaryKey))
 	}
 
 	return append(columns, embedColumns...), append(columnsHistory, embedColumnsHistory...), append(indexes, embedIndexes...)
@@ -346,6 +371,10 @@ func createIndexName(prefix string, indexColumns []string, column string) string
 
 	if len(indexColumns) == 1 && indexColumns[0] != column {
 		return indexColumns[0]
+	}
+
+	if len(indexColumns) == 0 {
+		indexColumns = []string{column}
 	}
 
 	return fmt.Sprintf("idx_%s", strings.Join(indexColumns, "_"))
