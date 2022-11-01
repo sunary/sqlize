@@ -47,31 +47,15 @@ type movie struct {
 	YearReleased string `sql:"column:year_released,previous:released_at"`
 }
 
-type request struct {
-	ID                       int32   `sql:"primary_key;auto_increment"`
-	Sku                      string  `sql:"type:VARCHAR(64);index"`
-	SiteID                   string  `sql:"type:VARCHAR(64);index:site_id"`
-	CategoryID               string  `sql:"type:VARCHAR(64);index:idx_category_id"`
-	FromSiteIDs              string  `sql:"type:VARCHAR(255);index:idx_from_site_ids"`
-	SupplierIDs              string  `sql:"type:VARCHAR(255)"`
-	AverageSale              float64 `sql:"type:DOUBLE"`
-	RemainQuantity           float64 `sql:"type:DOUBLE"`
-	InComingQuantity         float64 `sql:"type:DOUBLE"`
-	RequestMessage           string  `sql:"type:VARCHAR(255)"`
-	IsUrgent                 bool
-	SuggestedQuantity        float64 `sql:"type:DOUBLE"`
-	Quantity                 float64 `sql:"type:DOUBLE"`
-	RequestedBy              string  `sql:"type:VARCHAR(64)"`
-	Message                  string  `sql:"type:VARCHAR(255)"`
-	ActionBy                 string  `sql:"type:VARCHAR(64)"`
-	ReferenceID              string  `sql:"type:VARCHAR(64)"`
-	ReferenceMessage         string  `sql:"type:VARCHAR(255)"`
-	PurchaseReferenceID      string  `sql:"type:VARCHAR(64)"`
-	PurchaseReferenceMessage string  `sql:"type:VARCHAR(255)"`
-	TransferCommandID        int32
-	PurchaseOrderID          int32     `sql:"index:idx_purchase_command_id"`
-	CreatedAt                time.Time `sql:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt                time.Time `sql:"default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"`
+type tpl struct {
+	B1       Base   `sql:"squash"`
+	ClientID string `sql:"type:varchar(255);primary_key;index_columns:client_id,country"`
+	Country  string `sql:"type:varchar(255)"`
+	Email    string `sql:"type:varchar(255);unique"`
+}
+
+func (tpl) TableName() string {
+	return "three_pl"
 }
 
 var (
@@ -168,43 +152,19 @@ CREATE TABLE city (
 );`
 	expectCreateCityDown = `
 DROP TABLE IF EXISTS city;`
-
-	requestMigration = `
-CREATE TABLE request(
-  id                    INT AUTO_INCREMENT PRIMARY KEY,
-  sku                   VARCHAR(64),
-  site_id               VARCHAR(64),
-  category_id           VARCHAR(64),
-  from_site_ids         VARCHAR(255),
-  supplier_ids          VARCHAR(255),
-  average_sale          DOUBLE,
-  remain_quantity       DOUBLE,
-  request_message       VARCHAR(255),
-  is_urgent             BOOLEAN,
-  suggested_quantity    DOUBLE,
-  quantity              DOUBLE,
-  requested_by          VARCHAR(64),
-  message               VARCHAR(255),
-  reference_id          VARCHAR(64),
-  purchase_reference_id VARCHAR(64),
-  response_message      VARCHAR(255),
-  transfer_command_id   INT,
-  purchase_order_id     INT,
-  created_at            DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at            DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+	expectCreateTplUp = `
+CREATE TABLE three_pl (
+ client_id  varchar(255) COMMENT 'client id',
+ country    varchar(255) COMMENT 'country',
+ email      varchar(255) COMMENT 'email',
+ created_at datetime,
+ updated_at datetime
 );
+ALTER TABLE three_pl ADD PRIMARY KEY(client_id, country);
+CREATE UNIQUE INDEX idx_email ON three_pl(email);`
+	expectCreateTplDown = `
+DROP TABLE IF EXISTS three_pl;`
 
-CREATE INDEX idx_sku ON request(sku);
-CREATE INDEX idx_site_id ON request(site_id);
-CREATE INDEX idx_category_id ON request(category_id);
-CREATE INDEX idx_purchase_command_id ON request(purchase_order_id);
-
-CREATE INDEX idx_from_site_ids ON request(from_site_ids);
-ALTER TABLE request ADD COLUMN action_by VARCHAR(64) AFTER message;
-ALTER TABLE request ADD COLUMN in_coming_quantity double AFTER remain_quantity;
-ALTER TABLE request ADD COLUMN reference_message varchar(255) AFTER reference_id;
-ALTER TABLE request ADD COLUMN purchase_reference_message varchar(255) AFTER purchase_reference_id;
-ALTER TABLE request DROP COLUMN response_message;`
 	expectPersonArvo = `
 {"type":"record","name":"person","namespace":"person","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"age","type":"int"},{"name":"is_female","type":"bool"},{"name":"created_at","type":["null",{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"person"}`
 	expectHotelArvo = `
@@ -271,6 +231,17 @@ func TestSqlize_FromObjects(t *testing.T) {
 			wantErr:           false,
 		},
 		{
+			name:            "from tpl object",
+			generateComment: true,
+			args: args{
+				[]interface{}{tpl{}},
+				"/",
+			},
+			wantMigrationUp:   expectCreateTplUp,
+			wantMigrationDown: expectCreateTplDown,
+			wantErr:           false,
+		},
+		{
 			name: "from all object",
 			args: args{
 				[]interface{}{person{}, hotel{GrandOpening: &now}, city{}},
@@ -307,20 +278,20 @@ func TestSqlize_FromObjects(t *testing.T) {
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Mysql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Mysql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Mysql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Mysql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 
 			if tt.args.migrationFolder == "" {
 				if err := s.WriteFiles(tt.name); err != nil {
-					t.Errorf("Mysql WriteFiles() error = %v,\n wantErr = %v", err, nil)
+					t.Errorf("Mysql WriteFiles() error = \n%v,\nwantErr = \n%v", err, nil)
 				}
 			} else if tt.args.migrationFolder == "/" {
 				if err := s.WriteFiles(tt.name); err == nil {
-					t.Errorf("Mysql WriteFiles() error = %v,\n wantErr = %v", err, errors.New("read-only file system"))
+					t.Errorf("Mysql WriteFiles() error = \n%v,\nwantErr = \n%v", err, errors.New("read-only file system"))
 				}
 			}
 		})
@@ -335,11 +306,11 @@ func TestSqlize_FromObjects(t *testing.T) {
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Postgresql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Postgresql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Postgresql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Postgresql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -393,11 +364,11 @@ func TestSqlize_FromString(t *testing.T) {
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Mysql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Mysql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Mysql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Mysql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -411,11 +382,11 @@ func TestSqlize_FromString(t *testing.T) {
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Postgresql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Postgresql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Postgresql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Postgresql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -470,15 +441,6 @@ func TestSqlize_Diff(t *testing.T) {
 			wantMigrationUp:   alterMovieUpStm,
 			wantMigrationDown: alterMovieDownStm,
 		},
-		{
-			name: "diff request sql",
-			args: args{
-				request{},
-				requestMigration,
-			},
-			wantMigrationUp:   "",
-			wantMigrationDown: "",
-		},
 	}
 
 	for _, tt := range tests {
@@ -491,11 +453,11 @@ func TestSqlize_Diff(t *testing.T) {
 
 			s.Diff(*o)
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Mysql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Mysql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Mysql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Mysql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -511,11 +473,11 @@ func TestSqlize_Diff(t *testing.T) {
 
 			s.Diff(*o)
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Postgresql StringUp() got = %s,\n expected = %s", strUp, tt.wantMigrationUp)
+				t.Errorf("Postgresql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Postgresql StringDown() got = %s,\n expected = %s", strDown, tt.wantMigrationDown)
+				t.Errorf("Postgresql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -584,19 +546,19 @@ func TestSqlize_MigrationVersion(t *testing.T) {
 
 			s.FromObjects(tt.args.models...)
 			if got := s.StringUpWithVersion(tt.args.version, tt.args.isDirty); normSql(got) != normSql(tt.wantMigrationUp) {
-				t.Errorf("StringUpWithVersion() got = %s,\n expected = %s", got, tt.wantMigrationUp)
+				t.Errorf("StringUpWithVersion() got = \n%s,\nexpected = \n%s", got, tt.wantMigrationUp)
 			}
 
 			if got := s.StringDownWithVersion(tt.args.version); normSql(got) != normSql(tt.wantMigrationDown) {
-				t.Errorf("StringDownWithVersion() got = %s,\n expected = %s", got, tt.wantMigrationDown)
+				t.Errorf("StringDownWithVersion() got = \n%s,\nexpected = \n%s", got, tt.wantMigrationDown)
 			}
 
 			if err := s.WriteFilesWithVersion(tt.name, tt.args.version, tt.args.isDirty); err != nil {
-				t.Errorf("WriteFilesWithVersion() error = %v,\n wantErr = %v", err, nil)
+				t.Errorf("WriteFilesWithVersion() error = \n%v,\nwantErr = \n%v", err, nil)
 			}
 
 			if err := s.WriteFilesVersion(tt.name, tt.args.version, tt.args.isDirty); err != nil {
-				t.Errorf("WriteFilesVersion() error = %v,\n wantErr = %v", err, nil)
+				t.Errorf("WriteFilesVersion() error = \n%v,\nwantErr = \n%v", err, nil)
 			}
 		})
 	}
@@ -656,7 +618,7 @@ func TestSqlize_HashValue(t *testing.T) {
 
 			s.FromObjects(tt.args.models...)
 			if got := s.HashValue(); got != tt.want {
-				t.Errorf("HashValue() got = %d,\n expected = %d", got, tt.want)
+				t.Errorf("HashValue() got = \n%d,\nexpected = \n%d", got, tt.want)
 			}
 		})
 	}
@@ -721,7 +683,7 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 
 			s.FromObjects(tt.args.models...)
 			if got := s.ArvoSchema(tt.args.needTables...); (got != nil || tt.want != nil) && !areEqualJSON(got[0], tt.want[0]) {
-				t.Errorf("ArvoSchema() got = %v,\n expected = %v", got, tt.want)
+				t.Errorf("ArvoSchema() got = \n%v,\nexpected = \n%v", got, tt.want)
 			}
 		})
 	}

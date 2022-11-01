@@ -30,7 +30,7 @@ import (
 type user struct {
 	ID          int32  `sql:"primary_key;auto_increment"`
 	Alias       string `sql:"type:VARCHAR(64)"`
-	Name        string `sql:"type:VARCHAR(64);unique;index:name,age"`
+	Name        string `sql:"type:VARCHAR(64);unique;index_columns:name,age"`
 	Age         int
 	Bio         string
 	IgnoreMe    string     `sql:"-"`
@@ -108,13 +108,14 @@ func main() {
 * `mysql` by default, using option `sql_builder.WithPostgresql()` for `postgresql`
 * sql uppercase default, using option `sql_builder.WithSqlLowercase()` for sql lowercase
 * support **generate** comment, using option `sql_builder.WithCommentGenerate()`
-* primary key: `sql:"primary_key"`
+* primary key for this field: `sql:"primary_key"`
 * auto increment: `sql:"auto_increment"`
-* index on a single column: `sql:"index"` or `sql:"index:col_name"`, index name will be `idx_col_name`
-* index on a single column (custom name): `sql:"index:idx_name"`
-* composite index (can not custom): `sql:"index:col1,col2"`, index name will be `idx_col1_col2`
+* indexing this field: `sql:"index"`
+* custom index name: `sql:"index:idx_col_name"`
+* unique indexing this field: `sql:"unique"`
+* custome unique index name: `sql:"unique:idx_name"`
+* composite index (include unique index and primary key): `sql:"index_columns:col1,col2"`
 * index type: `sql:"index_type:btree"`
-* unique: `sql:"unique"`
 * set default value: `sql:"default:CURRENT_TIMESTAMP"`
 * override datatype: `sql:"type:VARCHAR(64)"`
 * ignore: `sql:"-"`
