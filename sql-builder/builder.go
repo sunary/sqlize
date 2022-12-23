@@ -232,7 +232,7 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 					pkFields = idxFields
 				}
 
-				at.Index = getWhenEmpty(at.Index, createIndexName(prefix, idxFields, at.Name))
+				at.Index = createIndexName(prefix, idxFields, at.Name)
 				at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
 
 			case strings.HasPrefix(gtLower, indexTypePrefix):
