@@ -203,17 +203,18 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				at.IsPk = true
 
 			case gtLower == isIndex:
-				at.Index = createIndexName("", nil, at.Name)
+				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
 				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 
 			case gtLower == isUniqueIndex:
 				at.IsUnique = true
-				at.Index = createIndexName("", nil, at.Name)
+				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
 				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 
 			case strings.HasPrefix(gtLower, indexPrefix):
 				idxFields := strings.Split(gt[len(indexPrefix):], ",")
-				at.Index = createIndexName(prefix, idxFields, at.Name)
+				at.Index = getWhenEmpty(at.Index, createIndexName(prefix, idxFields, at.Name))
+
 				if len(idxFields) > 1 {
 					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
 				} else {
@@ -222,25 +223,21 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 			case strings.HasPrefix(gtLower, uniqueIndexPrefix):
 				at.IsUnique = true
-				if at.Index == "" {
-					at.Index = createIndexName(prefix, []string{gt[len(uniqueIndexPrefix):]}, at.Name)
-				}
+				at.Index = getWhenEmpty(at.Index, createIndexName(prefix, []string{gt[len(uniqueIndexPrefix):]}, at.Name))
 				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 
 			case strings.HasPrefix(gtLower, indexColumnsPrefix):
 				idxFields := strings.Split(gt[len(indexColumnsPrefix):], ",")
 				if at.IsPk {
 					pkFields = idxFields
-				} else if at.Index == "" {
-					at.Index = createIndexName(prefix, idxFields, at.Name)
 				}
 
+				at.Index = getWhenEmpty(at.Index, createIndexName(prefix, idxFields, at.Name))
 				at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
 
 			case strings.HasPrefix(gtLower, indexTypePrefix):
-				if at.Index == "" {
-					at.Index = createIndexName(prefix, nil, at.Name)
-				}
+				at.Index = getWhenEmpty(at.Index, createIndexName(prefix, nil, at.Name))
+
 				if len(at.IndexColumns) == 0 {
 					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, []string{at.Name}), ", ")
 				}
@@ -355,6 +352,13 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 	}
 
 	return append(columns, embedColumns...), append(columnsHistory, embedColumnsHistory...), append(indexes, embedIndexes...)
+}
+
+func getWhenEmpty(s, s2 string) string {
+	if s == "" {
+		return s2
+	}
+	return s
 }
 
 // RemoveTable ...
