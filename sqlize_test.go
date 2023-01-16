@@ -27,7 +27,7 @@ type person struct {
 }
 
 type hotel struct {
-	B1           Base  `sql:"squash"`
+	B1           Base  `sql:"embedded"`
 	B2           Base  `sql:"embedded_prefix:base_"`
 	ID           int32 `sql:"primary_key"`
 	Name         string
@@ -48,7 +48,7 @@ type movie struct {
 }
 
 type tpl struct {
-	B1       Base   `sql:"squash"`
+	B1       Base   `sql:"embedded"`
 	ClientID string `sql:"type:varchar(255);primary_key;index_columns:client_id,country"`
 	Country  string `sql:"type:varchar(255)"`
 	Email    string `sql:"type:varchar(255);unique"`
