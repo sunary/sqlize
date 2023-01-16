@@ -15,29 +15,30 @@ import (
 const (
 	// SqlTagDefault ...
 	SqlTagDefault      = "sql"
-	columnPrefix       = "column:"          // set column name, eg: 'column:column_name'
-	embeddedPrefix     = "embedded_prefix:" // set embed prefix for flatten struct, eg: 'embedded_prefix:base_'
-	previousNamePrefix = ",previous:"       // mark previous name-field, eg: 'column:column_name,previous:old_name'
-	typePrefix         = "type:"            // set field type, eg: 'type:VARCHAR(64)'
-	defaultPrefix      = "default:"         // set default value, eg: 'default:0'
-	commentPrefix      = "comment:"         // comment field, eg: 'comment:sth you want to comment'
+	prefixColumn       = "column:"          // set column name, eg: 'column:column_name'
+	prefixEmbedded     = "embedded_prefix:" // set embed prefix for flatten struct, eg: 'embedded_prefix:base_'
+	prefixPreviousName = ",previous:"       // mark previous name-field, eg: 'column:column_name,previous:old_name'
+	prefixType         = "type:"            // set field type, eg: 'type:VARCHAR(64)'
+	prefixDefault      = "default:"         // set default value, eg: 'default:0'
+	prefixComment      = "comment:"         // comment field, eg: 'comment:sth you want to comment'
 
-	isNullPrefix    = "null"
-	isNotNullPrefix = "not_null"
-	isAutoIncrement = "auto_increment"
-	isPrimaryKey    = "primary_key" // this field is primary key, eg: 'primary_key'
-	isIndex         = "index"       // indexing this field, eg: 'index' (=> idx_column_name)
-	isUniqueIndex   = "unique"      // unique indexing this field, eg: 'unique' (=> idx_column_name)
+	tagIsNull          = "null"
+	tagIsNotNull       = "not_null"
+	tagIsAutoIncrement = "auto_increment"
+	tagIsPrimaryKey    = "primary_key" // this field is primary key, eg: 'primary_key'
+	tagIsIndex         = "index"       // indexing this field, eg: 'index' (=> idx_column_name)
+	tagIsUniqueIndex   = "unique"      // unique indexing this field, eg: 'unique' (=> idx_column_name)
 
-	indexPrefix        = "index:"         // indexing with name, eg: 'index:idx_name'
-	uniqueIndexPrefix  = "unique:"        // unique indexing with name, eg: 'unique:idx_name'
-	indexColumnsPrefix = "index_columns:" // indexing these fields, eg: 'index_columns:col1,col2' (=> idx_col1_col2)
-	indexTypePrefix    = "index_type:"    // indexing with type, eg: 'index_type:btree' (default) or 'index_type:hash'
+	prefixIndex        = "index:"         // indexing with name, eg: 'index:idx_name'
+	prefixUniqueIndex  = "unique:"        // unique indexing with name, eg: 'unique:idx_name'
+	prefixIndexColumns = "index_columns:" // indexing these fields, eg: 'index_columns:col1,col2' (=> idx_col1_col2)
+	prefixIndexType    = "index_type:"    // indexing with type, eg: 'index_type:btree' (default) or 'index_type:hash'
 
-	foreignKeyPrefix    = "foreign_key:"             // 'foreign_key:'
-	associationFkPrefix = "association_foreign_key:" // 'association_foreign_key:'
-	enumTag             = "enum"
-	isSquash            = "squash"
+	prefixForeignKey    = "foreign_key:"             // 'foreign_key:'
+	prefixAssociationFk = "association_foreign_key:" // 'association_foreign_key:'
+	tagEnum             = "enum"
+	tagIsSquash         = "squash"
+	tagIsEmbedded       = "embedded"
 	funcTableName       = "TableName"
 )
 
@@ -131,7 +132,7 @@ type attrs struct {
 	IsNotNull    bool
 	IsAutoIncr   bool
 	Comment      string
-	Squash       bool
+	IsEmbedded   bool
 }
 
 // parseStruct return columns, columnsHistory, indexes
@@ -168,8 +169,8 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 			gtLower := strings.ToLower(gt)
 			switch {
-			case strings.HasPrefix(gtLower, columnPrefix):
-				columnNames := strings.Split(gt[len(columnPrefix):], previousNamePrefix)
+			case strings.HasPrefix(gtLower, prefixColumn):
+				columnNames := strings.Split(gt[len(prefixColumn):], prefixPreviousName)
 				if len(columnNames) == 1 {
 					at.Name = columnNames[0]
 				} else {
@@ -178,41 +179,42 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				}
 				at.Name = prefix + at.Name
 
-			case strings.HasPrefix(gtLower, embeddedPrefix):
-				at.Prefix = gt[len(embeddedPrefix):]
+			case strings.HasPrefix(gtLower, prefixEmbedded):
+				at.Prefix = gt[len(prefixEmbedded):]
+				at.IsEmbedded = true
 
-			case strings.HasPrefix(gtLower, foreignKeyPrefix) || strings.HasPrefix(gtLower, associationFkPrefix):
+			case strings.HasPrefix(gtLower, prefixForeignKey) || strings.HasPrefix(gtLower, prefixAssociationFk):
 				at.IsFk = true
 				hasBreak = true
 
-			case strings.HasPrefix(gtLower, typePrefix):
-				at.Type = gt[len(typePrefix):]
-				if s.generateComment && at.Comment == "" && strings.HasPrefix(gtLower[len(typePrefix):], enumTag) {
-					enumRaw := gt[len(typePrefix)+len(enumTag):]
+			case strings.HasPrefix(gtLower, prefixType):
+				at.Type = gt[len(prefixType):]
+				if s.generateComment && at.Comment == "" && strings.HasPrefix(gtLower[len(prefixType):], tagEnum) {
+					enumRaw := gt[len(prefixType)+len(tagEnum):]
 					enumStr := compileEnumValues.ReplaceAllString(enumRaw, "")
 					at.Comment = createCommentFromEnum(strings.Split(enumStr, ","))
 				}
 
-			case strings.HasPrefix(gtLower, defaultPrefix):
-				at.Value = fmt.Sprintf(s.sql.DefaultOption(), gt[len(defaultPrefix):])
+			case strings.HasPrefix(gtLower, prefixDefault):
+				at.Value = fmt.Sprintf(s.sql.DefaultOption(), gt[len(prefixDefault):])
 
-			case strings.HasPrefix(gtLower, commentPrefix):
-				at.Comment = gt[len(commentPrefix):]
+			case strings.HasPrefix(gtLower, prefixComment):
+				at.Comment = gt[len(prefixComment):]
 
-			case gtLower == isPrimaryKey:
+			case gtLower == tagIsPrimaryKey:
 				at.IsPk = true
 
-			case gtLower == isIndex:
+			case gtLower == tagIsIndex:
 				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
 				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 
-			case gtLower == isUniqueIndex:
+			case gtLower == tagIsUniqueIndex:
 				at.IsUnique = true
 				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
 				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 
-			case strings.HasPrefix(gtLower, indexPrefix):
-				idxFields := strings.Split(gt[len(indexPrefix):], ",")
+			case strings.HasPrefix(gtLower, prefixIndex):
+				idxFields := strings.Split(gt[len(prefixIndex):], ",")
 				at.Index = createIndexName(prefix, idxFields, at.Name)
 
 				if len(idxFields) > 1 {
@@ -221,13 +223,13 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 					at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 				}
 
-			case strings.HasPrefix(gtLower, uniqueIndexPrefix):
+			case strings.HasPrefix(gtLower, prefixUniqueIndex):
 				at.IsUnique = true
-				at.Index = createIndexName(prefix, []string{gt[len(uniqueIndexPrefix):]}, at.Name)
+				at.Index = createIndexName(prefix, []string{gt[len(prefixUniqueIndex):]}, at.Name)
 				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 
-			case strings.HasPrefix(gtLower, indexColumnsPrefix):
-				idxFields := strings.Split(gt[len(indexColumnsPrefix):], ",")
+			case strings.HasPrefix(gtLower, prefixIndexColumns):
+				idxFields := strings.Split(gt[len(prefixIndexColumns):], ",")
 				if at.IsPk {
 					pkFields = idxFields
 				}
@@ -235,25 +237,25 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				at.Index = createIndexName(prefix, idxFields, at.Name)
 				at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
 
-			case strings.HasPrefix(gtLower, indexTypePrefix):
+			case strings.HasPrefix(gtLower, prefixIndexType):
 				at.Index = getWhenEmpty(at.Index, createIndexName(prefix, nil, at.Name))
 
 				if len(at.IndexColumns) == 0 {
 					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, []string{at.Name}), ", ")
 				}
-				at.IndexType = gt[len(indexTypePrefix):]
+				at.IndexType = gt[len(prefixIndexType):]
 
-			case gtLower == isNullPrefix:
+			case gtLower == tagIsNull:
 				at.IsNotNull = true
 
-			case gtLower == isNotNullPrefix:
+			case gtLower == tagIsNotNull:
 				at.IsNotNull = true
 
-			case gtLower == isAutoIncrement:
+			case gtLower == tagIsAutoIncrement:
 				at.IsAutoIncr = true
 
-			case gtLower == isSquash:
-				at.Squash = true
+			case gtLower == tagIsSquash, gtLower == tagIsEmbedded:
+				at.IsEmbedded = true
 			}
 
 			if hasBreak {
@@ -299,7 +301,7 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 			}
 
 			strType, isEmbedded := s.sqlType(v.Field(j).Interface(), "")
-			if isEmbedded && (at.Squash || len(at.Prefix) > 0) {
+			if isEmbedded && (at.IsEmbedded || len(at.Prefix) > 0) {
 				_columns, _columnsHistory, _indexes := s.parseStruct(tableName, prefix+at.Prefix, v.Field(j).Interface())
 				embedColumns = append(embedColumns, _columns...)
 				embedColumnsHistory = append(embedColumnsHistory, _columnsHistory...)
