@@ -227,15 +227,15 @@ func TestSqlize_FromObjects(t *testing.T) {
 	tests := []struct {
 		name              string
 		generateComment   bool
-		isTableAdds       bool
+		pluralTableName   bool
 		args              args
 		wantMigrationUp   string
 		wantMigrationDown string
 		wantErr           bool
 	}{
 		{
-			name:        "from adds_tests object",
-			isTableAdds: true,
+			name:            "from adds_tests object",
+			pluralTableName: true,
 			args: args{
 				[]interface{}{addsTest{}},
 				"",
@@ -306,7 +306,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 			if tt.generateComment {
 				opts = append(opts, WithCommentGenerate())
 			}
-			if tt.isTableAdds {
+			if tt.pluralTableName {
 				opts = append(opts, WithTableAdds())
 			}
 			s := NewSqlize(opts...)

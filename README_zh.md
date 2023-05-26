@@ -108,8 +108,9 @@ func main() {
 * 默认情况下支持`mysql`，postgresql请使用使用选项`sql_builder.WithPostgresql（）`
 * sql大写默认值，对sql小写使用选项“sql_builder.WithSqlLowercase（）”
 * 支持**生成**注释，使用选项`sql_builder.WithCommentGenerate（）`
-* 支持表名自动添加"s", 使用选项 `sql_builder.WithTableAdds()`
-* 主键/外键字段参考: `sql:"primary_key"`  `sql:"primaryKey"`
+* 支持表名自动添加"s", 使用选项 `sql_builder.WithPluralTableName()`
+* Accept tag convention: `snake_case` or `camelCase`, Eg: `sql:"primary_key"` equalize `sql:"primaryKey"`
+* 主键/外键字段参考: `sql:"primary_key"`
 * 自增: `sql:"auto_increment"`
 * 给字段添加索引: `sql:"index"`
 * 自定义索引名称: `sql:"index:idx_col_name"`
