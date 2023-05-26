@@ -63,7 +63,7 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 	}
 
 	if o.isTableAdds {
-		opt = append(opt, sql_builder.WithTableAdds())
+		opt = append(opt, sql_builder.WithPluralTableName())
 	}
 
 	sb := sql_builder.NewSqlBuilder(opt...)

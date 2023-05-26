@@ -54,7 +54,7 @@ var (
 		"updated_at": {},
 		"deleted_at": {},
 	}
-	compileEnumValues = regexp.MustCompile("[\\s\"'()]+")
+	compileKeepEnumChar = regexp.MustCompile("[^0-9A-Za-z,]+")
 )
 
 // SqlBuilder ...
@@ -63,16 +63,16 @@ type SqlBuilder struct {
 	isPostgres      bool
 	sqlTag          string
 	generateComment bool
-	isTableAdds     bool
+	pluralTableName bool
 }
 
 // NewSqlBuilder ...
 func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	o := sqlBuilderOptions{
-		isLower:     false,
-		isPostgres:  false,
-		isTableAdds: false,
-		sqlTag:      SqlTagDefault,
+		isLower:         false,
+		isPostgres:      false,
+		pluralTableName: false,
+		sqlTag:          SqlTagDefault,
 	}
 	for i := range opts {
 		opts[i].apply(&o)
@@ -82,7 +82,7 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 		sql:             sql_templates.NewSql(o.isPostgres, o.isLower),
 		isPostgres:      o.isPostgres,
 		sqlTag:          o.sqlTag,
-		isTableAdds:     o.isTableAdds,
+		pluralTableName: o.pluralTableName,
 		generateComment: o.generateComment,
 	}
 }
@@ -138,33 +138,6 @@ type attrs struct {
 	IsEmbedded   bool
 }
 
-/**
- * 驼峰转蛇形 snake string
- * @description XxYy to xx_yy , XxYY to xx_y_y
- * @param s 需要转换的字符串
- * @return string
- **/
-func snakeString(s string) string {
-	data := make([]byte, 0, len(s)*2)
-	j := false
-	num := len(s)
-	for i := 0; i < num; i++ {
-		d := s[i]
-		// or通过ASCII码进行大小写的转化
-		// 65-90（A-Z），97-122（a-z）
-		//判断如果字母为大写的A-Z就在前面拼接一个_
-		if i > 0 && d >= 'A' && d <= 'Z' && j {
-			data = append(data, '_')
-		}
-		if d != '_' {
-			j = true
-		}
-		data = append(data, d)
-	}
-	//ToLower把大写字母统一转小写
-	return strings.ToLower(string(data[:]))
-}
-
 // parseStruct return columns, columnsHistory, indexes
 func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]string, [][2]string, []string) {
 	maxLen := 0
@@ -184,8 +157,8 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 	t := reflect.TypeOf(obj)
 	for j := 0; j < t.NumField(); j++ {
 		field := t.Field(j)
-		gtag := field.Tag.Get(s.sqlTag)
-		if gtag == "-" {
+		stag := field.Tag.Get(s.sqlTag)
+		if stag == "-" {
 			continue
 		}
 
@@ -193,18 +166,16 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 			Name: prefix + utils.ToSnakeCase(field.Name),
 		}
 
-		gts := strings.Split(gtag, ";")
-		for _, gt := range gts {
+		xstag := strings.Split(stag, ";")
+		for _, ot := range xstag {
 			hasBreak := false
-			gtLower := ""
-			if strings.HasSuffix(gt, "Key") || strings.Contains(gt, "Key:") {
-				gtLower = snakeString(gt)
-			} else {
-				gtLower = strings.ToLower(gt)
-			}
+
+			// normalize tag, convert `primaryKey` => `primary_key`
+			normTag := utils.ToSnakeCase(ot)
+
 			switch {
-			case strings.HasPrefix(gtLower, prefixColumn):
-				columnNames := strings.Split(gt[len(prefixColumn):], prefixPreviousName)
+			case strings.HasPrefix(normTag, prefixColumn):
+				columnNames := strings.Split(trimPrefix(ot, prefixColumn), prefixPreviousName)
 				if len(columnNames) == 1 {
 					at.Name = columnNames[0]
 				} else {
@@ -213,42 +184,42 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				}
 				at.Name = prefix + at.Name
 
-			case strings.HasPrefix(gtLower, prefixEmbedded):
-				at.Prefix = gt[len(prefixEmbedded):]
+			case strings.HasPrefix(normTag, prefixEmbedded):
+				at.Prefix = trimPrefix(ot, prefixEmbedded)
 				at.IsEmbedded = true
 
-			case strings.HasPrefix(gtLower, prefixForeignKey) || strings.HasPrefix(gtLower, prefixAssociationFk):
+			case strings.HasPrefix(normTag, prefixForeignKey) || strings.HasPrefix(normTag, prefixAssociationFk):
 				at.IsFk = true
 				hasBreak = true
 
-			case strings.HasPrefix(gtLower, prefixType):
-				at.Type = gt[len(prefixType):]
-				if s.generateComment && at.Comment == "" && strings.HasPrefix(gtLower[len(prefixType):], tagEnum) {
-					enumRaw := gt[len(prefixType)+len(tagEnum):]
-					enumStr := compileEnumValues.ReplaceAllString(enumRaw, "")
+			case strings.HasPrefix(normTag, prefixType):
+				at.Type = trimPrefix(ot, prefixType)
+				if s.generateComment && at.Comment == "" && strings.HasPrefix(strings.ToLower(at.Type), tagEnum) {
+					enumRaw := ot[len(prefixType)+len(tagEnum):] // this tag is safe, remove prefix: "type:ENUM"
+					enumStr := compileKeepEnumChar.ReplaceAllString(enumRaw, "")
 					at.Comment = createCommentFromEnum(strings.Split(enumStr, ","))
 				}
 
-			case strings.HasPrefix(gtLower, prefixDefault):
-				at.Value = fmt.Sprintf(s.sql.DefaultOption(), gt[len(prefixDefault):])
+			case strings.HasPrefix(normTag, prefixDefault):
+				at.Value = fmt.Sprintf(s.sql.DefaultOption(), trimPrefix(ot, (prefixDefault)))
 
-			case strings.HasPrefix(gtLower, prefixComment):
-				at.Comment = gt[len(prefixComment):]
+			case strings.HasPrefix(normTag, prefixComment):
+				at.Comment = trimPrefix(ot, prefixComment)
 
-			case gtLower == tagIsPrimaryKey:
+			case normTag == tagIsPrimaryKey:
 				at.IsPk = true
 
-			case gtLower == tagIsIndex:
+			case normTag == tagIsIndex:
 				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
 				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 
-			case gtLower == tagIsUniqueIndex:
+			case normTag == tagIsUniqueIndex:
 				at.IsUnique = true
 				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
 				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 
-			case strings.HasPrefix(gtLower, prefixIndex):
-				idxFields := strings.Split(gt[len(prefixIndex):], ",")
+			case strings.HasPrefix(normTag, prefixIndex):
+				idxFields := strings.Split(trimPrefix(ot, prefixIndex), ",")
 				at.Index = createIndexName(prefix, idxFields, at.Name)
 
 				if len(idxFields) > 1 {
@@ -257,13 +228,13 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 					at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 				}
 
-			case strings.HasPrefix(gtLower, prefixUniqueIndex):
+			case strings.HasPrefix(normTag, prefixUniqueIndex):
 				at.IsUnique = true
-				at.Index = createIndexName(prefix, []string{gt[len(prefixUniqueIndex):]}, at.Name)
+				at.Index = createIndexName(prefix, []string{trimPrefix(ot, prefixUniqueIndex)}, at.Name)
 				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
 
-			case strings.HasPrefix(gtLower, prefixIndexColumns):
-				idxFields := strings.Split(gt[len(prefixIndexColumns):], ",")
+			case strings.HasPrefix(normTag, prefixIndexColumns):
+				idxFields := strings.Split(trimPrefix(ot, prefixIndexColumns), ",")
 				if at.IsPk {
 					pkFields = idxFields
 				}
@@ -271,24 +242,24 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				at.Index = createIndexName(prefix, idxFields, at.Name)
 				at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
 
-			case strings.HasPrefix(gtLower, prefixIndexType):
+			case strings.HasPrefix(normTag, prefixIndexType):
 				at.Index = getWhenEmpty(at.Index, createIndexName(prefix, nil, at.Name))
 
 				if len(at.IndexColumns) == 0 {
 					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, []string{at.Name}), ", ")
 				}
-				at.IndexType = gt[len(prefixIndexType):]
+				at.IndexType = trimPrefix(ot, prefixIndexType)
 
-			case gtLower == tagIsNull:
+			case normTag == tagIsNull:
 				at.IsNotNull = true
 
-			case gtLower == tagIsNotNull:
+			case normTag == tagIsNotNull:
 				at.IsNotNull = true
 
-			case gtLower == tagIsAutoIncrement:
+			case normTag == tagIsAutoIncrement:
 				at.IsAutoIncr = true
 
-			case gtLower == tagIsSquash, gtLower == tagIsEmbedded:
+			case normTag == tagIsSquash, normTag == tagIsEmbedded:
 				at.IsEmbedded = true
 			}
 
@@ -395,6 +366,16 @@ func getWhenEmpty(s, s2 string) string {
 		return s2
 	}
 	return s
+}
+
+// because tag is norm
+func trimPrefix(ot, prefix string) string {
+	if strings.HasPrefix(ot, prefix) {
+		return ot[len(prefix):]
+	}
+
+	// all prefix tag is end with `:`
+	return ot[strings.Index(ot, ":")+1:]
 }
 
 // RemoveTable ...
@@ -548,7 +529,7 @@ func (s SqlBuilder) getTableName(t interface{}) string {
 	} else {
 		name = t.Name()
 	}
-	if s.isTableAdds {
+	if s.pluralTableName {
 		name = name + "s"
 	}
 	return utils.ToSnakeCase(name)

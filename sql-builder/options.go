@@ -5,7 +5,7 @@ type sqlBuilderOptions struct {
 	isLower         bool
 	sqlTag          string
 	generateComment bool
-	isTableAdds     bool
+	pluralTableName bool
 }
 
 type funcSqlBuilderOption struct {
@@ -63,9 +63,9 @@ func WithSqlLowercase() SqlBuilderOption {
 }
 
 // Table name plus s default
-func WithTableAdds() SqlBuilderOption {
+func WithPluralTableName() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
-		o.isTableAdds = true
+		o.pluralTableName = true
 	})
 }
 
