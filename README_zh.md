@@ -109,7 +109,7 @@ func main() {
 * sql大写默认值，对sql小写使用选项“sql_builder.WithSqlLowercase（）”
 * 支持**生成**注释，使用选项`sql_builder.WithCommentGenerate（）`
 * 支持表名自动添加"s", 使用选项 `sql_builder.WithPluralTableName()`
-* Accept tag convention: `snake_case` or `camelCase`, Eg: `sql:"primary_key"` equalize `sql:"primaryKey"`
+* 接受标签规则: `snake_case` 或则 `camelCase`, 比如: `sql:"primary_key"` 或 `sql:"primaryKey"`
 * 主键/外键字段参考: `sql:"primary_key"`
 * 自增: `sql:"auto_increment"`
 * 给字段添加索引: `sql:"index"`
@@ -142,7 +142,7 @@ now := time.Now()
 newMigration.FromObjects(sample{DeletedAt: &now})
 ```
 
-* `mysql` data type will be changed implicitly:
+* `mysql` 数据类型将自动隐式更改:
 
 ```sql
 TINYINT => tinyint(4)
@@ -150,8 +150,8 @@ INT     => int(11)
 BIGINT  => bigint(20)
 ```
 
-* fields belong to embedded struct have the lowest order, except `primary key` always first
-* an embedded struct (`sql:"embedded"` or `sql:"squash"`) can not be pointer, also support prefix: `sql:"embedded_prefix:base_"`
+* 嵌入式结构体的优先级总是最低的,  `primary key` 例外
+* 嵌入式结构体需要添加 (`sql:"embedded"` 或 `sql:"squash"`)但不能是指针,也支持统一添加前缀: `sql:"embedded_prefix:base_"`
 
 ```golang
 type Base struct {
