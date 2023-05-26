@@ -108,7 +108,7 @@ func main() {
 * `mysql` by default, using option `sql_builder.WithPostgresql()` for `postgresql`
 * sql uppercase default, using option `sql_builder.WithSqlLowercase()` for sql lowercase
 * support **generate** comment, using option `sql_builder.WithCommentGenerate()`
-* Supports automatic addition of s to table names, using option `sql_builder.WithTableAdds()`
+* Supports automatic addition of s to table names, using option `sql_builder.WithPluralTableName()`
 * Accept tag convention: `snake_case` or `camelCase`, Eg: `sql:"primary_key"` equalize `sql:"primaryKey"`
 * primary key for this field: `sql:"primary_key"`
 * auto increment: `sql:"auto_increment"`
