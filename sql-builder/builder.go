@@ -54,7 +54,7 @@ var (
 		"updated_at": {},
 		"deleted_at": {},
 	}
-	compileKeepEnumChar = regexp.MustCompile("[^0-9A-Za-z,]+")
+	compileKeepEnumChar = regexp.MustCompile("[^0-9A-Za-z,\\-_]+")
 )
 
 // SqlBuilder ...

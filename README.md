@@ -106,22 +106,22 @@ func main() {
 ### Convention
 
 * `mysql` by default, using option `sql_builder.WithPostgresql()` for `postgresql`
-* sql uppercase default, using option `sql_builder.WithSqlLowercase()` for sql lowercase
-* support **generate** comment, using option `sql_builder.WithCommentGenerate()`
-* Supports automatic addition of s to table names, using option `sql_builder.WithPluralTableName()`
+* Sql syntax uppercase (Eg: `"SELECT * FROM user WHERE id = ?"`) default, using option `sql_builder.WithSqlLowercase()` for lowercase
+* Support **generate** comment, using option `sql_builder.WithCommentGenerate()`
+* Support automatic addition of `s` to table names (plural naming convention), using option `sql_builder.WithPluralTableName()`
 * Accept tag convention: `snake_case` or `camelCase`, Eg: `sql:"primary_key"` equalize `sql:"primaryKey"`
-* primary key for this field: `sql:"primary_key"`
-* auto increment: `sql:"auto_increment"`
-* indexing this field: `sql:"index"`
-* custom index name: `sql:"index:idx_col_name"`
-* unique indexing this field: `sql:"unique"`
-* custome unique index name: `sql:"unique:idx_name"`
-* composite index (include unique index and primary key): `sql:"index_columns:col1,col2"`
-* index type: `sql:"index_type:btree"`
-* set default value: `sql:"default:CURRENT_TIMESTAMP"`
-* override datatype: `sql:"type:VARCHAR(64)"`
-* ignore: `sql:"-"`
-* pointer value must be declare in struct
+* Primary key for this field: `sql:"primary_key"`
+* Auto increment: `sql:"auto_increment"`
+* Indexing this field: `sql:"index"`
+* Custom index name: `sql:"index:idx_col_name"`
+* Unique indexing this field: `sql:"unique"`
+* Custome unique index name: `sql:"unique:idx_name"`
+* Composite index (include unique index and primary key): `sql:"index_columns:col1,col2"`
+* Index type: `sql:"index_type:btree"`
+* Set default value: `sql:"default:CURRENT_TIMESTAMP"`
+* Override datatype: `sql:"type:VARCHAR(64)"`
+* Ignore: `sql:"-"`
+* Pointer value must be declare in struct
 
 ```golang
 type sample struct {

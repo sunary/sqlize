@@ -126,8 +126,8 @@ func main() {
 ```golang
 type txtSample struct {
 	ID        int32 `sql:"primaryKey"`
-	Pid      int         `gorm:"column:pid;type:int(11);default:0;NOT NULL" json:"pid"`
-	sample *sample `gorm:"foreign_key:pid;references:id" json:"children"`
+	Pid      int    `sql:"column:pid;type:int(11);default:0;NOT NULL" json:"pid"`
+	sample *sample  `sql:"foreign_key:pid;references:id" json:"children"`
 }
 //指针值必须在结构中声明(非常重要)
 // now := time.Now()
