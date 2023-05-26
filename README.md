@@ -108,7 +108,8 @@ func main() {
 * `mysql` by default, using option `sql_builder.WithPostgresql()` for `postgresql`
 * sql uppercase default, using option `sql_builder.WithSqlLowercase()` for sql lowercase
 * support **generate** comment, using option `sql_builder.WithCommentGenerate()`
-* primary key for this field: `sql:"primary_key"`
+* Supports automatic addition of s to table names, using option `sql_builder.WithTableAdds()`
+* primary key for this field: `sql:"primary_key"`  `sql:"primaryKey"`
 * auto increment: `sql:"auto_increment"`
 * indexing this field: `sql:"index"`
 * custom index name: `sql:"index:idx_col_name"`

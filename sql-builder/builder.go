@@ -63,14 +63,16 @@ type SqlBuilder struct {
 	isPostgres      bool
 	sqlTag          string
 	generateComment bool
+	isTableAdds     bool
 }
 
 // NewSqlBuilder ...
 func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	o := sqlBuilderOptions{
-		isLower:    false,
-		isPostgres: false,
-		sqlTag:     SqlTagDefault,
+		isLower:     false,
+		isPostgres:  false,
+		isTableAdds: false,
+		sqlTag:      SqlTagDefault,
 	}
 	for i := range opts {
 		opts[i].apply(&o)
@@ -80,13 +82,14 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 		sql:             sql_templates.NewSql(o.isPostgres, o.isLower),
 		isPostgres:      o.isPostgres,
 		sqlTag:          o.sqlTag,
+		isTableAdds:     o.isTableAdds,
 		generateComment: o.generateComment,
 	}
 }
 
 // AddTable ...
 func (s SqlBuilder) AddTable(obj interface{}) string {
-	tableName := getTableName(obj)
+	tableName := s.getTableName(obj)
 	columns, columnsHistory, indexes := s.parseStruct(tableName, "", obj)
 
 	sqlPrimaryKey := s.sql.PrimaryOption()
@@ -135,6 +138,33 @@ type attrs struct {
 	IsEmbedded   bool
 }
 
+/**
+ * 驼峰转蛇形 snake string
+ * @description XxYy to xx_yy , XxYY to xx_y_y
+ * @param s 需要转换的字符串
+ * @return string
+ **/
+func snakeString(s string) string {
+	data := make([]byte, 0, len(s)*2)
+	j := false
+	num := len(s)
+	for i := 0; i < num; i++ {
+		d := s[i]
+		// or通过ASCII码进行大小写的转化
+		// 65-90（A-Z），97-122（a-z）
+		//判断如果字母为大写的A-Z就在前面拼接一个_
+		if i > 0 && d >= 'A' && d <= 'Z' && j {
+			data = append(data, '_')
+		}
+		if d != '_' {
+			j = true
+		}
+		data = append(data, d)
+	}
+	//ToLower把大写字母统一转小写
+	return strings.ToLower(string(data[:]))
+}
+
 // parseStruct return columns, columnsHistory, indexes
 func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]string, [][2]string, []string) {
 	maxLen := 0
@@ -166,8 +196,12 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 		gts := strings.Split(gtag, ";")
 		for _, gt := range gts {
 			hasBreak := false
-
-			gtLower := strings.ToLower(gt)
+			gtLower := ""
+			if strings.HasSuffix(gt, "Key") || strings.Contains(gt, "Key:") {
+				gtLower = snakeString(gt)
+			} else {
+				gtLower = strings.ToLower(gt)
+			}
 			switch {
 			case strings.HasPrefix(gtLower, prefixColumn):
 				columnNames := strings.Split(gt[len(prefixColumn):], prefixPreviousName)
@@ -365,7 +399,7 @@ func getWhenEmpty(s, s2 string) string {
 
 // RemoveTable ...
 func (s SqlBuilder) RemoveTable(tb interface{}) string {
-	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(s.isPostgres, getTableName(tb)))
+	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(s.isPostgres, s.getTableName(tb)))
 }
 
 // createIndexName format idx_field_names
@@ -499,7 +533,7 @@ func (s SqlBuilder) sqlPrimitiveType(v interface{}, suffix string) string {
 }
 
 // getTableName ...
-func getTableName(t interface{}) string {
+func (s SqlBuilder) getTableName(t interface{}) string {
 	st := reflect.TypeOf(t)
 	if _, ok := st.MethodByName(funcTableName); ok {
 		v := reflect.ValueOf(t).MethodByName(funcTableName).Call(nil)
@@ -514,6 +548,8 @@ func getTableName(t interface{}) string {
 	} else {
 		name = t.Name()
 	}
-
+	if s.isTableAdds {
+		name = name + "s"
+	}
 	return utils.ToSnakeCase(name)
 }

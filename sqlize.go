@@ -26,6 +26,7 @@ type Sqlize struct {
 	migrationTable      string
 	isPostgres          bool
 	isLower             bool
+	isTableAdds         bool
 	sqlBuilder          *sql_builder.SqlBuilder
 	parser              *sql_parser.Parser
 }
@@ -41,6 +42,7 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		isPostgres:      false,
 		isLower:         false,
 		sqlTag:          sql_builder.SqlTagDefault,
+		isTableAdds:     false,
 		generateComment: false,
 	}
 	for i := range opts {
@@ -59,6 +61,11 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 	if o.generateComment {
 		opt = append(opt, sql_builder.WithCommentGenerate())
 	}
+
+	if o.isTableAdds {
+		opt = append(opt, sql_builder.WithTableAdds())
+	}
+
 	sb := sql_builder.NewSqlBuilder(opt...)
 
 	return &Sqlize{
@@ -68,9 +75,9 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationTable:      o.migrationTable,
 		isPostgres:          o.isPostgres,
 		isLower:             o.isLower,
-
-		sqlBuilder: sb,
-		parser:     sql_parser.NewParser(o.isPostgres, o.isLower),
+		isTableAdds:         o.isTableAdds,
+		sqlBuilder:          sb,
+		parser:              sql_parser.NewParser(o.isPostgres, o.isLower),
 	}
 }
 
