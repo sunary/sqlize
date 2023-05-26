@@ -47,13 +47,10 @@ func ToSnakeCase(input string) string {
 			upperCount = 0
 
 		case isDigit(c):
-			if i == 0 {
-				panic("Identifier must start with a character: `" + input + "`")
-			}
 			sb.WriteByte(byte(c))
 
 		default:
-			panic("Invalid identifier: `" + input + "`")
+			sb.WriteByte(byte(c))
 		}
 	}
 

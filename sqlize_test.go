@@ -17,6 +17,15 @@ type Base struct {
 	UpdatedAt time.Time
 }
 
+type addsTest struct {
+	ID        int32  `sql:"primary_key;auto_increment"`
+	Name      string `sql:"type:VARCHAR(64);unique;index:name,age"`
+	Alias     string `sql:"-"`
+	Age       int
+	IsFemale  bool
+	CreatedAt time.Time `sql:"default:CURRENT_TIMESTAMP"`
+}
+
 type person struct {
 	ID        int32  `sql:"primary_key;auto_increment"`
 	Name      string `sql:"type:VARCHAR(64);unique;index:name,age"`
@@ -60,6 +69,18 @@ func (tpl) TableName() string {
 
 var (
 	space = regexp.MustCompile(`\s+`)
+
+	createAddsTestStm = `CREATE TABLE adds_tests (
+		id        int(11) AUTO_INCREMENT PRIMARY KEY,
+		name      varchar(64),
+		age       int(11),
+		is_female tinyint(1),
+		created_at datetime DEFAULT CURRENT_TIMESTAMP()
+	   );`
+	alterAddsTestUpStm = `
+	   CREATE UNIQUE INDEX idx_name_age ON adds_tests(name, age);`
+	alterAddsTestDownStm = `
+	   DROP INDEX idx_name_age ON adds_tests;`
 
 	createPersonStm = `CREATE TABLE person (
  id        int(11) AUTO_INCREMENT PRIMARY KEY,
@@ -112,6 +133,18 @@ CREATE TABLE movie (
 ALTER TABLE movie RENAME COLUMN released_at TO year_released;`
 	alterMovieDownStm = `
 ALTER TABLE movie RENAME COLUMN year_released TO released_at;`
+
+	expectCreateAddsTestUp = `
+CREATE TABLE adds_tests (
+ id        int(11) AUTO_INCREMENT PRIMARY KEY,
+ name      varchar(64),
+ age       int(11),
+ is_female tinyint(1),
+ created_at datetime DEFAULT CURRENT_TIMESTAMP()
+);
+CREATE UNIQUE INDEX idx_name_age ON adds_tests(name, age);`
+	expectCreateAddsTestDown = `
+DROP TABLE IF EXISTS adds_tests;`
 
 	expectCreatePersonUp = `
 CREATE TABLE person (
@@ -194,11 +227,23 @@ func TestSqlize_FromObjects(t *testing.T) {
 	tests := []struct {
 		name              string
 		generateComment   bool
+		pluralTableName   bool
 		args              args
 		wantMigrationUp   string
 		wantMigrationDown string
 		wantErr           bool
 	}{
+		{
+			name:            "from adds_tests object",
+			pluralTableName: true,
+			args: args{
+				[]interface{}{addsTest{}},
+				"",
+			},
+			wantMigrationUp:   expectCreateAddsTestUp,
+			wantMigrationDown: expectCreateAddsTestDown,
+			wantErr:           false,
+		},
 		{
 			name: "from person object",
 			args: args{
@@ -261,7 +306,9 @@ func TestSqlize_FromObjects(t *testing.T) {
 			if tt.generateComment {
 				opts = append(opts, WithCommentGenerate())
 			}
-
+			if tt.pluralTableName {
+				opts = append(opts, WithTableAdds())
+			}
 			s := NewSqlize(opts...)
 			if tt.args.migrationFolder == "" {
 				if err := s.FromMigrationFolder(); err == nil {

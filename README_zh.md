@@ -2,21 +2,21 @@
 
 ![github action](https://github.com/sunary/sqlize/actions/workflows/go.yml/badge.svg)
 
-Generate MySQL/PostgreSQL Migration from golang struct and existing sql
+从golang结构和现有sql生成MySQL/PostgreSQL迁移 
 
-#### Features
+#### 特征
 
-+ Sql parser
-+ Sql builder from objects
-+ Generate `sql migration` from diff between existed sql and objects
-+ Generate `arvo` schema (Mysql only)
-+ Support embedded struct
-+ Generate migration version - compatible with `golang-migrate/migrate`
-+ Tag options - compatible with `gorm` tag
++ Sql语法分析器
++ 对象Sql生成器
++ 根据现有sql和对象之间的差异生成“sql迁移” `sql migration`
++ 生成`arvo`架构（仅限Mysql）
++ 支持嵌入式结构体
++ 生成迁移版本-与`golang-migrate/migrate`兼容 
++ 标记选项-与“gorm”标记兼容
 
-> **WARNING**: some functions doesn't work on PostgreSQL, let me know of any issues
+> **警告**: 有些函数在PostgreSQL上不起作用， 有什么问题请提issues告诉我
 
-### Getting Started
+### 入门 
 
 ```go
 package main
@@ -103,37 +103,46 @@ func main() {
 }
 ```
 
-### Convention
+### 相关
 
-* `mysql` by default, using option `sql_builder.WithPostgresql()` for `postgresql`
-* Sql syntax uppercase (Eg: `"SELECT * FROM user WHERE id = ?"`) default, using option `sql_builder.WithSqlLowercase()` for lowercase
-* Support **generate** comment, using option `sql_builder.WithCommentGenerate()`
-* Support automatic addition of `s` to table names (plural naming convention), using option `sql_builder.WithPluralTableName()`
-* Accept tag convention: `snake_case` or `camelCase`, Eg: `sql:"primary_key"` equalize `sql:"primaryKey"`
-* Primary key for this field: `sql:"primary_key"`
-* Auto increment: `sql:"auto_increment"`
-* Indexing this field: `sql:"index"`
-* Custom index name: `sql:"index:idx_col_name"`
-* Unique indexing this field: `sql:"unique"`
-* Custome unique index name: `sql:"unique:idx_name"`
-* Composite index (include unique index and primary key): `sql:"index_columns:col1,col2"`
-* Index type: `sql:"index_type:btree"`
-* Set default value: `sql:"default:CURRENT_TIMESTAMP"`
-* Override datatype: `sql:"type:VARCHAR(64)"`
-* Ignore: `sql:"-"`
-* Pointer value must be declare in struct
+* 默认情况下支持`mysql`，postgresql请使用使用选项`sql_builder.WithPostgresql（）`
+* sql大写默认值，对sql小写使用选项“sql_builder.WithSqlLowercase（）”
+* 支持**生成**注释，使用选项`sql_builder.WithCommentGenerate（）`
+* 支持表名自动添加"s", 使用选项 `sql_builder.WithPluralTableName()`
+* 接受标签规则: `snake_case` 或则 `camelCase`, 比如: `sql:"primary_key"` 或 `sql:"primaryKey"`
+* 主键/外键字段参考: `sql:"primary_key"`
+* 自增: `sql:"auto_increment"`
+* 给字段添加索引: `sql:"index"`
+* 自定义索引名称: `sql:"index:idx_col_name"`
+* 唯一索引: `sql:"unique"`
+* 自定义唯一索引名称: `sql:"unique:idx_name"`
+* 复合索引（包括唯一索引和主键）: `sql:"index_columns:col1,col2"`
+* 索引类型 : `sql:"index_type:btree"`
+* 设置默认值: `sql:"default:CURRENT_TIMESTAMP"`
+* 重写数据类型: `sql:"type:VARCHAR(64)"`
+* 忽略该字段,不是成到sql语句中: `sql:"-"`
+* 指针值必须在结构中声明(非常重要)
 
 ```golang
-type sample struct {
-	ID        int32 `sql:"primary_key"`
-	DeletedAt *time.Time
+type txtSample struct {
+	ID        int32 `sql:"primaryKey"`
+	Pid      int    `sql:"column:pid;type:int(11);default:0;NOT NULL" json:"pid"`
+	sample *sample  `sql:"foreign_key:pid;references:id" json:"children"`
 }
+//指针值必须在结构中声明(非常重要)
+// now := time.Now()
+// newMigration.FromObjects(txtSample{sample:{DeletedAt: &now}})
+
+// type sample struct {
+// 	ID        int32 `sql:"primary_key"`
+// 	DeletedAt *time.Time
+// }
 
 now := time.Now()
 newMigration.FromObjects(sample{DeletedAt: &now})
 ```
 
-* `mysql` data type will be changed implicitly:
+* `mysql` 数据类型将自动隐式更改:
 
 ```sql
 TINYINT => tinyint(4)
@@ -141,8 +150,8 @@ INT     => int(11)
 BIGINT  => bigint(20)
 ```
 
-* fields belong to embedded struct have the lowest order, except `primary key` always first
-* an embedded struct (`sql:"embedded"` or `sql:"squash"`) can not be pointer, also support prefix: `sql:"embedded_prefix:base_"`
+* 嵌入式结构体的优先级总是最低的,  `primary key` 例外
+* 嵌入式结构体需要添加 (`sql:"embedded"` 或 `sql:"squash"`)但不能是指针,也支持统一添加前缀: `sql:"embedded_prefix:base_"`
 
 ```golang
 type Base struct {

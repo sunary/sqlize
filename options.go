@@ -9,6 +9,7 @@ type sqlizeOptions struct {
 	isPostgres      bool
 	isLower         bool
 	sqlTag          string
+	pluralTableName bool
 	generateComment bool
 }
 
@@ -78,6 +79,13 @@ func WithSqlUppercase() SqlizeOption {
 func WithSqlLowercase() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.isLower = true
+	})
+}
+
+// Table name plus s default
+func WithTableAdds() SqlizeOption {
+	return newFuncSqlizeOption(func(o *sqlizeOptions) {
+		o.pluralTableName = true
 	})
 }
 
