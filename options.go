@@ -83,7 +83,7 @@ func WithSqlLowercase() SqlizeOption {
 }
 
 // Table name plus s default
-func WithTableAdds() SqlizeOption {
+func WithPluralTableName() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.pluralTableName = true
 	})

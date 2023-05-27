@@ -62,7 +62,7 @@ func WithSqlLowercase() SqlBuilderOption {
 	})
 }
 
-// Table name plus s default
+// WithPluralTableName Table name in plural convention - ending with `s`
 func WithPluralTableName() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.pluralTableName = true
