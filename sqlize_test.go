@@ -307,7 +307,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 				opts = append(opts, WithCommentGenerate())
 			}
 			if tt.pluralTableName {
-				opts = append(opts, WithTableAdds())
+				opts = append(opts, WithPluralTableName())
 			}
 			s := NewSqlize(opts...)
 			if tt.args.migrationFolder == "" {
