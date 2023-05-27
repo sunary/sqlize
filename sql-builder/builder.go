@@ -513,7 +513,7 @@ func (s SqlBuilder) sqlPrimitiveType(v interface{}, suffix string) string {
 	}
 }
 
-// getTableName ...
+// getTableName read from TableNameFn or parse table name from model as snake_case
 func (s SqlBuilder) getTableName(t interface{}) string {
 	st := reflect.TypeOf(t)
 	if _, ok := st.MethodByName(funcTableName); ok {
