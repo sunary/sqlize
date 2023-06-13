@@ -216,7 +216,9 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 			case normTag == tagIsUniqueIndex:
 				at.IsUnique = true
 				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
-				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
+				if at.IndexColumns == "" {
+					at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
+				}
 
 			case strings.HasPrefix(normTag, prefixIndex):
 				idxFields := strings.Split(trimPrefix(ot, prefixIndex), ",")
