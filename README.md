@@ -2,6 +2,8 @@
 
 ![github action](https://github.com/sunary/sqlize/actions/workflows/go.yml/badge.svg)
 
+English | [中文](README_zh.md)
+
 Generate MySQL/PostgreSQL Migration from golang struct and existing sql
 
 #### Features

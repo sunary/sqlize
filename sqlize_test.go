@@ -19,7 +19,7 @@ type Base struct {
 
 type addsTest struct {
 	ID        int32  `sql:"primary_key;auto_increment"`
-	Name      string `sql:"type:VARCHAR(64);unique;index:name,age"`
+	Name      string `sql:"type:VARCHAR(64);index:name,age;unique"`
 	Alias     string `sql:"-"`
 	Age       int
 	IsFemale  bool
