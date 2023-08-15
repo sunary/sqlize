@@ -2,29 +2,32 @@ package sql_parser
 
 import (
 	"github.com/sunary/sqlize/element"
+	sql_templates "github.com/sunary/sqlize/sql-templates"
 )
 
 // Parser ...
 type Parser struct {
-	isPostgres bool
-	Migration  element.Migration
+	dialect   sql_templates.SqlDialect
+	Migration element.Migration
 }
 
 // NewParser ...
-func NewParser(isPostgres, isLower bool) *Parser {
+func NewParser(dialect sql_templates.SqlDialect, lowercase bool) *Parser {
 	return &Parser{
-		isPostgres: isPostgres,
-		Migration:  element.NewMigration(isPostgres, isLower),
+		dialect:   dialect,
+		Migration: element.NewMigration(dialect, lowercase),
 	}
 }
 
 // Parser ...
 func (p *Parser) Parser(sql string) error {
-	if p.isPostgres {
+	switch p.dialect {
+	case sql_templates.PostgresDialect:
 		return p.ParserPostgresql(sql)
+	default:
+		// TODO: mysql parser is default for other dialects
+		return p.ParserMysql(sql)
 	}
-
-	return p.ParserMysql(sql)
 }
 
 // HashValue ...

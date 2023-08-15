@@ -51,7 +51,7 @@ func (c Column) HasDefaultValue() bool {
 }
 
 func (c Column) hashValue() string {
-	strHash := utils.EscapeSqlName(sql.IsPostgres, c.Name)
+	strHash := utils.EscapeSqlName(sql.GetDialect(), c.Name)
 	strHash += c.typeDefinition()
 	hash := md5.Sum([]byte(strHash))
 	return hex.EncodeToString(hash[:])
@@ -63,7 +63,7 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		return nil
 
 	case MigrateAddAction:
-		strSql := utils.EscapeSqlName(sql.IsPostgres, c.Name)
+		strSql := utils.EscapeSqlName(sql.GetDialect(), c.Name)
 
 		if ident > len(c.Name) {
 			strSql += strings.Repeat(" ", ident-len(c.Name))
@@ -73,21 +73,21 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 
 		if ident < 0 {
 			if after != "" {
-				return []string{fmt.Sprintf(sql.AlterTableAddColumnAfterStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), strSql, utils.EscapeSqlName(sql.IsPostgres, after))}
+				return []string{fmt.Sprintf(sql.AlterTableAddColumnAfterStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), strSql, utils.EscapeSqlName(sql.GetDialect(), after))}
 			}
-			return []string{fmt.Sprintf(sql.AlterTableAddColumnFirstStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), strSql)}
+			return []string{fmt.Sprintf(sql.AlterTableAddColumnFirstStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), strSql)}
 		}
 
 		return []string{strSql}
 
 	case MigrateRemoveAction:
-		return []string{fmt.Sprintf(sql.AlterTableDropColumnStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), utils.EscapeSqlName(sql.IsPostgres, c.Name))}
+		return []string{fmt.Sprintf(sql.AlterTableDropColumnStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), utils.EscapeSqlName(sql.GetDialect(), c.Name))}
 
 	case MigrateModifyAction:
-		return []string{fmt.Sprintf(sql.AlterTableModifyColumnStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), utils.EscapeSqlName(sql.IsPostgres, c.Name)+c.definition())}
+		return []string{fmt.Sprintf(sql.AlterTableModifyColumnStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), utils.EscapeSqlName(sql.GetDialect(), c.Name)+c.definition())}
 
 	case MigrateRenameAction:
-		return []string{fmt.Sprintf(sql.AlterTableRenameColumnStm(), utils.EscapeSqlName(sql.IsPostgres, tbName), utils.EscapeSqlName(sql.IsPostgres, c.OldName), utils.EscapeSqlName(sql.IsPostgres, c.Name))}
+		return []string{fmt.Sprintf(sql.AlterTableRenameColumnStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), utils.EscapeSqlName(sql.GetDialect(), c.OldName), utils.EscapeSqlName(sql.GetDialect(), c.Name))}
 
 	default:
 		return nil
@@ -124,13 +124,13 @@ func (c Column) definition() string {
 	for _, opt := range c.Options {
 		b := bytes.NewBufferString("")
 		var ctx *format.RestoreCtx
-		if sql.IsLower {
+		if sql.IsLowercase() {
 			ctx = format.NewRestoreCtx(LowerRestoreFlag, b)
 		} else {
 			ctx = format.NewRestoreCtx(UppercaseRestoreFlag, b)
 		}
 
-		if sql.IsPostgres && opt.Tp == ast.ColumnOptionDefaultValue {
+		if sql.IsPostgres() && opt.Tp == ast.ColumnOptionDefaultValue {
 			strSql += " " + b.String()
 			continue
 		}
@@ -143,9 +143,9 @@ func (c Column) definition() string {
 }
 
 func (c Column) typeDefinition() string {
-	if !sql.IsPostgres && c.Typ != nil {
+	if !sql.IsPostgres() && c.Typ != nil {
 		return " " + c.Typ.String()
-	} else if sql.IsPostgres && c.PgTyp != nil {
+	} else if sql.IsPostgres() && c.PgTyp != nil {
 		return " " + c.PgTyp.SQLString()
 	}
 

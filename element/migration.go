@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/pingcap/parser/ast"
-	"github.com/sunary/sqlize/sql-templates"
+	sql_templates "github.com/sunary/sqlize/sql-templates"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -22,8 +22,8 @@ type Migration struct {
 }
 
 // NewMigration ...
-func NewMigration(isPostgres, isLower bool) Migration {
-	sql = sql_templates.NewSql(isPostgres, isLower)
+func NewMigration(dialect sql_templates.SqlDialect, lowercase bool) Migration {
+	sql = sql_templates.NewSql(dialect, lowercase)
 	return Migration{
 		Tables:       []Table{},
 		tableIndexes: map[string]int{},

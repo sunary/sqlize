@@ -6,24 +6,54 @@ import (
 
 // Sql ...
 type Sql struct {
-	IsPostgres bool
-	IsLower    bool
+	dialect   SqlDialect
+	lowercase bool
 }
 
 // NewSql ...
-func NewSql(isPostgres, isLower bool) *Sql {
+func NewSql(dialect SqlDialect, lowercase bool) *Sql {
 	return &Sql{
-		IsPostgres: isPostgres,
-		IsLower:    isLower,
+		dialect:   dialect,
+		lowercase: lowercase,
 	}
 }
 
 func (s Sql) apply(t string) string {
-	if s.IsLower {
+	if s.lowercase {
 		return strings.ToLower(t)
 	}
 
 	return t
+}
+
+// GetDialect ...
+func (s Sql) GetDialect() SqlDialect {
+	return s.dialect
+}
+
+// IsMysql ...
+func (s Sql) IsMysql() bool {
+	return s.dialect == MysqlDialect
+}
+
+// IsPostgres ...
+func (s Sql) IsPostgres() bool {
+	return s.dialect == PostgresDialect
+}
+
+// IsSqlserver ...
+func (s Sql) IsSqlserver() bool {
+	return s.dialect == SqlserverDialect
+}
+
+// IsSqlite ...
+func (s Sql) IsSqlite() bool {
+	return s.dialect == SqliteDialect
+}
+
+// IsLowercase ...
+func (s Sql) IsLowercase() bool {
+	return s.lowercase
 }
 
 // CreateTableStm ...
@@ -106,17 +136,20 @@ func (s Sql) AlterTableRenameIndexStm() string {
 
 // CreateTableMigration ...
 func (s Sql) CreateTableMigration() string {
-	if s.IsPostgres {
+	switch s.dialect {
+	case PostgresDialect:
 		return s.apply(`CREATE TABLE IF NOT EXISTS %s (
  version    BIGINT PRIMARY KEY,
  dirty      BOOLEAN
 );`)
-	}
 
-	return s.apply(`CREATE TABLE IF NOT EXISTS %s (
+	default:
+		// TODO: mysql template is default for other dialects
+		return s.apply(`CREATE TABLE IF NOT EXISTS %s (
  version    bigint(20) PRIMARY KEY,
  dirty      BOOLEAN
 );`)
+	}
 }
 
 // DropTableMigration ...
@@ -126,18 +159,24 @@ func (s Sql) DropTableMigration() string {
 
 // InsertMigrationVersion ...
 func (s Sql) InsertMigrationVersion() string {
-	if s.IsPostgres {
+	switch s.dialect {
+	case PostgresDialect:
 		return s.apply("TRUNCATE TABLE %s;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
-	}
 
-	return s.apply("TRUNCATE %s;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
+	default:
+		// TODO: mysql template is default for other dialects
+		return s.apply("TRUNCATE %s;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
+	}
 }
 
 // RollbackMigrationVersion ...
 func (s Sql) RollbackMigrationVersion() string {
-	if s.IsPostgres {
+	switch s.dialect {
+	case PostgresDialect:
 		return s.apply("TRUNCATE TABLE %s;")
-	}
 
-	return s.apply("TRUNCATE %s;")
+	default:
+		// TODO: mysql template is default for other dialects
+		return s.apply("TRUNCATE %s;")
+	}
 }

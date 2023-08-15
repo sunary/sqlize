@@ -60,8 +60,8 @@ var (
 // SqlBuilder ...
 type SqlBuilder struct {
 	sql             *sql_templates.Sql
-	isPostgres      bool
 	sqlTag          string
+	dialect         sql_templates.SqlDialect
 	generateComment bool
 	pluralTableName bool
 }
@@ -69,8 +69,8 @@ type SqlBuilder struct {
 // NewSqlBuilder ...
 func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	o := sqlBuilderOptions{
-		isLower:         false,
-		isPostgres:      false,
+		dialect:         sql_templates.MysqlDialect,
+		lowercase:       false,
 		pluralTableName: false,
 		sqlTag:          SqlTagDefault,
 	}
@@ -79,8 +79,8 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	}
 
 	return &SqlBuilder{
-		sql:             sql_templates.NewSql(o.isPostgres, o.isLower),
-		isPostgres:      o.isPostgres,
+		sql:             sql_templates.NewSql(o.dialect, o.lowercase),
+		dialect:         o.dialect,
 		sqlTag:          o.sqlTag,
 		pluralTableName: o.pluralTableName,
 		generateComment: o.generateComment,
@@ -105,14 +105,14 @@ func (s SqlBuilder) AddTable(obj interface{}) string {
 		tableComment = fmt.Sprintf(` COMMENT "%s"`, tableName)
 	}
 	sqls := []string{fmt.Sprintf(s.sql.CreateTableStm(),
-		utils.EscapeSqlName(s.isPostgres, tableName),
+		utils.EscapeSqlName(s.dialect, tableName),
 		strings.Join(columns, ",\n"), tableComment)}
 	for _, h := range columnsHistory {
 		sqls = append(sqls,
 			fmt.Sprintf(s.sql.AlterTableRenameColumnStm(),
-				utils.EscapeSqlName(s.isPostgres, tableName),
-				utils.EscapeSqlName(s.isPostgres, h[0]),
-				utils.EscapeSqlName(s.isPostgres, h[1])))
+				utils.EscapeSqlName(s.dialect, tableName),
+				utils.EscapeSqlName(s.dialect, h[0]),
+				utils.EscapeSqlName(s.dialect, h[1])))
 	}
 
 	sqls = append(sqls, indexes...)
@@ -211,13 +211,13 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 			case normTag == tagIsIndex:
 				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
-				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
+				at.IndexColumns = utils.EscapeSqlName(s.dialect, at.Name)
 
 			case normTag == tagIsUniqueIndex:
 				at.IsUnique = true
 				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
 				if at.IndexColumns == "" {
-					at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
+					at.IndexColumns = utils.EscapeSqlName(s.dialect, at.Name)
 				}
 
 			case strings.HasPrefix(normTag, prefixIndex):
@@ -225,15 +225,15 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				at.Index = createIndexName(prefix, idxFields, at.Name)
 
 				if len(idxFields) > 1 {
-					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
+					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.dialect, idxFields), ", ")
 				} else {
-					at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
+					at.IndexColumns = utils.EscapeSqlName(s.dialect, at.Name)
 				}
 
 			case strings.HasPrefix(normTag, prefixUniqueIndex):
 				at.IsUnique = true
 				at.Index = createIndexName(prefix, []string{trimPrefix(ot, prefixUniqueIndex)}, at.Name)
-				at.IndexColumns = utils.EscapeSqlName(s.isPostgres, at.Name)
+				at.IndexColumns = utils.EscapeSqlName(s.dialect, at.Name)
 
 			case strings.HasPrefix(normTag, prefixIndexColumns):
 				idxFields := strings.Split(trimPrefix(ot, prefixIndexColumns), ",")
@@ -242,13 +242,13 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				}
 
 				at.Index = createIndexName(prefix, idxFields, at.Name)
-				at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, idxFields), ", ")
+				at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.dialect, idxFields), ", ")
 
 			case strings.HasPrefix(normTag, prefixIndexType):
 				at.Index = getWhenEmpty(at.Index, createIndexName(prefix, nil, at.Name))
 
 				if len(at.IndexColumns) == 0 {
-					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.isPostgres, []string{at.Name}), ", ")
+					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.dialect, []string{at.Name}), ", ")
 				}
 				at.IndexType = trimPrefix(ot, prefixIndexType)
 
@@ -277,19 +277,19 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 		if at.IsPk {
 			// create primary key multiple field as constraint
 			if len(pkFields) > 1 {
-				primaryKey := strings.Join(utils.EscapeSqlNames(s.isPostgres, pkFields), ", ")
+				primaryKey := strings.Join(utils.EscapeSqlNames(s.dialect, pkFields), ", ")
 				indexes = append(indexes, fmt.Sprintf(s.sql.CreatePrimaryKeyStm(), tableName, primaryKey))
 			}
 		} else if at.Index != "" {
 			var strIndex string
 			if at.IsUnique {
 				strIndex = fmt.Sprintf(s.sql.CreateUniqueIndexStm(at.IndexType),
-					utils.EscapeSqlName(s.isPostgres, at.Index),
-					utils.EscapeSqlName(s.isPostgres, tableName), at.IndexColumns)
+					utils.EscapeSqlName(s.dialect, at.Index),
+					utils.EscapeSqlName(s.dialect, tableName), at.IndexColumns)
 			} else {
 				strIndex = fmt.Sprintf(s.sql.CreateIndexStm(at.IndexType),
-					utils.EscapeSqlName(s.isPostgres, at.Index),
-					utils.EscapeSqlName(s.isPostgres, tableName), at.IndexColumns)
+					utils.EscapeSqlName(s.dialect, at.Index),
+					utils.EscapeSqlName(s.dialect, tableName), at.IndexColumns)
 			}
 
 			indexes = append(indexes, strIndex)
@@ -333,7 +333,7 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 		}
 
 		if at.IsAutoIncr {
-			if s.sql.IsPostgres {
+			if s.sql.IsPostgres() {
 				col = []string{col[0], s.sql.AutoIncrementOption()}
 			} else {
 				col = append(col, s.sql.AutoIncrementOption())
@@ -357,7 +357,7 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 	}
 
 	for _, f := range rawCols {
-		columns = append(columns, fmt.Sprintf("  %s%s%s", utils.EscapeSqlName(s.isPostgres, f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
+		columns = append(columns, fmt.Sprintf("  %s%s%s", utils.EscapeSqlName(s.dialect, f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
 	}
 
 	return append(columns, embedColumns...), append(columnsHistory, embedColumnsHistory...), append(indexes, embedIndexes...)
@@ -382,7 +382,7 @@ func trimPrefix(ot, prefix string) string {
 
 // RemoveTable ...
 func (s SqlBuilder) RemoveTable(tb interface{}) string {
-	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(s.isPostgres, s.getTableName(tb)))
+	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(s.dialect, s.getTableName(tb)))
 }
 
 // createIndexName format idx_field_names
