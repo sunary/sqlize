@@ -67,7 +67,7 @@ func (s Sql) TextType() string {
 
 // DatetimeType ...
 func (s Sql) DatetimeType() string {
-	if s.IsPostgres {
+	if s.dialect == PostgresDialect {
 		return s.apply("TIMESTAMP")
 	}
 

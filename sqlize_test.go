@@ -492,7 +492,7 @@ func TestSqlize_Diff(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSqlize(WithSqlLowercase(), WithSqlTag("sql"))
+			s := NewSqlize(WithSqlTag("sql"), WithSqlLowercase())
 			_ = s.FromObjects(tt.args.newObj)
 
 			o := NewSqlize()

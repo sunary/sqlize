@@ -24,8 +24,8 @@ type Sqlize struct {
 	migrationUpSuffix   string
 	migrationDownSuffix string
 	migrationTable      string
-	isPostgres          bool
-	isLower             bool
+	dialect             sql_templates.SqlDialect
+	lowercase           bool
 	pluralTableName     bool
 	sqlBuilder          *sql_builder.SqlBuilder
 	parser              *sql_parser.Parser
@@ -39,8 +39,8 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationDownSuffix: utils.DefaultMigrationDownSuffix,
 		migrationTable:      utils.DefaultMigrationTable,
 
-		isPostgres:      false,
-		isLower:         false,
+		dialect:         sql_templates.MysqlDialect,
+		lowercase:       false,
 		sqlTag:          sql_builder.SqlTagDefault,
 		pluralTableName: false,
 		generateComment: false,
@@ -49,12 +49,9 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		opts[i].apply(&o)
 	}
 
-	opt := []sql_builder.SqlBuilderOption{sql_builder.WithSqlTag(o.sqlTag)}
-	if o.isPostgres {
-		opt = append(opt, sql_builder.WithPostgresql())
-	}
+	opt := []sql_builder.SqlBuilderOption{sql_builder.WithSqlTag(o.sqlTag), sql_builder.WithDialect(o.dialect)}
 
-	if o.isLower {
+	if o.lowercase {
 		opt = append(opt, sql_builder.WithSqlLowercase())
 	}
 
@@ -73,11 +70,11 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationUpSuffix:   o.migrationUpSuffix,
 		migrationDownSuffix: o.migrationDownSuffix,
 		migrationTable:      o.migrationTable,
-		isPostgres:          o.isPostgres,
-		isLower:             o.isLower,
+		dialect:             o.dialect,
+		lowercase:           o.lowercase,
 		pluralTableName:     o.pluralTableName,
 		sqlBuilder:          sb,
-		parser:              sql_parser.NewParser(o.isPostgres, o.isLower),
+		parser:              sql_parser.NewParser(o.dialect, o.lowercase),
 	}
 }
 
@@ -120,8 +117,8 @@ func (s Sqlize) HashValue() int64 {
 
 // Diff differ between 2 migrations
 func (s Sqlize) Diff(old Sqlize) {
-	if s.isPostgres != old.isPostgres {
-		panic("could not diff between mysql and postgresql")
+	if s.dialect != old.dialect {
+		panic("unable to differentiate between two distinct dialects.")
 	}
 
 	s.parser.Diff(*old.parser)
@@ -191,7 +188,7 @@ func (s Sqlize) WriteFilesWithVersion(name string, ver int64, dirty bool) error 
 }
 
 func (s Sqlize) migrationUpVersion(ver int64, dirty bool) string {
-	tmp := sql_templates.NewSql(s.isPostgres, s.isLower)
+	tmp := sql_templates.NewSql(s.dialect, s.lowercase)
 	if ver == 0 {
 		return fmt.Sprintf(tmp.CreateTableMigration(), s.migrationTable)
 	}
@@ -200,7 +197,7 @@ func (s Sqlize) migrationUpVersion(ver int64, dirty bool) string {
 }
 
 func (s Sqlize) migrationDownVersion(ver int64) string {
-	tmp := sql_templates.NewSql(s.isPostgres, s.isLower)
+	tmp := sql_templates.NewSql(s.dialect, s.lowercase)
 	if ver == 0 {
 		return fmt.Sprintf(tmp.DropTableMigration(), s.migrationTable)
 	}
@@ -208,9 +205,9 @@ func (s Sqlize) migrationDownVersion(ver int64) string {
 	return fmt.Sprintf(tmp.RollbackMigrationVersion(), s.migrationTable)
 }
 
-// ArvoSchema export arvo schema
+// ArvoSchema export arvo schema, support mysql only
 func (s Sqlize) ArvoSchema(needTables ...string) []string {
-	if s.isPostgres {
+	if s.dialect != sql_templates.MysqlDialect {
 		return nil
 	}
 

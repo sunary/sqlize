@@ -1,14 +1,18 @@
 package sqlize
 
+import (
+	sql_templates "github.com/sunary/sqlize/sql-templates"
+)
+
 type sqlizeOptions struct {
 	migrationFolder     string
 	migrationUpSuffix   string
 	migrationDownSuffix string
 	migrationTable      string
 
-	isPostgres      bool
-	isLower         bool
 	sqlTag          string
+	dialect         sql_templates.SqlDialect
+	lowercase       bool
 	pluralTableName bool
 	generateComment bool
 }
@@ -54,13 +58,6 @@ func WithMigrationTable(table string) SqlizeOption {
 	})
 }
 
-// WithPostgresql default is mysql
-func WithPostgresql() SqlizeOption {
-	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.isPostgres = true
-	})
-}
-
 // WithSqlTag default is `sql`
 func WithSqlTag(sqlTag string) SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
@@ -68,17 +65,45 @@ func WithSqlTag(sqlTag string) SqlizeOption {
 	})
 }
 
-// WithSqlUppercase default
-func WithSqlUppercase() SqlizeOption {
+// WithMysql default
+func WithMysql() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.isLower = false
+		o.dialect = sql_templates.MysqlDialect
 	})
 }
 
-// WithSqlLowercase default is uppercase
+// WithPostgresql ...
+func WithPostgresql() SqlizeOption {
+	return newFuncSqlizeOption(func(o *sqlizeOptions) {
+		o.dialect = sql_templates.PostgresDialect
+	})
+}
+
+// WithSqlserver ...
+func WithSqlserver() SqlizeOption {
+	return newFuncSqlizeOption(func(o *sqlizeOptions) {
+		o.dialect = sql_templates.SqlserverDialect
+	})
+}
+
+// WithSqlite ...
+func WithSqlite() SqlizeOption {
+	return newFuncSqlizeOption(func(o *sqlizeOptions) {
+		o.dialect = sql_templates.MysqlDialect
+	})
+}
+
+// WithSqlUppercase default
+func WithSqlUppercase() SqlizeOption {
+	return newFuncSqlizeOption(func(o *sqlizeOptions) {
+		o.lowercase = false
+	})
+}
+
+// WithSqlLowercase ...
 func WithSqlLowercase() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.isLower = true
+		o.lowercase = true
 	})
 }
 

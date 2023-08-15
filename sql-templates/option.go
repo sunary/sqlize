@@ -1,5 +1,14 @@
 package sql_templates
 
+type SqlDialect string
+
+const (
+	MysqlDialect     = "mysql"
+	PostgresDialect  = "postgres"
+	SqlserverDialect = "sqlserver"
+	SqliteDialect    = "sqlite3"
+)
+
 // PrimaryOption ...
 func (s Sql) PrimaryOption() string {
 	return s.apply("PRIMARY KEY")
@@ -7,7 +16,7 @@ func (s Sql) PrimaryOption() string {
 
 // AutoIncrementOption ...
 func (s Sql) AutoIncrementOption() string {
-	if s.IsPostgres {
+	if s.IsPostgres() {
 		return s.apply("SERIAL")
 	}
 	return s.apply("AUTO_INCREMENT")
