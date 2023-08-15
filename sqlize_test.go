@@ -224,7 +224,8 @@ func TestSqlize_FromObjects(t *testing.T) {
 		objs            []interface{}
 		migrationFolder string
 	}
-	tests := []struct {
+
+	fromObjectMysqlTestcase := []struct {
 		name              string
 		generateComment   bool
 		pluralTableName   bool
@@ -298,7 +299,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for i, tt := range fromObjectMysqlTestcase {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := []SqlizeOption{
 				WithMigrationSuffix(".up.test", ".down.test"), WithMigrationFolder(tt.args.migrationFolder),
@@ -309,55 +310,71 @@ func TestSqlize_FromObjects(t *testing.T) {
 			if tt.pluralTableName {
 				opts = append(opts, WithPluralTableName())
 			}
+
+			if i%3 == 1 {
+				opts = append(opts, WithSqlserver()) //fallback mysql
+			}
+			if i%3 == 2 {
+				opts = append(opts, WithSqlite()) // fallback mysql
+			}
+
 			s := NewSqlize(opts...)
 			if tt.args.migrationFolder == "" {
 				if err := s.FromMigrationFolder(); err == nil {
-					t.Errorf("Mysql FromMigrationFolder() error = %v,\n wantErr = %v", err, utils.PathDoesNotExistErr)
+					t.Errorf("FromMigrationFolder() mysql error = %v,\n wantErr = %v", err, utils.PathDoesNotExistErr)
 				}
 			} else if tt.args.migrationFolder == "/" {
 				if err := s.FromMigrationFolder(); err != nil {
-					t.Errorf("Mysql FromMigrationFolder() error = %v,\n wantErr = %v", err, nil)
+					t.Errorf("FromMigrationFolder() mysql error = %v,\n wantErr = %v", err, nil)
 				}
 			}
 
 			if err := s.FromObjects(tt.args.objs...); (err != nil) != tt.wantErr {
-				t.Errorf("Mysql FromObjects() error = %v,\n wantErr = %v", err, tt.wantErr)
+				t.Errorf("FromObjects() mysql error = %v,\n wantErr = %v", err, tt.wantErr)
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Mysql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
+				t.Errorf("StringUp() mysql got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Mysql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
+				t.Errorf("StringDown() mysql got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 
 			if tt.args.migrationFolder == "" {
 				if err := s.WriteFiles(tt.name); err != nil {
-					t.Errorf("Mysql WriteFiles() error = \n%v,\nwantErr = \n%v", err, nil)
+					t.Errorf("WriteFiles() mysql error = \n%v,\nwantErr = \n%v", err, nil)
 				}
 			} else if tt.args.migrationFolder == "/" {
 				if err := s.WriteFiles(tt.name); err == nil {
-					t.Errorf("Mysql WriteFiles() error = \n%v,\nwantErr = \n%v", err, errors.New("read-only file system"))
+					t.Errorf("WriteFiles() mysql error = \n%v,\nwantErr = \n%v", err, errors.New("read-only file system"))
 				}
 			}
 		})
 	}
 
-	t.Skip()
-	for _, tt := range tests {
+	fromObjectPostgresTestcase := []struct {
+		name              string
+		generateComment   bool
+		pluralTableName   bool
+		args              args
+		wantMigrationUp   string
+		wantMigrationDown string
+		wantErr           bool
+	}{}
+	for _, tt := range fromObjectPostgresTestcase {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSqlize(WithPostgresql())
 			if err := s.FromObjects(tt.args.objs...); (err != nil) != tt.wantErr {
-				t.Errorf("Postgresql FromObjects() error = %v,\n wantErr = %v", err, tt.wantErr)
+				t.Errorf("FromObjects() postgres error = %v,\n wantErr = %v", err, tt.wantErr)
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Postgresql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
+				t.Errorf("StringUp() postgres got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Postgresql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
+				t.Errorf("StringDown() postgres got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -367,7 +384,8 @@ func TestSqlize_FromString(t *testing.T) {
 	type args struct {
 		sql string
 	}
-	tests := []struct {
+
+	fromStringMysqlTestcases := []struct {
 		name              string
 		args              args
 		wantMigrationUp   string
@@ -403,37 +421,43 @@ func TestSqlize_FromString(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for _, tt := range fromStringMysqlTestcases {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSqlize(WithSqlUppercase())
+			s := NewSqlize(WithMysql(), WithSqlUppercase())
 			if err := s.FromString(tt.args.sql); (err != nil) != tt.wantErr {
-				t.Errorf("Mysql FromString() error = %v,\n wantErr = %v", err, tt.wantErr)
+				t.Errorf("FromString() mysql error = %v,\n wantErr = %v", err, tt.wantErr)
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Mysql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
+				t.Errorf("StringUp() mysql got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Mysql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
+				t.Errorf("StringDown() mysql got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
 
-	t.Skip()
-	for _, tt := range tests {
+	fromStringPostgresTestcases := []struct {
+		name              string
+		args              args
+		wantMigrationUp   string
+		wantMigrationDown string
+		wantErr           bool
+	}{}
+	for _, tt := range fromStringPostgresTestcases {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSqlize(WithPostgresql())
 			if err := s.FromString(tt.args.sql); (err != nil) != tt.wantErr {
-				t.Errorf("Postgresql FromString() error = %v,\n wantErr = %v", err, tt.wantErr)
+				t.Errorf("FromString() postgres error = %v,\n wantErr = %v", err, tt.wantErr)
 			}
 
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Postgresql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
+				t.Errorf("StringUp() postgres got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Postgresql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
+				t.Errorf("StringDown() postgres got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -446,7 +470,8 @@ func TestSqlize_Diff(t *testing.T) {
 		newObj interface{}
 		oldSql string
 	}
-	tests := []struct {
+
+	diffMysqlTestcases := []struct {
 		name              string
 		args              args
 		wantMigrationUp   string
@@ -490,7 +515,7 @@ func TestSqlize_Diff(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
+	for _, tt := range diffMysqlTestcases {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSqlize(WithSqlTag("sql"), WithSqlLowercase())
 			_ = s.FromObjects(tt.args.newObj)
@@ -500,31 +525,36 @@ func TestSqlize_Diff(t *testing.T) {
 
 			s.Diff(*o)
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Mysql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
+				t.Errorf("StringUp() mysql got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Mysql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
+				t.Errorf("StringDown() mysql got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
 
-	t.Skip()
-	for _, tt := range tests {
+	diffPostgresTestcases := []struct {
+		name              string
+		args              args
+		wantMigrationUp   string
+		wantMigrationDown string
+	}{}
+	for _, tt := range diffPostgresTestcases {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSqlize(WithPostgresql())
 			_ = s.FromObjects(tt.args.newObj)
 
-			o := NewSqlize()
+			o := NewSqlize(WithPostgresql())
 			_ = o.FromString(tt.args.oldSql)
 
 			s.Diff(*o)
 			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
-				t.Errorf("Postgresql StringUp() got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
+				t.Errorf("StringUp() postgres got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
 			}
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
-				t.Errorf("Postgresql StringDown() got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
+				t.Errorf("StringDown() postgres got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
@@ -534,12 +564,12 @@ func TestSqlize_MigrationVersion(t *testing.T) {
 	now := time.Now()
 
 	type args struct {
-		models       []interface{}
-		isPostgresql bool
-		version      int64
-		isDirty      bool
+		models  []interface{}
+		version int64
+		isDirty bool
 	}
-	tests := []struct {
+
+	migrationVersionMysqlTestcases := []struct {
 		name              string
 		args              args
 		wantMigrationUp   string
@@ -549,7 +579,6 @@ func TestSqlize_MigrationVersion(t *testing.T) {
 			name: "person migration version",
 			args: args{
 				[]interface{}{person{}},
-				false,
 				0,
 				false,
 			},
@@ -560,7 +589,6 @@ func TestSqlize_MigrationVersion(t *testing.T) {
 			name: "hotel migration version",
 			args: args{
 				[]interface{}{hotel{GrandOpening: &now}},
-				false,
 				1,
 				false,
 			},
@@ -571,7 +599,6 @@ func TestSqlize_MigrationVersion(t *testing.T) {
 			name: "city migration version",
 			args: args{
 				[]interface{}{city{}},
-				false,
 				1,
 				false,
 			},
@@ -579,46 +606,79 @@ func TestSqlize_MigrationVersion(t *testing.T) {
 			wantMigrationDown: expectCreateCityDown + "\n" + expectMigrationVersion1Down,
 		},
 	}
-	for _, tt := range tests {
+	for _, tt := range migrationVersionMysqlTestcases {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := []SqlizeOption{
 				WithMigrationSuffix(".up.test", ".down.test"),
 				WithMigrationFolder(""),
 				WithMigrationTable(utils.DefaultMigrationTable),
 			}
-			if tt.args.isPostgresql {
-				opts = append(opts, WithPostgresql())
+			s := NewSqlize(opts...)
+
+			s.FromObjects(tt.args.models...)
+			if got := s.StringUpWithVersion(tt.args.version, tt.args.isDirty); normSql(got) != normSql(tt.wantMigrationUp) {
+				t.Errorf("StringUpWithVersion() mysql got = \n%s,\nexpected = \n%s", got, tt.wantMigrationUp)
+			}
+
+			if got := s.StringDownWithVersion(tt.args.version); normSql(got) != normSql(tt.wantMigrationDown) {
+				t.Errorf("StringDownWithVersion() mysql got = \n%s,\nexpected = \n%s", got, tt.wantMigrationDown)
+			}
+
+			if err := s.WriteFilesWithVersion(tt.name, tt.args.version, tt.args.isDirty); err != nil {
+				t.Errorf("WriteFilesWithVersion() mysql error = \n%v,\nwantErr = \n%v", err, nil)
+			}
+
+			if err := s.WriteFilesVersion(tt.name, tt.args.version, tt.args.isDirty); err != nil {
+				t.Errorf("WriteFilesVersion() mysql error = \n%v,\nwantErr = \n%v", err, nil)
+			}
+		})
+	}
+
+	migrationVersionPostgresTestcases := []struct {
+		name              string
+		args              args
+		wantMigrationUp   string
+		wantMigrationDown string
+	}{}
+	for _, tt := range migrationVersionPostgresTestcases {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := []SqlizeOption{
+				WithMigrationSuffix(".up.test", ".down.test"),
+				WithMigrationFolder(""),
+				WithMigrationTable(utils.DefaultMigrationTable),
+				WithPostgresql(),
 			}
 			s := NewSqlize(opts...)
 
 			s.FromObjects(tt.args.models...)
 			if got := s.StringUpWithVersion(tt.args.version, tt.args.isDirty); normSql(got) != normSql(tt.wantMigrationUp) {
-				t.Errorf("StringUpWithVersion() got = \n%s,\nexpected = \n%s", got, tt.wantMigrationUp)
+				t.Errorf("StringUpWithVersion() postgres got = \n%s,\nexpected = \n%s", got, tt.wantMigrationUp)
 			}
 
 			if got := s.StringDownWithVersion(tt.args.version); normSql(got) != normSql(tt.wantMigrationDown) {
-				t.Errorf("StringDownWithVersion() got = \n%s,\nexpected = \n%s", got, tt.wantMigrationDown)
+				t.Errorf("StringDownWithVersion() postgres got = \n%s,\nexpected = \n%s", got, tt.wantMigrationDown)
 			}
 
 			if err := s.WriteFilesWithVersion(tt.name, tt.args.version, tt.args.isDirty); err != nil {
-				t.Errorf("WriteFilesWithVersion() error = \n%v,\nwantErr = \n%v", err, nil)
+				t.Errorf("WriteFilesWithVersion() postgres error = \n%v,\nwantErr = \n%v", err, nil)
 			}
 
 			if err := s.WriteFilesVersion(tt.name, tt.args.version, tt.args.isDirty); err != nil {
-				t.Errorf("WriteFilesVersion() error = \n%v,\nwantErr = \n%v", err, nil)
+				t.Errorf("WriteFilesVersion() postgres error = \n%v,\nwantErr = \n%v", err, nil)
 			}
 		})
 	}
+
 }
 
 func TestSqlize_HashValue(t *testing.T) {
 	now := time.Now()
 
 	type args struct {
-		models       []interface{}
-		isPostgresql bool
+		models []interface{}
 	}
-	tests := []struct {
+
+	hashValueMysqlTestcases := []struct {
 		name string
 		args args
 		want int64
@@ -627,7 +687,6 @@ func TestSqlize_HashValue(t *testing.T) {
 			name: "person hash value",
 			args: args{
 				[]interface{}{person{}},
-				false,
 			},
 			want: -5168892191412708041,
 		},
@@ -635,7 +694,6 @@ func TestSqlize_HashValue(t *testing.T) {
 			name: "hotel hash value",
 			args: args{
 				[]interface{}{hotel{GrandOpening: &now}},
-				false,
 			},
 			want: -3590096811374758567,
 		},
@@ -643,29 +701,41 @@ func TestSqlize_HashValue(t *testing.T) {
 			name: "city hash value",
 			args: args{
 				[]interface{}{city{}},
-				false,
 			},
 			want: -2026584327433441245,
 		}, {
 			name: "movie hash value",
 			args: args{
 				[]interface{}{movie{}},
-				false,
 			},
 			want: -5515853333036032887,
 		},
 	}
-	for _, tt := range tests {
+	for _, tt := range hashValueMysqlTestcases {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := []SqlizeOption{}
-			if tt.args.isPostgresql {
-				opts = append(opts, WithPostgresql())
-			}
 			s := NewSqlize(opts...)
 
 			s.FromObjects(tt.args.models...)
 			if got := s.HashValue(); got != tt.want {
-				t.Errorf("HashValue() got = \n%d,\nexpected = \n%d", got, tt.want)
+				t.Errorf("HashValue() mysql got = \n%d,\nexpected = \n%d", got, tt.want)
+			}
+		})
+	}
+
+	hashValuePostgresTestcases := []struct {
+		name string
+		args args
+		want int64
+	}{}
+	for _, tt := range hashValuePostgresTestcases {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := []SqlizeOption{WithPostgresql()}
+			s := NewSqlize(opts...)
+
+			s.FromObjects(tt.args.models...)
+			if got := s.HashValue(); got != tt.want {
+				t.Errorf("HashValue() postgres got = \n%d,\nexpected = \n%d", got, tt.want)
 			}
 		})
 	}
@@ -675,11 +745,11 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 	now := time.Now()
 
 	type args struct {
-		models       []interface{}
-		needTables   []string
-		isPostgresql bool
+		models     []interface{}
+		needTables []string
 	}
-	tests := []struct {
+
+	arvoSchemaMysqlTestcases := []struct {
 		name string
 		args args
 		want []string
@@ -689,7 +759,6 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 			args: args{
 				[]interface{}{person{}},
 				[]string{"person"},
-				false,
 			},
 			want: []string{expectPersonArvo},
 		},
@@ -698,7 +767,6 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 			args: args{
 				[]interface{}{hotel{GrandOpening: &now}},
 				[]string{"hotel"},
-				false,
 			},
 			want: []string{expectHotelArvo},
 		},
@@ -707,30 +775,18 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 			args: args{
 				[]interface{}{city{}},
 				[]string{"city"},
-				false,
 			},
 			want: []string{expectCityArvo},
-		}, {
-			name: "movie arvo",
-			args: args{
-				[]interface{}{movie{}},
-				[]string{"movie"},
-				true,
-			},
-			want: nil,
 		},
 	}
-	for _, tt := range tests {
+	for _, tt := range arvoSchemaMysqlTestcases {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := []SqlizeOption{}
-			if tt.args.isPostgresql {
-				opts = append(opts, WithPostgresql())
-			}
 			s := NewSqlize(opts...)
 
 			s.FromObjects(tt.args.models...)
 			if got := s.ArvoSchema(tt.args.needTables...); (got != nil || tt.want != nil) && !areEqualJSON(got[0], tt.want[0]) {
-				t.Errorf("ArvoSchema() got = \n%v,\nexpected = \n%v", got, tt.want)
+				t.Errorf("ArvoSchema() mysql got = \n%v,\nexpected = \n%v", got, tt.want)
 			}
 		})
 	}
