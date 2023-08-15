@@ -136,17 +136,20 @@ func (s Sql) AlterTableRenameIndexStm() string {
 
 // CreateTableMigration ...
 func (s Sql) CreateTableMigration() string {
-	if s.dialect == PostgresDialect {
+	switch s.dialect {
+	case PostgresDialect:
 		return s.apply(`CREATE TABLE IF NOT EXISTS %s (
  version    BIGINT PRIMARY KEY,
  dirty      BOOLEAN
 );`)
-	}
 
-	return s.apply(`CREATE TABLE IF NOT EXISTS %s (
+	default:
+		// TODO: mysql template is default for other dialects
+		return s.apply(`CREATE TABLE IF NOT EXISTS %s (
  version    bigint(20) PRIMARY KEY,
  dirty      BOOLEAN
 );`)
+	}
 }
 
 // DropTableMigration ...
@@ -156,18 +159,24 @@ func (s Sql) DropTableMigration() string {
 
 // InsertMigrationVersion ...
 func (s Sql) InsertMigrationVersion() string {
-	if s.dialect == PostgresDialect {
+	switch s.dialect {
+	case PostgresDialect:
 		return s.apply("TRUNCATE TABLE %s;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
-	}
 
-	return s.apply("TRUNCATE %s;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
+	default:
+		// TODO: mysql template is default for other dialects
+		return s.apply("TRUNCATE %s;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
+	}
 }
 
 // RollbackMigrationVersion ...
 func (s Sql) RollbackMigrationVersion() string {
-	if s.dialect == PostgresDialect {
+	switch s.dialect {
+	case PostgresDialect:
 		return s.apply("TRUNCATE TABLE %s;")
-	}
 
-	return s.apply("TRUNCATE %s;")
+	default:
+		// TODO: mysql template is default for other dialects
+		return s.apply("TRUNCATE %s;")
+	}
 }

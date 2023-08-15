@@ -89,7 +89,7 @@ func WithSqlserver() SqlizeOption {
 // WithSqlite ...
 func WithSqlite() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.dialect = sql_templates.MysqlDialect
+		o.dialect = sql_templates.SqliteDialect
 	})
 }
 

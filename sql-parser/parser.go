@@ -21,11 +21,13 @@ func NewParser(dialect sql_templates.SqlDialect, lowercase bool) *Parser {
 
 // Parser ...
 func (p *Parser) Parser(sql string) error {
-	if p.dialect == sql_templates.PostgresDialect {
+	switch p.dialect {
+	case sql_templates.PostgresDialect:
 		return p.ParserPostgresql(sql)
+	default:
+		// TODO: mysql parser is default for other dialects
+		return p.ParserMysql(sql)
 	}
-
-	return p.ParserMysql(sql)
 }
 
 // HashValue ...

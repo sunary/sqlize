@@ -67,11 +67,14 @@ func (s Sql) TextType() string {
 
 // DatetimeType ...
 func (s Sql) DatetimeType() string {
-	if s.dialect == PostgresDialect {
+	switch s.dialect {
+	case PostgresDialect:
 		return s.apply("TIMESTAMP")
-	}
 
-	return s.apply("DATETIME")
+	default:
+		// TODO: mysql template is default for other dialects
+		return s.apply("DATETIME")
+	}
 }
 
 // PointerType ...

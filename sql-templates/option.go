@@ -16,10 +16,14 @@ func (s Sql) PrimaryOption() string {
 
 // AutoIncrementOption ...
 func (s Sql) AutoIncrementOption() string {
-	if s.IsPostgres() {
+	switch s.dialect {
+	case PostgresDialect:
 		return s.apply("SERIAL")
+
+	default:
+		// TODO: mysql template is default for other dialects
+		return s.apply("AUTO_INCREMENT")
 	}
-	return s.apply("AUTO_INCREMENT")
 }
 
 // DefaultOption ...
