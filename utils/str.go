@@ -92,11 +92,16 @@ func isUppercase(r rune) bool {
 
 // EscapeSqlName ...
 func EscapeSqlName(dialect sql_templates.SqlDialect, name string) string {
-	if dialect == sql_templates.PostgresDialect || name == "" {
+	if name == "" {
 		return name
 	}
 
-	return fmt.Sprintf("`%s`", strings.Trim(name, "`"))
+	escapeChar := "`"
+	if dialect == sql_templates.PostgresDialect {
+		escapeChar = "\""
+	}
+
+	return fmt.Sprintf("%s%s%s", escapeChar, strings.Trim(name, escapeChar), escapeChar)
 }
 
 // EscapeSqlNames ...

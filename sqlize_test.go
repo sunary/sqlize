@@ -61,6 +61,10 @@ type tpl struct {
 	ClientID string `sql:"type:varchar(255);primary_key;index_columns:client_id,country"`
 	Country  string `sql:"type:varchar(255)"`
 	Email    string `sql:"type:varchar(255);unique"`
+	User     *user  `sql:"foreign_key:email;references:email"`
+}
+
+type user struct {
 }
 
 func (tpl) TableName() string {
@@ -194,8 +198,22 @@ CREATE TABLE three_pl (
  updated_at datetime
 );
 ALTER TABLE three_pl ADD PRIMARY KEY(client_id, country);
-CREATE UNIQUE INDEX idx_email ON three_pl(email);`
+CREATE UNIQUE INDEX idx_email ON three_pl(email);
+ALTER TABLE three_pl ADD CONSTRAINT fk_user_three_pl FOREIGN KEY (email) REFERENCES user(email);`
 	expectCreateTplDown = `
+DROP TABLE IF EXISTS three_pl;`
+	expectCreateTplPostgresUp = `
+CREATE TABLE three_pl (
+ client_id VARCHAR(255),
+ country   VARCHAR(255),
+ email     VARCHAR(255),
+ created_at TIMESTAMP,
+ updated_at TIMESTAMP
+);
+ALTER TABLE three_pl ADD PRIMARY KEY(client_id, country);
+CREATE UNIQUE INDEX idx_email ON three_pl(email);
+ALTER TABLE three_pl ADD CONSTRAINT fk_user_three_pl FOREIGN KEY (email) REFERENCES "user"(email);`
+	expectCreateTplPostgresDown = `
 DROP TABLE IF EXISTS three_pl;`
 
 	expectPersonArvo = `
@@ -361,7 +379,19 @@ func TestSqlize_FromObjects(t *testing.T) {
 		wantMigrationUp   string
 		wantMigrationDown string
 		wantErr           bool
-	}{}
+	}{
+		{
+			name:            "from tpl object",
+			generateComment: true,
+			args: args{
+				[]interface{}{tpl{}},
+				"/",
+			},
+			wantMigrationUp:   expectCreateTplPostgresUp,
+			wantMigrationDown: expectCreateTplPostgresDown,
+			wantErr:           false,
+		},
+	}
 	for _, tt := range fromObjectPostgresTestcase {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSqlize(WithPostgresql())
@@ -793,7 +823,8 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 }
 
 func normSql(s string) string {
-	s = strings.Replace(s, "`", "", -1)
+	s = strings.Replace(s, "`", "", -1)  // mysql escape keywords
+	s = strings.Replace(s, "\"", "", -1) // postgres escape keywords
 	return strings.TrimSpace(space.ReplaceAllString(s, " "))
 }
 

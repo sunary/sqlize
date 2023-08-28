@@ -21,6 +21,9 @@ type Table struct {
 
 	Indexes      []Index
 	indexIndexes map[string]int
+
+	ForeignKeys      []ForeignKey
+	indexForeignKeys map[string]int
 }
 
 // NewTable ...
@@ -35,10 +38,12 @@ func NewTableWithAction(name string, action MigrateAction) *Table {
 			Name:   name,
 			Action: action,
 		},
-		Columns:       []Column{},
-		columnIndexes: map[string]int{},
-		Indexes:       []Index{},
-		indexIndexes:  map[string]int{},
+		Columns:          []Column{},
+		columnIndexes:    map[string]int{},
+		Indexes:          []Index{},
+		indexIndexes:     map[string]int{},
+		ForeignKeys:      []ForeignKey{},
+		indexForeignKeys: map[string]int{},
 	}
 }
 
@@ -156,7 +161,7 @@ func (t *Table) RenameColumn(oldName, newName string) {
 
 // AddIndex ...
 func (t *Table) AddIndex(idx Index) {
-	id := t.getIndexColumn(idx.Name)
+	id := t.getIndexIndex(idx.Name)
 	if id == -1 {
 		t.Indexes = append(t.Indexes, idx)
 		t.indexIndexes[idx.Name] = len(t.Indexes) - 1
@@ -194,6 +199,35 @@ func (t *Table) RenameIndex(oldName, newName string) {
 	}
 }
 
+// AddForeignKey ...
+func (t *Table) AddForeignKey(fk ForeignKey) {
+	id := t.getIndexForeignKey(fk.Name)
+	if id == -1 {
+		t.ForeignKeys = append(t.ForeignKeys, fk)
+		t.indexForeignKeys[fk.Name] = len(t.ForeignKeys) - 1
+		return
+	}
+
+	t.ForeignKeys[id] = fk
+}
+
+// RemoveForeignKey ...
+func (t *Table) RemoveForeignKey(fkName string) {
+	id := t.getIndexForeignKey(fkName)
+	if id == -1 {
+		fk := ForeignKey{Node: Node{Name: fkName, Action: MigrateRemoveAction}}
+		t.ForeignKeys = append(t.ForeignKeys, fk)
+		t.indexForeignKeys[fkName] = len(t.ForeignKeys) - 1
+		return
+	}
+
+	if t.ForeignKeys[id].Action == MigrateAddAction {
+		t.ForeignKeys[id].Action = MigrateNoAction
+	} else {
+		t.ForeignKeys[id].Action = MigrateRemoveAction
+	}
+}
+
 func (t Table) getIndexColumn(colName string) int {
 	if v, ok := t.columnIndexes[colName]; ok {
 		return v
@@ -204,6 +238,14 @@ func (t Table) getIndexColumn(colName string) int {
 
 func (t Table) getIndexIndex(idxName string) int {
 	if v, ok := t.indexIndexes[idxName]; ok {
+		return v
+	}
+
+	return -1
+}
+
+func (t Table) getIndexForeignKey(fkName string) int {
+	if v, ok := t.indexForeignKeys[fkName]; ok {
 		return v
 	}
 
@@ -253,6 +295,21 @@ func (t *Table) Diff(old Table) {
 		if old.Indexes[j].Action == MigrateAddAction && t.getIndexIndex(old.Indexes[j].Name) == -1 {
 			old.Indexes[j].Action = MigrateRemoveAction
 			t.AddIndex(old.Indexes[j])
+		}
+	}
+
+	for i := range t.ForeignKeys {
+		if j := old.getIndexForeignKey(t.ForeignKeys[i].Name); t.ForeignKeys[i].Action == MigrateAddAction &&
+			j >= 0 && old.ForeignKeys[j].Action != MigrateNoAction {
+			t.ForeignKeys[i] = old.ForeignKeys[j]
+			t.ForeignKeys[i].Action = MigrateModifyAction
+		}
+	}
+
+	for j := range old.ForeignKeys {
+		if old.ForeignKeys[j].Action == MigrateAddAction && t.getIndexForeignKey(old.ForeignKeys[j].Name) == -1 {
+			old.ForeignKeys[j].Action = MigrateRemoveAction
+			t.AddForeignKey(old.ForeignKeys[j])
 		}
 	}
 }
@@ -404,6 +461,39 @@ func (t Table) MigrationIndexUp(dropCols map[string]struct{}) []string {
 	}
 }
 
+// MigrationForeignKeyUp ...
+func (t Table) MigrationForeignKeyUp(dropCols map[string]struct{}) []string {
+	switch t.Action {
+	case MigrateNoAction:
+		strSqls := make([]string, 0)
+		for i := range t.ForeignKeys {
+			if _, ok := dropCols[t.ForeignKeys[i].Column]; t.ForeignKeys[i].Action != MigrateNoAction &&
+				(t.ForeignKeys[i].Action != MigrateRemoveAction || !ok) {
+				strSqls = append(strSqls, t.ForeignKeys[i].migrationUp(t.Name)...)
+			}
+		}
+		return strSqls
+
+	case MigrateAddAction:
+		strSqls := make([]string, 0)
+		for i := range t.ForeignKeys {
+			if t.ForeignKeys[i].Action == MigrateAddAction {
+				strSqls = append(strSqls, t.ForeignKeys[i].migrationUp(t.Name)...)
+			}
+		}
+		return strSqls
+
+	case MigrateRemoveAction:
+		return nil
+
+	case MigrateModifyAction:
+		return nil
+
+	default:
+		return nil
+	}
+}
+
 // MigrationColumnDown ...
 func (t Table) MigrationColumnDown() ([]string, map[string]struct{}) {
 	switch t.Action {
@@ -471,6 +561,36 @@ func (t Table) MigrationIndexDown(dropCols map[string]struct{}) []string {
 	case MigrateRemoveAction:
 		t.Action = MigrateAddAction
 		return t.MigrationIndexUp(dropCols)
+
+	case MigrateModifyAction:
+		// TODO
+		return nil
+
+	default:
+		return nil
+	}
+}
+
+// MigrationForeignKeyDown ...
+func (t Table) MigrationForeignKeyDown(dropCols map[string]struct{}) []string {
+	switch t.Action {
+	case MigrateNoAction:
+		strSqls := make([]string, 0)
+		for i := range t.ForeignKeys {
+			if _, ok := dropCols[t.ForeignKeys[i].Column]; t.ForeignKeys[i].Action != MigrateNoAction &&
+				(t.ForeignKeys[i].Action != MigrateRemoveAction || !ok) {
+				strSqls = append(strSqls, t.ForeignKeys[i].migrationDown(t.Name)...)
+			}
+		}
+		return strSqls
+
+	case MigrateAddAction:
+		t.Action = MigrateRemoveAction
+		return t.MigrationForeignKeyUp(dropCols)
+
+	case MigrateRemoveAction:
+		t.Action = MigrateAddAction
+		return t.MigrationForeignKeyUp(dropCols)
 
 	case MigrateModifyAction:
 		// TODO
