@@ -1,6 +1,8 @@
 package sql_parser
 
 import (
+	"strings"
+
 	"github.com/auxten/postgresql-parser/pkg/sql/parser"
 	"github.com/auxten/postgresql-parser/pkg/sql/sem/tree"
 	"github.com/auxten/postgresql-parser/pkg/walk"
@@ -25,9 +27,6 @@ func (p *Parser) ParserPostgresql(sql string) error {
 
 func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 	switch n := node.(type) {
-	case *tree.RenameTable:
-		p.Migration.RenameTable(n.Name.String(), n.NewName.String())
-
 	case *tree.CreateTable:
 		tbName := n.Table.Table()
 
@@ -44,27 +43,8 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 			}
 		}
 
-	case *tree.UniqueConstraintTableDef:
-		p.Migration.AddIndex("", postgresUnique(n))
-
-	case *tree.IndexTableDef:
-		cols := make([]string, len(n.Columns))
-		for i := range n.Columns {
-			cols[i] = n.Columns[i].Column.String()
-		}
-
-		p.Migration.AddIndex("", element.Index{
-			Node: element.Node{
-				Name:   n.Name.String(),
-				Action: element.MigrateAddAction,
-			},
-			Typ:     ast.IndexKeyTypeNone,
-			Columns: cols,
-		})
-
-	case *tree.DropIndex:
-		p.Migration.RemoveIndex("", n.String())
-
+	case *tree.CreateIndex:
+		p.Migration.AddIndex("", postgresIndex(n))
 	case *tree.AlterTable:
 		switch nc := n.Cmds[0].(type) {
 		case *tree.AlterTableRenameTable:
@@ -97,6 +77,7 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 				PgTyp: nc.ToType,
 			}
 			p.Migration.AddColumn(n.Table.String(), col)
+
 		case *tree.AlterTableSetDefault:
 			if nc.Default != nil {
 				col := element.Column{
@@ -116,12 +97,20 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 				p.Migration.AddIndex(n.Table.String(), postgresUnique(nc2))
 
 			case *tree.ForeignKeyConstraintTableDef:
-				// TODO
-
+				p.Migration.AddForeignKey(n.Table.String(), postgresForeignKey(nc2))
 			}
+
 		case *tree.AlterTableDropConstraint:
-			p.Migration.RemoveIndex(n.Table.String(), nc.Constraint.String())
+			consName := nc.Constraint.String()
+			if strings.HasPrefix(strings.ToLower(consName), "fk") { // detect ForeignKey Constraint
+				p.Migration.RemoveForeignKey(n.Table.String(), consName)
+			} else {
+				p.Migration.RemoveIndex(n.Table.String(), consName)
+			}
 		}
+
+	case *tree.RenameTable:
+		p.Migration.RenameTable(n.Name.String(), n.NewName.String())
 	}
 
 	return false
@@ -137,14 +126,15 @@ func postgresColumn(n *tree.ColumnTableDef) (element.Column, []element.Index) {
 	}
 
 	indexes := []element.Index{}
-	if n.PrimaryKey.IsPrimaryKey {
+	switch {
+	case n.PrimaryKey.IsPrimaryKey:
 		indexes = append(indexes, element.Index{
 			Node:    element.Node{Name: "primary_key", Action: element.MigrateAddAction},
 			Typ:     ast.IndexKeyTypeNone,
 			CnsTyp:  ast.ConstraintPrimaryKey,
 			Columns: []string{n.Name.String()},
 		})
-	} else if n.Unique {
+	case n.Unique:
 		indexes = append(indexes, element.Index{
 			Node: element.Node{
 				Name:   n.UniqueConstraintName.String(),
@@ -153,6 +143,7 @@ func postgresColumn(n *tree.ColumnTableDef) (element.Column, []element.Index) {
 			Typ:     ast.IndexKeyTypeUnique,
 			Columns: []string{n.Name.String()},
 		})
+	case n.References.Table != nil:
 	}
 
 	return element.Column{
@@ -168,23 +159,53 @@ func postgresUnique(n *tree.UniqueConstraintTableDef) element.Index {
 		cols[i] = n.Columns[i].Column.String()
 	}
 
-	var index element.Index
 	if n.PrimaryKey {
-		index = element.Index{
+		return element.Index{
 			Node:    element.Node{Name: "primary_key", Action: element.MigrateAddAction},
 			Typ:     ast.IndexKeyTypeNone,
 			CnsTyp:  ast.ConstraintPrimaryKey,
 			Columns: cols,
 		}
-	} else {
-		index = element.Index{
-			Node: element.Node{
-				Name:   n.Name.String(),
-				Action: element.MigrateAddAction,
-			},
-			Typ:     ast.IndexKeyTypeUnique,
-			Columns: cols,
-		}
 	}
-	return index
+
+	return element.Index{
+		Node: element.Node{
+			Name:   n.Name.String(),
+			Action: element.MigrateAddAction,
+		},
+		Typ:     ast.IndexKeyTypeUnique,
+		Columns: cols,
+	}
+}
+
+func postgresIndex(n *tree.CreateIndex) element.Index {
+	cols := make([]string, len(n.Columns))
+	for i := range n.Columns {
+		cols[i] = n.Columns[i].Column.String()
+	}
+
+	typ := ast.IndexKeyTypeNone
+	if n.Unique {
+		typ = ast.IndexKeyTypeUnique
+	}
+
+	return element.Index{
+		Node: element.Node{
+			Name:   n.Name.String(),
+			Action: element.MigrateAddAction,
+		},
+		Typ:     typ,
+		Columns: cols,
+	}
+}
+
+func postgresForeignKey(n *tree.ForeignKeyConstraintTableDef) element.ForeignKey {
+	return element.ForeignKey{
+		Node:       element.Node{Name: n.Name.String(), Action: element.MigrateAddAction},
+		Table:      "",
+		Column:     n.FromCols[0].String(),
+		RefTable:   n.Table.Table(),
+		RefColumn:  n.ToCols[0].String(),
+		Constraint: "",
+	}
 }

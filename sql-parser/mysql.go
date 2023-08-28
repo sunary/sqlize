@@ -51,12 +51,12 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 
 			case ast.AlterTableAddConstraint:
 				switch alter.Specs[i].Constraint.Tp {
-				// TODO parse primary key only
 				case ast.ConstraintPrimaryKey:
 					cols := make([]string, len(alter.Specs[i].Constraint.Keys))
 					for j, key := range alter.Specs[i].Constraint.Keys {
 						cols[j] = key.Column.Name.O
 					}
+
 					if alter.Specs[i].Constraint.Keys != nil {
 						p.Migration.AddIndex(alter.Table.Text(), element.Index{
 							Node:    element.Node{Name: "primary_key", Action: element.MigrateAddAction},
@@ -75,10 +75,32 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 							},
 						})
 					}
+
+				case ast.ConstraintForeignKey:
+					cols := make([]string, len(alter.Specs[i].Constraint.Keys))
+					for j, key := range alter.Specs[i].Constraint.Keys {
+						cols[j] = key.Column.Name.O
+					}
+
+					p.Migration.AddForeignKey(alter.Table.Text(), element.ForeignKey{
+						Node:       element.Node{Name: alter.Specs[i].Constraint.Name, Action: element.MigrateAddAction},
+						Table:      alter.Table.Text(),
+						Column:     cols[0],
+						RefTable:   alter.Specs[i].Constraint.Refer.Table.Name.String(),
+						RefColumn:  alter.Specs[i].Constraint.Refer.IndexPartSpecifications[0].Column.Name.String(),
+						Constraint: "",
+					})
 				}
 
 			case ast.AlterTableDropColumn:
 				p.Migration.RemoveColumn(alter.Table.Name.O, alter.Specs[i].OldColumnName.Name.O)
+
+			case ast.AlterTableDropPrimaryKey:
+
+			case ast.AlterTableDropIndex:
+
+			case ast.AlterTableDropForeignKey:
+				p.Migration.RemoveForeignKey(alter.Table.Name.O, alter.Specs[i].Constraint.Name)
 
 			case ast.AlterTableModifyColumn:
 				if len(alter.Specs[i].NewColumns) > 0 {

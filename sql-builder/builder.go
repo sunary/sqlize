@@ -15,11 +15,14 @@ import (
 const (
 	// SqlTagDefault ...
 	SqlTagDefault      = "sql"
+	tagIsSquash        = "squash"
+	tagIsEmbedded      = "embedded"
 	prefixColumn       = "column:"          // set column name, eg: 'column:column_name'
 	prefixEmbedded     = "embedded_prefix:" // set embed prefix for flatten struct, eg: 'embedded_prefix:base_'
 	prefixPreviousName = ",previous:"       // mark previous name-field, eg: 'column:column_name,previous:old_name'
 	prefixType         = "type:"            // set field type, eg: 'type:VARCHAR(64)'
 	prefixDefault      = "default:"         // set default value, eg: 'default:0'
+	tagEnum            = "enum"             // type:ENUM('open','close')
 	prefixComment      = "comment:"         // comment field, eg: 'comment:sth you want to comment'
 
 	tagIsNull          = "null"
@@ -34,12 +37,11 @@ const (
 	prefixIndexColumns = "index_columns:" // indexing these fields, eg: 'index_columns:col1,col2' (=> idx_col1_col2)
 	prefixIndexType    = "index_type:"    // indexing with type, eg: 'index_type:btree' (default) or 'index_type:hash'
 
-	prefixForeignKey    = "foreign_key:"             // 'foreign_key:'
-	prefixAssociationFk = "association_foreign_key:" // 'association_foreign_key:'
-	tagEnum             = "enum"
-	tagIsSquash         = "squash"
-	tagIsEmbedded       = "embedded"
-	funcTableName       = "TableName"
+	prefixForeignKey   = "foreign_key:" // 'foreign_key:'
+	prefixFkReferences = "references:"  // 'references:'
+	prefixFkConstraint = "constraint:"  // 'constraint:'
+
+	funcTableName = "TableName"
 )
 
 var (
@@ -64,6 +66,7 @@ type SqlBuilder struct {
 	dialect         sql_templates.SqlDialect
 	generateComment bool
 	pluralTableName bool
+	tables          map[string]string
 }
 
 // NewSqlBuilder ...
@@ -84,12 +87,20 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 		sqlTag:          o.sqlTag,
 		pluralTableName: o.pluralTableName,
 		generateComment: o.generateComment,
+		tables:          map[string]string{},
+	}
+}
+
+// MappingTables ...
+func (s *SqlBuilder) MappingTables(m map[string]string) {
+	for k, v := range m {
+		s.tables[k] = v
 	}
 }
 
 // AddTable ...
 func (s SqlBuilder) AddTable(obj interface{}) string {
-	tableName := s.getTableName(obj)
+	_, tableName := s.GetTableName(obj)
 	columns, columnsHistory, indexes := s.parseStruct(tableName, "", obj)
 
 	sqlPrimaryKey := s.sql.PrimaryOption()
@@ -126,7 +137,7 @@ type attrs struct {
 	Type         string
 	Value        string
 	IsPk         bool
-	IsFk         bool
+	ForeignKey   *fkAttrs
 	IsUnique     bool
 	Index        string
 	IndexType    string
@@ -136,6 +147,15 @@ type attrs struct {
 	IsAutoIncr   bool
 	Comment      string
 	IsEmbedded   bool
+}
+
+type fkAttrs struct {
+	Name       string
+	Table      string
+	Column     string
+	RefTable   string
+	RefColumn  string
+	Constraint string
 }
 
 // parseStruct return columns, columnsHistory, indexes
@@ -168,8 +188,6 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 		xstag := strings.Split(stag, ";")
 		for _, ot := range xstag {
-			hasBreak := false
-
 			// normalize tag, convert `primaryKey` => `primary_key`
 			normTag := utils.ToSnakeCase(ot)
 
@@ -188,9 +206,44 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				at.Prefix = trimPrefix(ot, prefixEmbedded)
 				at.IsEmbedded = true
 
-			case strings.HasPrefix(normTag, prefixForeignKey) || strings.HasPrefix(normTag, prefixAssociationFk):
-				at.IsFk = true
-				hasBreak = true
+			case strings.HasPrefix(normTag, prefixForeignKey):
+				if at.ForeignKey == nil {
+					at.ForeignKey = &fkAttrs{
+						Table:     tableName,
+						RefColumn: trimPrefix(ot, prefixForeignKey),
+					}
+				}
+
+				objectNames := strings.Split(field.Type.String(), ".")
+				obName := objectNames[len(objectNames)-1]
+				if rt, ok := s.tables[obName]; ok {
+					at.ForeignKey.RefTable = rt
+				} else {
+					at.ForeignKey.RefTable = utils.ToSnakeCase(obName)
+				}
+
+				at.ForeignKey.Name = fmt.Sprintf("fk_%s_%s", at.ForeignKey.RefTable, tableName) // default
+				if at.ForeignKey.Column == "" {
+					at.ForeignKey.Column = at.ForeignKey.RefColumn // default, override by tag `references`
+				}
+
+			case strings.HasPrefix(normTag, prefixFkReferences):
+				if at.ForeignKey == nil {
+					at.ForeignKey = &fkAttrs{
+						Table: tableName,
+					}
+				}
+
+				at.ForeignKey.Column = trimPrefix(ot, prefixFkReferences)
+
+			case strings.HasPrefix(normTag, prefixFkConstraint):
+				if at.ForeignKey == nil {
+					at.ForeignKey = &fkAttrs{
+						Table: tableName,
+					}
+				}
+
+				at.ForeignKey.Constraint = trimPrefix(ot, prefixFkConstraint)
 
 			case strings.HasPrefix(normTag, prefixType):
 				at.Type = trimPrefix(ot, prefixType)
@@ -264,13 +317,12 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 			case normTag == tagIsSquash, normTag == tagIsEmbedded:
 				at.IsEmbedded = true
 			}
-
-			if hasBreak {
-				break
-			}
 		}
 
-		if at.IsFk {
+		if at.ForeignKey != nil {
+			indexes = append(indexes, fmt.Sprintf(s.sql.CreateForeignKeyStm(),
+				utils.EscapeSqlName(s.dialect, at.ForeignKey.Table), utils.EscapeSqlName(s.dialect, at.ForeignKey.Name), utils.EscapeSqlName(s.dialect, at.ForeignKey.Column),
+				utils.EscapeSqlName(s.dialect, at.ForeignKey.RefTable), utils.EscapeSqlName(s.dialect, at.ForeignKey.RefColumn)))
 			continue
 		}
 
@@ -382,7 +434,8 @@ func trimPrefix(ot, prefix string) string {
 
 // RemoveTable ...
 func (s SqlBuilder) RemoveTable(tb interface{}) string {
-	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(s.dialect, s.getTableName(tb)))
+	_, table := s.GetTableName(tb)
+	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(s.dialect, table))
 }
 
 // createIndexName format idx_field_names
@@ -515,24 +568,26 @@ func (s SqlBuilder) sqlPrimitiveType(v interface{}, suffix string) string {
 	}
 }
 
-// getTableName read from TableNameFn or parse table name from model as snake_case
-func (s SqlBuilder) getTableName(t interface{}) string {
-	st := reflect.TypeOf(t)
-	if _, ok := st.MethodByName(funcTableName); ok {
-		v := reflect.ValueOf(t).MethodByName(funcTableName).Call(nil)
-		if len(v) > 0 {
-			return v[0].String()
-		}
-	}
-
+// GetTableName read from TableNameFn or parse table name from model as snake_case
+// return object name and table name
+func (s SqlBuilder) GetTableName(t interface{}) (string, string) {
 	name := ""
 	if t := reflect.TypeOf(t); t.Kind() == reflect.Ptr {
 		name = t.Elem().Name()
 	} else {
 		name = t.Name()
 	}
+
+	st := reflect.TypeOf(t)
+	if _, ok := st.MethodByName(funcTableName); ok {
+		v := reflect.ValueOf(t).MethodByName(funcTableName).Call(nil)
+		if len(v) > 0 {
+			return name, v[0].String()
+		}
+	}
+
 	if s.pluralTableName {
 		name = name + "s"
 	}
-	return utils.ToSnakeCase(name)
+	return name, utils.ToSnakeCase(name)
 }

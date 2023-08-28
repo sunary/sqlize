@@ -80,6 +80,14 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 
 // FromObjects load from objects
 func (s *Sqlize) FromObjects(objs ...interface{}) error {
+	m := map[string]string{}
+	for i := range objs {
+		ob, tb := s.sqlBuilder.GetTableName(objs[i])
+		m[ob] = tb
+	}
+
+	s.sqlBuilder.MappingTables(m)
+
 	for i := range objs {
 		if err := s.FromString(s.sqlBuilder.AddTable(objs[i])); err != nil {
 			return err

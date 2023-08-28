@@ -101,6 +101,11 @@ func (s Sql) CreatePrimaryKeyStm() string {
 	return s.apply("ALTER TABLE %s ADD PRIMARY KEY(%s);")
 }
 
+// CreateForeignKeyStm ...
+func (s Sql) CreateForeignKeyStm() string {
+	return s.apply("ALTER TABLE %s ADD CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s(%s);")
+}
+
 // CreateIndexStm ...
 func (s Sql) CreateIndexStm(indexType string) string {
 	if indexType != "" {
@@ -122,6 +127,11 @@ func (s Sql) CreateUniqueIndexStm(indexType string) string {
 // DropPrimaryKeyStm ...
 func (s Sql) DropPrimaryKeyStm() string {
 	return s.apply("ALTER TABLE %s DROP PRIMARY KEY;")
+}
+
+// DropForeignKeyStm ...
+func (s Sql) DropForeignKeyStm() string {
+	return s.apply("ALTER TABLE %s DROP CONSTRAINT %s;")
 }
 
 // DropIndexStm ...

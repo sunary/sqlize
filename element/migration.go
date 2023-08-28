@@ -148,7 +148,7 @@ func (m *Migration) AddIndex(tbName string, idx Index) {
 }
 
 // RemoveIndex ...
-func (m *Migration) RemoveIndex(tbName string, idxName string) {
+func (m *Migration) RemoveIndex(tbName, idxName string) {
 	if tbName == "" {
 		tbName = m.currentTable
 	}
@@ -172,6 +172,41 @@ func (m *Migration) RenameIndex(tbName, oldName, newName string) {
 	if id := m.getIndexTable(tbName); id >= 0 {
 		m.Tables[id].RenameIndex(oldName, newName)
 	}
+}
+
+// AddForeignKey ...
+func (m *Migration) AddForeignKey(tbName string, fk ForeignKey) {
+	if tbName == "" {
+		tbName = m.currentTable
+	}
+	if fk.Table == "" {
+		fk.Table = tbName
+	}
+
+	id := m.getIndexTable(tbName)
+	if id == -1 {
+		tb := NewTableWithAction(tbName, MigrateModifyAction)
+		m.AddTable(*tb)
+		id = len(m.Tables) - 1
+	}
+
+	m.Tables[id].AddForeignKey(fk)
+}
+
+// RemoveForeignKey ...
+func (m *Migration) RemoveForeignKey(tbName, fkName string) {
+	if tbName == "" {
+		tbName = m.currentTable
+	}
+
+	id := m.getIndexTable(tbName)
+	if id == -1 {
+		tb := NewTableWithAction(tbName, MigrateModifyAction)
+		m.AddTable(*tb)
+		id = len(m.Tables) - 1
+	}
+
+	m.Tables[id].RemoveForeignKey(fkName)
 }
 
 func (m Migration) getIndexTable(tableName string) int {
@@ -233,6 +268,9 @@ func (m Migration) MigrationUp() string {
 		if mIdxs := m.Tables[i].MigrationIndexUp(dropCols); len(mIdxs) > 0 {
 			strTb = append(strTb, strings.Join(mIdxs, "\n"))
 		}
+		if mFks := m.Tables[i].MigrationForeignKeyUp(dropCols); len(mFks) > 0 {
+			strTb = append(strTb, strings.Join(mFks, "\n"))
+		}
 
 		if len(strTb) > 0 {
 			strTables = append(strTables, strings.Join(strTb, "\n"))
@@ -259,6 +297,9 @@ func (m Migration) MigrationDown() string {
 		}
 		if mIdxs := m.Tables[i].MigrationIndexDown(dropCols); len(mIdxs) > 0 {
 			strTb = append(strTb, strings.Join(mIdxs, "\n"))
+		}
+		if mFks := m.Tables[i].MigrationForeignKeyDown(dropCols); len(mFks) > 0 {
+			strTb = append(strTb, strings.Join(mFks, "\n"))
 		}
 
 		if len(strTb) > 0 {
