@@ -59,6 +59,11 @@ func (i Index) migrationUp(tbName string) []string {
 				utils.EscapeSqlName(sql.GetDialect(), tbName))}
 		}
 
+		if sql.IsSqlite() {
+			return []string{fmt.Sprintf(sql.DropIndexStm(),
+				utils.EscapeSqlName(sql.GetDialect(), i.Name))}
+		}
+
 		return []string{fmt.Sprintf(sql.DropIndexStm(),
 			utils.EscapeSqlName(sql.GetDialect(), i.Name),
 			utils.EscapeSqlName(sql.GetDialect(), tbName))}

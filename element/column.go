@@ -11,6 +11,7 @@ import (
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/format"
 	"github.com/pingcap/parser/types"
+	sqlite "github.com/rqlite/sql"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -24,16 +25,17 @@ const (
 // Column ...
 type Column struct {
 	Node
-	Typ     *types.FieldType
-	PgTyp   *ptypes.T
-	Options []*ast.ColumnOption
-	Comment string
+	MysqlType *types.FieldType
+	PgType    *ptypes.T
+	LiteType  *sqlite.Type
+	Options   []*ast.ColumnOption
+	Comment   string
 }
 
 // GetType ...
 func (c Column) GetType() byte {
-	if c.Typ != nil {
-		return c.Typ.Tp
+	if c.MysqlType != nil {
+		return c.MysqlType.Tp
 	}
 
 	return 0
@@ -81,6 +83,10 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		return []string{strSql}
 
 	case MigrateRemoveAction:
+		if sql.IsSqlite() {
+			return nil
+		}
+
 		return []string{fmt.Sprintf(sql.AlterTableDropColumnStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), utils.EscapeSqlName(sql.GetDialect(), c.Name))}
 
 	case MigrateModifyAction:
@@ -124,6 +130,7 @@ func (c Column) definition() string {
 	for _, opt := range c.Options {
 		b := bytes.NewBufferString("")
 		var ctx *format.RestoreCtx
+
 		if sql.IsLowercase() {
 			ctx = format.NewRestoreCtx(LowerRestoreFlag, b)
 		} else {
@@ -143,10 +150,13 @@ func (c Column) definition() string {
 }
 
 func (c Column) typeDefinition() string {
-	if !sql.IsPostgres() && c.Typ != nil {
-		return " " + c.Typ.String()
-	} else if sql.IsPostgres() && c.PgTyp != nil {
-		return " " + c.PgTyp.SQLString()
+	switch {
+	case sql.IsPostgres() && c.PgType != nil:
+		return " " + c.PgType.SQLString()
+	case sql.IsSqlite() && c.LiteType != nil:
+		return " " + c.LiteType.Name.Name
+	case c.MysqlType != nil:
+		return " " + c.MysqlType.String()
 	}
 
 	return "" // column type is empty

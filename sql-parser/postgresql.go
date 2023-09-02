@@ -25,6 +25,16 @@ func (p *Parser) ParserPostgresql(sql string) error {
 	return err
 }
 
+/*
+Walk with statements:
+
+CreateTable
+ColumnTableDef
+CreateIndex
+DropIndex
+AlterTable
+RenameTable
+*/
 func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 	switch n := node.(type) {
 	case *tree.CreateTable:
@@ -45,6 +55,12 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 
 	case *tree.CreateIndex:
 		p.Migration.AddIndex("", postgresIndex(n))
+
+	case *tree.DropIndex:
+		for i := range n.IndexList {
+			p.Migration.RemoveIndex("", n.IndexList[i].Index.String())
+		}
+
 	case *tree.AlterTable:
 		switch nc := n.Cmds[0].(type) {
 		case *tree.AlterTableRenameTable:
@@ -73,8 +89,8 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 
 		case *tree.AlterTableAlterColumnType:
 			col := element.Column{
-				Node:  element.Node{Name: nc.Column.String(), Action: element.MigrateModifyAction},
-				PgTyp: nc.ToType,
+				Node:   element.Node{Name: nc.Column.String(), Action: element.MigrateModifyAction},
+				PgType: nc.ToType,
 			}
 			p.Migration.AddColumn(n.Table.String(), col)
 
@@ -99,7 +115,6 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 			case *tree.ForeignKeyConstraintTableDef:
 				p.Migration.AddForeignKey(n.Table.String(), postgresForeignKey(nc2))
 			}
-
 		case *tree.AlterTableDropConstraint:
 			consName := nc.Constraint.String()
 			if strings.HasPrefix(strings.ToLower(consName), "fk") { // detect ForeignKey Constraint
@@ -148,7 +163,7 @@ func postgresColumn(n *tree.ColumnTableDef) (element.Column, []element.Index) {
 
 	return element.Column{
 		Node:    element.Node{Name: n.Name.String(), Action: element.MigrateAddAction},
-		PgTyp:   n.Type,
+		PgType:  n.Type,
 		Options: opts,
 	}, indexes
 }

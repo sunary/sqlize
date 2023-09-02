@@ -27,6 +27,10 @@ var familyName = map[int32]string{
 
 // BooleanType ...
 func (s Sql) BooleanType() string {
+	if s.IsSqlite() {
+		return s.apply("INTERGER")
+	}
+
 	return s.apply("BOOLEAN")
 }
 
@@ -42,21 +46,37 @@ func (s Sql) SmallIntType() string {
 
 // IntType ...
 func (s Sql) IntType() string {
+	if s.IsSqlite() {
+		return s.apply("INTERGER")
+	}
+
 	return s.apply("INT")
 }
 
 // BigIntType ...
 func (s Sql) BigIntType() string {
+	if s.IsSqlite() {
+		return s.apply("INTERGER")
+	}
+
 	return s.apply("BIGINT")
 }
 
 // FloatType ...
 func (s Sql) FloatType() string {
+	if s.IsSqlite() {
+		return s.apply("REAL")
+	}
+
 	return s.apply("FLOAT")
 }
 
 // DoubleType ...
 func (s Sql) DoubleType() string {
+	if s.IsSqlite() {
+		return s.apply("REAL")
+	}
+
 	return s.apply("DOUBLE")
 }
 
@@ -71,8 +91,10 @@ func (s Sql) DatetimeType() string {
 	case PostgresDialect:
 		return s.apply("TIMESTAMP")
 
+	case SqliteDialect:
+		return s.apply("TEXT") // TEXT as ISO8601 strings ("YYYY-MM-DD HH:MM:SS.SSS")
+
 	default:
-		// TODO: mysql template is default for other dialects
 		return s.apply("DATETIME")
 	}
 }

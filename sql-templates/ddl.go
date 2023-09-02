@@ -83,6 +83,10 @@ func (s Sql) AlterTableAddColumnAfterStm() string {
 
 // AlterTableDropColumnStm ...
 func (s Sql) AlterTableDropColumnStm() string {
+	if s.IsSqlite() {
+		return ""
+	}
+
 	return s.apply("ALTER TABLE %s DROP COLUMN %s;")
 }
 
@@ -136,6 +140,10 @@ func (s Sql) DropForeignKeyStm() string {
 
 // DropIndexStm ...
 func (s Sql) DropIndexStm() string {
+	if s.IsSqlite() {
+		return s.apply("DROP INDEX %s;")
+	}
+
 	return s.apply("DROP INDEX %s ON %s;")
 }
 
