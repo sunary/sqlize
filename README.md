@@ -4,7 +4,12 @@
 
 English | [中文](README_zh.md)
 
-Generate MySQL/PostgreSQL Migration from golang struct and existing sql
+Generate Migration from golang struct and existing sql, support:
+
+- [x] MySQL
+- [x] Postgres
+- [x] Sqlite
+- [ ] Sql Server
 
 #### Features
 
@@ -113,6 +118,7 @@ func main() {
 * Support automatic addition of `s` to table names (plural naming convention), using option `sql_builder.WithPluralTableName()`
 * Accept tag convention: `snake_case` or `camelCase`, Eg: `sql:"primary_key"` equalize `sql:"primaryKey"`
 * Primary key for this field: `sql:"primary_key"`
+* Foreign key: `sql:"foreign_key:user_id;references:user_id"`
 * Auto increment: `sql:"auto_increment"`
 * Indexing this field: `sql:"index"`
 * Custom index name: `sql:"index:idx_col_name"`

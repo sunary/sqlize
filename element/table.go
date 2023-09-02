@@ -71,7 +71,7 @@ func (t *Table) AddColumn(col Column) {
 			}
 		}
 
-		t.Columns[id].Typ = col.Typ
+		t.Columns[id].MysqlType = col.MysqlType
 		return
 	}
 
@@ -257,8 +257,8 @@ func (t *Table) Diff(old Table) {
 	for i := range t.Columns {
 		if j := old.getIndexColumn(t.Columns[i].Name); t.Columns[i].Action == MigrateAddAction &&
 			j >= 0 && old.Columns[j].Action != MigrateNoAction {
-			if (t.Columns[i].Typ != nil && t.Columns[i].Typ.String() == old.Columns[j].Typ.String()) ||
-				(t.Columns[i].PgTyp != nil && t.Columns[i].PgTyp.SQLString() == old.Columns[j].PgTyp.SQLString()) {
+			if (t.Columns[i].MysqlType != nil && t.Columns[i].MysqlType.String() == old.Columns[j].MysqlType.String()) ||
+				(t.Columns[i].PgType != nil && t.Columns[i].PgType.SQLString() == old.Columns[j].PgType.SQLString()) {
 				t.Columns[i].Action = MigrateNoAction
 			} else {
 				t.Columns[i].Action = MigrateModifyAction

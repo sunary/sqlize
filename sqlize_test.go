@@ -64,11 +64,22 @@ type tpl struct {
 	User     *user  `sql:"foreign_key:email;references:email"`
 }
 
-type user struct {
-}
-
 func (tpl) TableName() string {
 	return "three_pl"
+}
+
+type tpl_sqlite struct {
+	B1       Base   `sql:"embedded"`
+	ClientID string `sql:"type:text;primary_key;index_columns:client_id,country"`
+	Country  string `sql:"type:text"`
+	Email    string `sql:"type:text;unique"`
+}
+
+func (tpl_sqlite) TableName() string {
+	return "three_pl_sqlite"
+}
+
+type user struct {
 }
 
 var (
@@ -215,6 +226,18 @@ CREATE UNIQUE INDEX idx_email ON three_pl(email);
 ALTER TABLE three_pl ADD CONSTRAINT fk_user_three_pl FOREIGN KEY (email) REFERENCES "user"(email);`
 	expectCreateTplPostgresDown = `
 DROP TABLE IF EXISTS three_pl;`
+	expectCreateTplSqliteUp = `
+CREATE TABLE three_pl_sqlite (
+ client_id  text,
+ country    text,
+ email      text,
+ created_at text,
+ updated_at text
+);
+ALTER TABLE three_pl_sqlite ADD PRIMARY KEY(client_id, country);
+CREATE UNIQUE INDEX idx_email ON three_pl_sqlite(email);`
+	expectCreateTplSqliteDown = `
+DROP TABLE IF EXISTS three_pl_sqlite;`
 
 	expectPersonArvo = `
 {"type":"record","name":"person","namespace":"person","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"age","type":"int"},{"name":"is_female","type":"bool"},{"name":"created_at","type":["null",{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"person"}`
@@ -332,9 +355,6 @@ func TestSqlize_FromObjects(t *testing.T) {
 			if i%3 == 1 {
 				opts = append(opts, WithSqlserver()) //fallback mysql
 			}
-			if i%3 == 2 {
-				opts = append(opts, WithSqlite()) // fallback mysql
-			}
 
 			s := NewSqlize(opts...)
 			if tt.args.migrationFolder == "" {
@@ -405,6 +425,44 @@ func TestSqlize_FromObjects(t *testing.T) {
 
 			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
 				t.Errorf("StringDown() postgres got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
+			}
+		})
+	}
+
+	fromObjectSqliteTestcase := []struct {
+		name              string
+		generateComment   bool
+		pluralTableName   bool
+		args              args
+		wantMigrationUp   string
+		wantMigrationDown string
+		wantErr           bool
+	}{
+		{
+			name:            "from tpl sqlite object",
+			generateComment: true,
+			args: args{
+				[]interface{}{tpl_sqlite{}},
+				"/",
+			},
+			wantMigrationUp:   expectCreateTplSqliteUp,
+			wantMigrationDown: expectCreateTplSqliteDown,
+			wantErr:           false,
+		},
+	}
+	for _, tt := range fromObjectSqliteTestcase {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSqlize(WithSqlite())
+			if err := s.FromObjects(tt.args.objs...); (err != nil) != tt.wantErr {
+				t.Errorf("FromObjects() sqlite error = %v,\n wantErr = %v", err, tt.wantErr)
+			}
+
+			if strUp := s.StringUp(); normSql(strUp) != normSql(tt.wantMigrationUp) {
+				t.Errorf("StringUp() sqlite got = \n%s,\nexpected = \n%s", strUp, tt.wantMigrationUp)
+			}
+
+			if strDown := s.StringDown(); normSql(strDown) != normSql(tt.wantMigrationDown) {
+				t.Errorf("StringDown() sqlite got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 		})
 	}
