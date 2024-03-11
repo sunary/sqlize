@@ -28,7 +28,7 @@ var familyName = map[int32]string{
 // BooleanType ...
 func (s Sql) BooleanType() string {
 	if s.IsSqlite() {
-		return s.apply("INTERGER")
+		return s.apply("INTEGER")
 	}
 
 	return s.apply("BOOLEAN")
@@ -47,7 +47,7 @@ func (s Sql) SmallIntType() string {
 // IntType ...
 func (s Sql) IntType() string {
 	if s.IsSqlite() {
-		return s.apply("INTERGER")
+		return s.apply("INTEGER")
 	}
 
 	return s.apply("INT")
@@ -56,7 +56,7 @@ func (s Sql) IntType() string {
 // BigIntType ...
 func (s Sql) BigIntType() string {
 	if s.IsSqlite() {
-		return s.apply("INTERGER")
+		return s.apply("INTEGER")
 	}
 
 	return s.apply("BIGINT")
