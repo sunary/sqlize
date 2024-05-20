@@ -4,7 +4,7 @@
 
 English | [中文](README_zh.md)
 
-Generate Migration from golang struct and existing sql, support:
+Generate SQL migration schema from Golang models and the current SQL schema, support:
 
 - [x] MySQL
 - [x] Postgres
@@ -13,15 +13,14 @@ Generate Migration from golang struct and existing sql, support:
 
 #### Features
 
-+ Sql parser
-+ Sql builder from objects
-+ Generate `sql migration` from diff between existed sql and objects
++ Sql parser (MySQL, Postgres, Sqlite)
++ Sql builder from objects (MySQL, Postgres, Sqlite)
++ Generate `sql migration` from Golang models and the current SQL schema
 + Generate `arvo` schema (Mysql only)
 + Support embedded struct
 + Generate migration version - compatible with `golang-migrate/migrate`
-+ Tag options - compatible with `gorm` tag
++ Tag options - compatible with `gorm` tag (default tag is `sql`)
 
-> **WARNING**: some functions doesn't work on PostgreSQL, let me know of any issues
 
 ### Getting Started
 
@@ -112,7 +111,7 @@ func main() {
 
 ### Convention
 
-* `mysql` by default, using option `sql_builder.WithPostgresql()` for `postgresql`
+* `mysql` by default, using options like `sql_builder.WithPostgresql()` for `postgresql`, ...
 * Sql syntax uppercase (Eg: `"SELECT * FROM user WHERE id = ?"`) default, using option `sql_builder.WithSqlLowercase()` for lowercase
 * Support **generate** comment, using option `sql_builder.WithCommentGenerate()`
 * Support automatic addition of `s` to table names (plural naming convention), using option `sql_builder.WithPluralTableName()`
