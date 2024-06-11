@@ -53,6 +53,9 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 			}
 		}
 
+	case *tree.CommentOnColumn:
+		p.Migration.AddComment(n.TableName.String(), n.Column(), *n.Comment)
+
 	case *tree.CreateIndex:
 		p.Migration.AddIndex("", postgresIndex(n))
 
@@ -115,6 +118,7 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 			case *tree.ForeignKeyConstraintTableDef:
 				p.Migration.AddForeignKey(n.Table.String(), postgresForeignKey(nc2))
 			}
+
 		case *tree.AlterTableDropConstraint:
 			consName := nc.Constraint.String()
 			if strings.HasPrefix(strings.ToLower(consName), "fk") { // detect ForeignKey Constraint

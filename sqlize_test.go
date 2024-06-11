@@ -221,6 +221,9 @@ CREATE TABLE three_pl (
  created_at TIMESTAMP,
  updated_at TIMESTAMP
 );
+COMMENT ON COLUMN three_pl.client_id IS 'client id';
+COMMENT ON COLUMN three_pl.country IS 'country';
+COMMENT ON COLUMN three_pl.email IS 'email';
 ALTER TABLE three_pl ADD PRIMARY KEY(client_id, country);
 CREATE UNIQUE INDEX idx_email ON three_pl(email);
 ALTER TABLE three_pl ADD CONSTRAINT fk_user_three_pl FOREIGN KEY (email) REFERENCES "user"(email);`
@@ -414,7 +417,7 @@ func TestSqlize_FromObjects(t *testing.T) {
 	}
 	for _, tt := range fromObjectPostgresTestcase {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSqlize(WithPostgresql())
+			s := NewSqlize(WithPostgresql(), WithCommentGenerate())
 			if err := s.FromObjects(tt.args.objs...); (err != nil) != tt.wantErr {
 				t.Errorf("FromObjects() postgres error = %v,\n wantErr = %v", err, tt.wantErr)
 			}

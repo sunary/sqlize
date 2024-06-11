@@ -3,7 +3,7 @@ package sqlize
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	_ "github.com/pingcap/parser/test_driver" // driver parser
@@ -157,7 +157,7 @@ func (s Sqlize) writeFiles(name, migUp, migDown string) error {
 
 	if migUp != "" {
 		filePath := filepath.Join(s.migrationFolder, fileName+s.migrationUpSuffix)
-		err := ioutil.WriteFile(filePath, []byte(genDescription+migUp), 0644)
+		err := os.WriteFile(filePath, []byte(genDescription+migUp), 0644)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func (s Sqlize) writeFiles(name, migUp, migDown string) error {
 
 	if migDown != "" && s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
 		filePath := filepath.Join(s.migrationFolder, fileName+s.migrationDownSuffix)
-		err := ioutil.WriteFile(filePath, []byte(genDescription+migDown), 0644)
+		err := os.WriteFile(filePath, []byte(genDescription+migDown), 0644)
 		if err != nil {
 			return err
 		}

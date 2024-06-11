@@ -5,8 +5,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	sql_templates "github.com/sunary/sqlize/sql-templates"
 )
 
 const (
@@ -88,28 +86,4 @@ func isLowercase(r rune) bool {
 
 func isUppercase(r rune) bool {
 	return r >= 'A' && r <= 'Z'
-}
-
-// EscapeSqlName ...
-func EscapeSqlName(dialect sql_templates.SqlDialect, name string) string {
-	if name == "" {
-		return name
-	}
-
-	escapeChar := "`"
-	if dialect == sql_templates.PostgresDialect {
-		escapeChar = "\""
-	}
-
-	return fmt.Sprintf("%s%s%s", escapeChar, strings.Trim(name, escapeChar), escapeChar)
-}
-
-// EscapeSqlNames ...
-func EscapeSqlNames(dialect sql_templates.SqlDialect, names []string) []string {
-	ns := make([]string, len(names))
-	for i := range names {
-		ns[i] = EscapeSqlName(dialect, names[i])
-	}
-
-	return ns
 }

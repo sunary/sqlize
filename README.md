@@ -117,6 +117,7 @@ func main() {
 * Support **generate** comment, using option `sql_builder.WithCommentGenerate()`
 * Support automatic addition of `s` to table names (plural naming convention), using option `sql_builder.WithPluralTableName()`
 * Accept tag convention: `snake_case` or `camelCase`, Eg: `sql:"primary_key"` equalize `sql:"primaryKey"`
+* Custom column name: `sql:"column:column_name"`
 * Primary key for this field: `sql:"primary_key"`
 * Foreign key: `sql:"foreign_key:user_id;references:user_id"`
 * Auto increment: `sql:"auto_increment"`

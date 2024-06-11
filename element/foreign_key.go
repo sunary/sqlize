@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"strings"
-
-	"github.com/sunary/sqlize/utils"
 )
 
 // ForeignKey ...
@@ -32,12 +30,12 @@ func (fk ForeignKey) migrationUp(tbName string) []string {
 
 	case MigrateAddAction:
 		return []string{fmt.Sprintf(sql.CreateForeignKeyStm(),
-			utils.EscapeSqlName(sql.GetDialect(), tbName), utils.EscapeSqlName(sql.GetDialect(), fk.Name), utils.EscapeSqlName(sql.GetDialect(), fk.Column),
-			utils.EscapeSqlName(sql.GetDialect(), fk.RefTable), utils.EscapeSqlName(sql.GetDialect(), fk.RefColumn))}
+			sql.EscapeSqlName(tbName), sql.EscapeSqlName(fk.Name), sql.EscapeSqlName(fk.Column),
+			sql.EscapeSqlName(fk.RefTable), sql.EscapeSqlName(fk.RefColumn))}
 
 	case MigrateRemoveAction:
 		return []string{fmt.Sprintf(sql.DropForeignKeyStm(),
-			utils.EscapeSqlName(sql.GetDialect(), tbName), utils.EscapeSqlName(sql.GetDialect(), fk.Name))}
+			sql.EscapeSqlName(tbName), sql.EscapeSqlName(fk.Name))}
 
 	case MigrateModifyAction:
 		return nil

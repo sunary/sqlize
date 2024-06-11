@@ -404,6 +404,7 @@ func (t Table) MigrationColumnUp() ([]string, map[string]struct{}) {
 		}
 
 		strCols := make([]string, 0)
+		commentCols := make([]string, 0)
 		for i := range t.Columns {
 			if t.Columns[i].Action == MigrateAddAction {
 				strCols = append(strCols, " "+t.Columns[i].migrationUp("", "", maxIdent)[0])
@@ -412,12 +413,14 @@ func (t Table) MigrationColumnUp() ([]string, map[string]struct{}) {
 				nCol.Action = MigrateAddAction
 				strCols = append(strCols, " "+nCol.migrationUp("", "", maxIdent)[0])
 			}
+
+			commentCols = append(commentCols, t.Columns[i].migrationCommentUp(t.Name)...)
 		}
 
-		return []string{fmt.Sprintf(sql.CreateTableStm(), utils.EscapeSqlName(sql.GetDialect(), t.Name), strings.Join(strCols, ",\n"), "")}, nil
+		return append([]string{fmt.Sprintf(sql.CreateTableStm(), sql.EscapeSqlName(t.Name), strings.Join(strCols, ",\n"), "")}, commentCols...), nil
 
 	case MigrateRemoveAction:
-		return []string{fmt.Sprintf(sql.DropTableStm(), utils.EscapeSqlName(sql.GetDialect(), t.Name))}, nil
+		return []string{fmt.Sprintf(sql.DropTableStm(), sql.EscapeSqlName(t.Name))}, nil
 
 	case MigrateModifyAction:
 		// TODO

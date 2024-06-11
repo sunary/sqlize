@@ -132,6 +132,25 @@ func (m *Migration) RenameColumn(tbName, oldName, newName string) {
 }
 
 // AddIndex ...
+func (m *Migration) AddComment(tbName, colName, comment string) {
+	if tbName == "" {
+		tbName = m.currentTable
+	}
+
+	id := m.getIndexTable(tbName)
+	if id == -1 {
+		return
+	}
+
+	colIdx := m.Tables[id].getIndexColumn(colName)
+	if colIdx == -1 {
+		return
+	}
+
+	m.Tables[id].Columns[colIdx].Comment = comment
+}
+
+// AddIndex ...
 func (m *Migration) AddIndex(tbName string, idx Index) {
 	if tbName == "" {
 		tbName = m.currentTable
