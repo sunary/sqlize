@@ -1,5 +1,10 @@
 package sql_templates
 
+import (
+	"fmt"
+	"strings"
+)
+
 type SqlDialect string
 
 const (
@@ -41,7 +46,48 @@ func (s Sql) NullValue() string {
 	return s.apply("NULL")
 }
 
-// NullValue ...
-func (s Sql) Comment() string {
-	return s.apply("COMMENT '%s'")
+// ColumnComment ...
+func (s Sql) ColumnComment() string {
+	switch s.dialect {
+	case PostgresDialect:
+		return s.apply("COMMENT ON COLUMN %s.%s IS '%s';")
+
+	default:
+		return s.apply("COMMENT '%s'")
+	}
+}
+
+// TableComment ...
+func (s Sql) TableComment() string {
+	switch s.dialect {
+	case PostgresDialect:
+		return s.apply("COMMENT ON TABLE %s IS '%s';")
+
+	default:
+		return s.apply("COMMENT '%s'")
+	}
+}
+
+// EscapeSqlName ...
+func (s Sql) EscapeSqlName(name string) string {
+	if name == "" {
+		return name
+	}
+
+	escapeChar := "`"
+	if s.dialect == PostgresDialect {
+		escapeChar = "\""
+	}
+
+	return fmt.Sprintf("%s%s%s", escapeChar, strings.Trim(name, escapeChar), escapeChar)
+}
+
+// EscapeSqlNames ...
+func (s Sql) EscapeSqlNames(names []string) []string {
+	ns := make([]string, len(names))
+	for i := range names {
+		ns[i] = s.EscapeSqlName(names[i])
+	}
+
+	return ns
 }

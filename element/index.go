@@ -8,7 +8,6 @@ import (
 
 	"github.com/pingcap/parser/ast"
 	"github.com/pingcap/parser/model"
-	"github.com/sunary/sqlize/utils"
 )
 
 // Index ...
@@ -34,20 +33,20 @@ func (i Index) migrationUp(tbName string) []string {
 	case MigrateAddAction:
 		if i.CnsTyp == ast.ConstraintPrimaryKey {
 			return []string{fmt.Sprintf(sql.CreatePrimaryKeyStm(),
-				utils.EscapeSqlName(sql.GetDialect(), tbName),
-				strings.Join(utils.EscapeSqlNames(sql.GetDialect(), i.Columns), ", "))}
+				sql.EscapeSqlName(tbName),
+				strings.Join(sql.EscapeSqlNames(i.Columns), ", "))}
 		}
 
 		switch i.Typ {
 		case ast.IndexKeyTypeNone:
 			return []string{fmt.Sprintf(sql.CreateIndexStm(i.IndexType.String()),
-				utils.EscapeSqlName(sql.GetDialect(), i.Name), utils.EscapeSqlName(sql.GetDialect(), tbName),
-				strings.Join(utils.EscapeSqlNames(sql.GetDialect(), i.Columns), ", "))}
+				sql.EscapeSqlName(i.Name), sql.EscapeSqlName(tbName),
+				strings.Join(sql.EscapeSqlNames(i.Columns), ", "))}
 
 		case ast.IndexKeyTypeUnique:
 			return []string{fmt.Sprintf(sql.CreateUniqueIndexStm(i.IndexType.String()),
-				utils.EscapeSqlName(sql.GetDialect(), i.Name), utils.EscapeSqlName(sql.GetDialect(), tbName),
-				strings.Join(utils.EscapeSqlNames(sql.GetDialect(), i.Columns), ", "))}
+				sql.EscapeSqlName(i.Name), sql.EscapeSqlName(tbName),
+				strings.Join(sql.EscapeSqlNames(i.Columns), ", "))}
 
 		default:
 			return nil
@@ -56,17 +55,17 @@ func (i Index) migrationUp(tbName string) []string {
 	case MigrateRemoveAction:
 		if i.CnsTyp == ast.ConstraintPrimaryKey {
 			return []string{fmt.Sprintf(sql.DropPrimaryKeyStm(),
-				utils.EscapeSqlName(sql.GetDialect(), tbName))}
+				sql.EscapeSqlName(tbName))}
 		}
 
 		if sql.IsSqlite() {
 			return []string{fmt.Sprintf(sql.DropIndexStm(),
-				utils.EscapeSqlName(sql.GetDialect(), i.Name))}
+				sql.EscapeSqlName(i.Name))}
 		}
 
 		return []string{fmt.Sprintf(sql.DropIndexStm(),
-			utils.EscapeSqlName(sql.GetDialect(), i.Name),
-			utils.EscapeSqlName(sql.GetDialect(), tbName))}
+			sql.EscapeSqlName(i.Name),
+			sql.EscapeSqlName(tbName))}
 
 	case MigrateModifyAction:
 		strRems := make([]string, 2)
@@ -78,9 +77,9 @@ func (i Index) migrationUp(tbName string) []string {
 
 	case MigrateRenameAction:
 		return []string{fmt.Sprintf(sql.AlterTableRenameIndexStm(),
-			utils.EscapeSqlName(sql.GetDialect(), tbName),
-			utils.EscapeSqlName(sql.GetDialect(), i.OldName),
-			utils.EscapeSqlName(sql.GetDialect(), i.Name))}
+			sql.EscapeSqlName(tbName),
+			sql.EscapeSqlName(i.OldName),
+			sql.EscapeSqlName(i.Name))}
 
 	default:
 		return nil

@@ -12,7 +12,7 @@ import (
 	"github.com/pingcap/parser/format"
 	"github.com/pingcap/parser/types"
 	sqlite "github.com/rqlite/sql"
-	"github.com/sunary/sqlize/utils"
+	sql_templates "github.com/sunary/sqlize/sql-templates"
 )
 
 const (
@@ -53,7 +53,7 @@ func (c Column) HasDefaultValue() bool {
 }
 
 func (c Column) hashValue() string {
-	strHash := utils.EscapeSqlName(sql.GetDialect(), c.Name)
+	strHash := sql.EscapeSqlName(c.Name)
 	strHash += c.typeDefinition()
 	hash := md5.Sum([]byte(strHash))
 	return hex.EncodeToString(hash[:])
@@ -65,7 +65,7 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		return nil
 
 	case MigrateAddAction:
-		strSql := utils.EscapeSqlName(sql.GetDialect(), c.Name)
+		strSql := sql.EscapeSqlName(c.Name)
 
 		if ident > len(c.Name) {
 			strSql += strings.Repeat(" ", ident-len(c.Name))
@@ -75,29 +75,38 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 
 		if ident < 0 {
 			if after != "" {
-				return []string{fmt.Sprintf(sql.AlterTableAddColumnAfterStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), strSql, utils.EscapeSqlName(sql.GetDialect(), after))}
+				return []string{fmt.Sprintf(sql.AlterTableAddColumnAfterStm(), sql.EscapeSqlName(tbName), strSql, sql.EscapeSqlName(after))}
 			}
-			return []string{fmt.Sprintf(sql.AlterTableAddColumnFirstStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), strSql)}
+			return []string{fmt.Sprintf(sql.AlterTableAddColumnFirstStm(), sql.EscapeSqlName(tbName), strSql)}
 		}
 
-		return []string{strSql}
+		return append([]string{strSql}, c.migrationCommentUp(tbName)...)
 
 	case MigrateRemoveAction:
 		if sql.IsSqlite() {
 			return nil
 		}
 
-		return []string{fmt.Sprintf(sql.AlterTableDropColumnStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), utils.EscapeSqlName(sql.GetDialect(), c.Name))}
+		return []string{fmt.Sprintf(sql.AlterTableDropColumnStm(), sql.EscapeSqlName(tbName), sql.EscapeSqlName(c.Name))}
 
 	case MigrateModifyAction:
-		return []string{fmt.Sprintf(sql.AlterTableModifyColumnStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), utils.EscapeSqlName(sql.GetDialect(), c.Name)+c.definition())}
+		return []string{fmt.Sprintf(sql.AlterTableModifyColumnStm(), sql.EscapeSqlName(tbName), sql.EscapeSqlName(c.Name)+c.definition())}
 
 	case MigrateRenameAction:
-		return []string{fmt.Sprintf(sql.AlterTableRenameColumnStm(), utils.EscapeSqlName(sql.GetDialect(), tbName), utils.EscapeSqlName(sql.GetDialect(), c.OldName), utils.EscapeSqlName(sql.GetDialect(), c.Name))}
+		return []string{fmt.Sprintf(sql.AlterTableRenameColumnStm(), sql.EscapeSqlName(tbName), sql.EscapeSqlName(c.OldName), sql.EscapeSqlName(c.Name))}
 
 	default:
 		return nil
 	}
+}
+
+func (c Column) migrationCommentUp(tbName string) []string {
+	if c.Comment == "" || sql.GetDialect() != sql_templates.PostgresDialect {
+		return nil
+	}
+
+	// apply for postgres only
+	return []string{fmt.Sprintf(sql.ColumnComment(), tbName, c.Name, c.Comment)}
 }
 
 func (c Column) migrationDown(tbName, after string) []string {

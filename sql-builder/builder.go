@@ -56,7 +56,7 @@ var (
 		"updated_at": {},
 		"deleted_at": {},
 	}
-	compileKeepEnumChar = regexp.MustCompile("[^0-9A-Za-z,\\-_]+")
+	compileKeepEnumChar = regexp.MustCompile(`[^0-9A-Za-z,\\-_]+`)
 )
 
 // SqlBuilder ...
@@ -112,21 +112,29 @@ func (s SqlBuilder) AddTable(obj interface{}) string {
 	}
 
 	tableComment := ""
+	comments := []string{}
 	if s.generateComment {
-		tableComment = fmt.Sprintf(` COMMENT "%s"`, tableName)
+		switch s.dialect {
+		case sql_templates.PostgresDialect:
+			comments = append(comments, fmt.Sprintf(s.sql.TableComment(), s.sql.EscapeSqlName(tableName), tableName))
+
+		default:
+			tableComment = " " + fmt.Sprintf(s.sql.TableComment(), tableName)
+		}
 	}
+
 	sqls := []string{fmt.Sprintf(s.sql.CreateTableStm(),
-		utils.EscapeSqlName(s.dialect, tableName),
+		s.sql.EscapeSqlName(tableName),
 		strings.Join(columns, ",\n"), tableComment)}
 	for _, h := range columnsHistory {
 		sqls = append(sqls,
 			fmt.Sprintf(s.sql.AlterTableRenameColumnStm(),
-				utils.EscapeSqlName(s.dialect, tableName),
-				utils.EscapeSqlName(s.dialect, h[0]),
-				utils.EscapeSqlName(s.dialect, h[1])))
+				s.sql.EscapeSqlName(tableName),
+				s.sql.EscapeSqlName(h[0]),
+				s.sql.EscapeSqlName(h[1])))
 	}
 
-	sqls = append(sqls, indexes...)
+	sqls = append(sqls, append(comments, indexes...)...)
 
 	return strings.Join(sqls, "\n")
 }
@@ -170,6 +178,7 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 	columns := make([]string, 0)
 	columnsHistory := make([][2]string, 0)
+	comments := make([]string, 0)
 	indexes := make([]string, 0)
 
 	var pkFields []string
@@ -264,13 +273,13 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 			case normTag == tagIsIndex:
 				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
-				at.IndexColumns = utils.EscapeSqlName(s.dialect, at.Name)
+				at.IndexColumns = s.sql.EscapeSqlName(at.Name)
 
 			case normTag == tagIsUniqueIndex:
 				at.IsUnique = true
 				at.Index = getWhenEmpty(at.Index, createIndexName("", nil, at.Name))
 				if at.IndexColumns == "" {
-					at.IndexColumns = utils.EscapeSqlName(s.dialect, at.Name)
+					at.IndexColumns = s.sql.EscapeSqlName(at.Name)
 				}
 
 			case strings.HasPrefix(normTag, prefixIndex):
@@ -278,15 +287,15 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				at.Index = createIndexName(prefix, idxFields, at.Name)
 
 				if len(idxFields) > 1 {
-					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.dialect, idxFields), ", ")
+					at.IndexColumns = strings.Join(s.sql.EscapeSqlNames(idxFields), ", ")
 				} else {
-					at.IndexColumns = utils.EscapeSqlName(s.dialect, at.Name)
+					at.IndexColumns = s.sql.EscapeSqlName(at.Name)
 				}
 
 			case strings.HasPrefix(normTag, prefixUniqueIndex):
 				at.IsUnique = true
 				at.Index = createIndexName(prefix, []string{trimPrefix(ot, prefixUniqueIndex)}, at.Name)
-				at.IndexColumns = utils.EscapeSqlName(s.dialect, at.Name)
+				at.IndexColumns = s.sql.EscapeSqlName(at.Name)
 
 			case strings.HasPrefix(normTag, prefixIndexColumns):
 				idxFields := strings.Split(trimPrefix(ot, prefixIndexColumns), ",")
@@ -295,13 +304,13 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 				}
 
 				at.Index = createIndexName(prefix, idxFields, at.Name)
-				at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.dialect, idxFields), ", ")
+				at.IndexColumns = strings.Join(s.sql.EscapeSqlNames(idxFields), ", ")
 
 			case strings.HasPrefix(normTag, prefixIndexType):
 				at.Index = getWhenEmpty(at.Index, createIndexName(prefix, nil, at.Name))
 
 				if len(at.IndexColumns) == 0 {
-					at.IndexColumns = strings.Join(utils.EscapeSqlNames(s.dialect, []string{at.Name}), ", ")
+					at.IndexColumns = strings.Join(s.sql.EscapeSqlNames([]string{at.Name}), ", ")
 				}
 				at.IndexType = trimPrefix(ot, prefixIndexType)
 
@@ -321,27 +330,27 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 		if at.ForeignKey != nil {
 			indexes = append(indexes, fmt.Sprintf(s.sql.CreateForeignKeyStm(),
-				utils.EscapeSqlName(s.dialect, at.ForeignKey.Table), utils.EscapeSqlName(s.dialect, at.ForeignKey.Name), utils.EscapeSqlName(s.dialect, at.ForeignKey.Column),
-				utils.EscapeSqlName(s.dialect, at.ForeignKey.RefTable), utils.EscapeSqlName(s.dialect, at.ForeignKey.RefColumn)))
+				s.sql.EscapeSqlName(at.ForeignKey.Table), s.sql.EscapeSqlName(at.ForeignKey.Name), s.sql.EscapeSqlName(at.ForeignKey.Column),
+				s.sql.EscapeSqlName(at.ForeignKey.RefTable), s.sql.EscapeSqlName(at.ForeignKey.RefColumn)))
 			continue
 		}
 
 		if at.IsPk {
 			// create primary key multiple field as constraint
 			if len(pkFields) > 1 {
-				primaryKey := strings.Join(utils.EscapeSqlNames(s.dialect, pkFields), ", ")
+				primaryKey := strings.Join(s.sql.EscapeSqlNames(pkFields), ", ")
 				indexes = append(indexes, fmt.Sprintf(s.sql.CreatePrimaryKeyStm(), tableName, primaryKey))
 			}
 		} else if at.Index != "" {
 			var strIndex string
 			if at.IsUnique {
 				strIndex = fmt.Sprintf(s.sql.CreateUniqueIndexStm(at.IndexType),
-					utils.EscapeSqlName(s.dialect, at.Index),
-					utils.EscapeSqlName(s.dialect, tableName), at.IndexColumns)
+					s.sql.EscapeSqlName(at.Index),
+					s.sql.EscapeSqlName(tableName), at.IndexColumns)
 			} else {
 				strIndex = fmt.Sprintf(s.sql.CreateIndexStm(at.IndexType),
-					utils.EscapeSqlName(s.dialect, at.Index),
-					utils.EscapeSqlName(s.dialect, tableName), at.IndexColumns)
+					s.sql.EscapeSqlName(at.Index),
+					s.sql.EscapeSqlName(tableName), at.IndexColumns)
 			}
 
 			indexes = append(indexes, strIndex)
@@ -402,17 +411,27 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 		}
 
 		if at.Comment != "" {
-			col = append(col, fmt.Sprintf(s.sql.Comment(), at.Comment))
+			switch s.dialect {
+			case sql_templates.PostgresDialect:
+				comments = append(comments,
+					fmt.Sprintf(s.sql.ColumnComment(), s.sql.EscapeSqlName(tableName), s.sql.EscapeSqlName(at.Name), at.Comment))
+
+			default:
+				col = append(col, fmt.Sprintf(s.sql.ColumnComment(), at.Comment))
+			}
 		}
 
 		rawCols = append(rawCols, col)
 	}
 
 	for _, f := range rawCols {
-		columns = append(columns, fmt.Sprintf("  %s%s%s", utils.EscapeSqlName(s.dialect, f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
+		columns = append(columns,
+			fmt.Sprintf("  %s%s%s", s.sql.EscapeSqlName(f[0]), strings.Repeat(" ", maxLen-len(f[0])+1), strings.Join(f[1:], " ")))
 	}
 
-	return append(columns, embedColumns...), append(columnsHistory, embedColumnsHistory...), append(indexes, embedIndexes...)
+	return append(columns, embedColumns...),
+		append(columnsHistory, embedColumnsHistory...),
+		append(comments, append(indexes, embedIndexes...)...)
 }
 
 func getWhenEmpty(s, s2 string) string {
@@ -435,7 +454,7 @@ func trimPrefix(ot, prefix string) string {
 // RemoveTable ...
 func (s SqlBuilder) RemoveTable(tb interface{}) string {
 	_, table := s.GetTableName(tb)
-	return fmt.Sprintf(s.sql.DropTableStm(), utils.EscapeSqlName(s.dialect, table))
+	return fmt.Sprintf(s.sql.DropTableStm(), s.sql.EscapeSqlName(table))
 }
 
 // createIndexName format idx_field_names
