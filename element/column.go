@@ -80,7 +80,7 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 			return []string{fmt.Sprintf(sql.AlterTableAddColumnFirstStm(), sql.EscapeSqlName(tbName), strSql)}
 		}
 
-		return []string{strSql}
+		return append([]string{strSql}, c.migrationCommentUp(tbName)...)
 
 	case MigrateRemoveAction:
 		if sql.IsSqlite() {
@@ -105,6 +105,7 @@ func (c Column) migrationCommentUp(tbName string) []string {
 		return nil
 	}
 
+	// apply for postgres only
 	return []string{fmt.Sprintf(sql.ColumnComment(), tbName, c.Name, c.Comment)}
 }
 
