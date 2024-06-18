@@ -23,7 +23,9 @@ func (s Sql) PrimaryOption() string {
 func (s Sql) AutoIncrementOption() string {
 	switch s.dialect {
 	case PostgresDialect:
-		return s.apply("SERIAL")
+		// for postgres, you should set type is `serial` so dont need auto_increment
+		// empty this avoid duplicate
+		return ""
 
 	default:
 		// TODO: mysql template is default for other dialects

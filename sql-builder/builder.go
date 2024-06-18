@@ -394,11 +394,7 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 		}
 
 		if at.IsAutoIncr {
-			if s.sql.IsPostgres() {
-				col = []string{col[0], s.sql.AutoIncrementOption()}
-			} else {
-				col = append(col, s.sql.AutoIncrementOption())
-			}
+			col = append(col, s.sql.AutoIncrementOption())
 		}
 
 		// primary key attribute appended after field

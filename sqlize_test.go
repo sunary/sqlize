@@ -255,10 +255,10 @@ DROP TABLE IF EXISTS three_pl_sqlite;`
 	expectCreateMigrationTableDown = `
 DROP TABLE IF EXISTS schema_migrations;`
 	expectMigrationVersion1Up = `
-TRUNCATE schema_migrations;
+DELETE FROM schema_migrations LIMIT 1;
 INSERT INTO schema_migrations (version, dirty) VALUES (1, false);`
 	expectMigrationVersion1Down = `
-TRUNCATE schema_migrations;`
+DELETE FROM schema_migrations LIMIT 1;`
 )
 
 func TestSqlize_FromObjects(t *testing.T) {
