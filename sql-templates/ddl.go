@@ -177,24 +177,10 @@ func (s Sql) DropTableMigration() string {
 
 // InsertMigrationVersion ...
 func (s Sql) InsertMigrationVersion() string {
-	switch s.dialect {
-	case PostgresDialect:
-		return s.apply("TRUNCATE TABLE %s;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
-
-	default:
-		// TODO: mysql template is default for other dialects
-		return s.apply("TRUNCATE %s;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
-	}
+	return s.apply("DELETE FROM %s LIMIT 1;\nINSERT INTO %s (version, dirty) VALUES (%d, %t);")
 }
 
 // RollbackMigrationVersion ...
 func (s Sql) RollbackMigrationVersion() string {
-	switch s.dialect {
-	case PostgresDialect:
-		return s.apply("TRUNCATE TABLE %s;")
-
-	default:
-		// TODO: mysql template is default for other dialects
-		return s.apply("TRUNCATE %s;")
-	}
+	return s.apply("DELETE FROM %s LIMIT 1;")
 }
