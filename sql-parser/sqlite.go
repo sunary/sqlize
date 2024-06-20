@@ -57,7 +57,7 @@ func (p Parser) Visit(node sqlite.Node) (w sqlite.Visitor, err error) {
 			case *sqlite.UniqueConstraint:
 				indexCol := make([]string, len(cons.Columns))
 				for i := range cons.Columns {
-					indexCol[i] = cons.Columns[i].Name
+					indexCol[i] = cons.Columns[i].Collation.Name
 				}
 
 				p.Migration.AddIndex(tbName, element.Index{
@@ -139,7 +139,7 @@ func (p *Parser) parseSqliteConstrains(tbName string, conss []sqlite.Constraint)
 		case *sqlite.UniqueConstraint:
 			indexCol := make([]string, len(cons.Columns))
 			for i := range cons.Columns {
-				indexCol[i] = cons.Columns[i].Name
+				indexCol[i] = cons.Columns[i].Collation.Name
 			}
 
 			p.Migration.AddIndex(tbName, element.Index{

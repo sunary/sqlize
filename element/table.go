@@ -423,7 +423,6 @@ func (t Table) MigrationColumnUp() ([]string, map[string]struct{}) {
 		return []string{fmt.Sprintf(sql.DropTableStm(), sql.EscapeSqlName(t.Name))}, nil
 
 	case MigrateModifyAction:
-		// TODO
 		return nil, nil
 
 	default:
@@ -536,7 +535,6 @@ func (t Table) MigrationColumnDown() ([]string, map[string]struct{}) {
 		return t.MigrationColumnUp()
 
 	case MigrateModifyAction:
-		// TODO
 		return nil, nil
 
 	default:
@@ -566,7 +564,6 @@ func (t Table) MigrationIndexDown(dropCols map[string]struct{}) []string {
 		return t.MigrationIndexUp(dropCols)
 
 	case MigrateModifyAction:
-		// TODO
 		return nil
 
 	default:
@@ -596,7 +593,6 @@ func (t Table) MigrationForeignKeyDown(dropCols map[string]struct{}) []string {
 		return t.MigrationForeignKeyUp(dropCols)
 
 	case MigrateModifyAction:
-		// TODO
 		return nil
 
 	default:

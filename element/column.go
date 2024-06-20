@@ -90,7 +90,9 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		return []string{fmt.Sprintf(sql.AlterTableDropColumnStm(), sql.EscapeSqlName(tbName), sql.EscapeSqlName(c.Name))}
 
 	case MigrateModifyAction:
-		return []string{fmt.Sprintf(sql.AlterTableModifyColumnStm(), sql.EscapeSqlName(tbName), sql.EscapeSqlName(c.Name)+c.definition())}
+		def := strings.Replace(c.definition(), sql.PrimaryOption(), "", 1)
+
+		return []string{fmt.Sprintf(sql.AlterTableModifyColumnStm(), sql.EscapeSqlName(tbName), sql.EscapeSqlName(c.Name)+def)}
 
 	case MigrateRenameAction:
 		return []string{fmt.Sprintf(sql.AlterTableRenameColumnStm(), sql.EscapeSqlName(tbName), sql.EscapeSqlName(c.OldName), sql.EscapeSqlName(c.Name))}

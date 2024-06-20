@@ -16,6 +16,7 @@ import (
 
 const (
 	genDescription = "# generate by sqlize\n\n"
+	emptyMigration = "# empty"
 )
 
 // Sqlize ...
@@ -153,17 +154,27 @@ func (s Sqlize) StringDownWithVersion(ver int64) string {
 }
 
 func (s Sqlize) writeFiles(name, migUp, migDown string) error {
-	fileName := utils.MigrationFileName(name)
-
-	if migUp != "" {
-		filePath := filepath.Join(s.migrationFolder, fileName+s.migrationUpSuffix)
-		err := os.WriteFile(filePath, []byte(genDescription+migUp), 0644)
-		if err != nil {
-			return err
-		}
+	if migUp == "" && migDown == "" {
+		return nil
 	}
 
-	if migDown != "" && s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
+	if migUp == "" {
+		migUp = emptyMigration
+	}
+
+	if migDown == "" {
+		migDown = emptyMigration
+	}
+
+	fileName := utils.MigrationFileName(name)
+
+	filePath := filepath.Join(s.migrationFolder, fileName+s.migrationUpSuffix)
+	err := os.WriteFile(filePath, []byte(genDescription+migUp), 0644)
+	if err != nil {
+		return err
+	}
+
+	if s.migrationDownSuffix != "" && s.migrationDownSuffix != s.migrationUpSuffix {
 		filePath := filepath.Join(s.migrationFolder, fileName+s.migrationDownSuffix)
 		err := os.WriteFile(filePath, []byte(genDescription+migDown), 0644)
 		if err != nil {
