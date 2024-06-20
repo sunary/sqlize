@@ -1,11 +1,12 @@
 package utils
 
 import (
-	"github.com/pkg/errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 var (
@@ -22,7 +23,7 @@ func ReadPath(path string, suffix string) ([]string, error) {
 
 	contents := make([]string, len(files))
 	for i := range files {
-		content, err := ioutil.ReadFile(files[i])
+		content, err := os.ReadFile(files[i])
 		if err != nil {
 			return nil, err
 		}
