@@ -1,6 +1,6 @@
 module github.com/sunary/sqlize
 
-go 1.18
+go 1.19
 
 require (
 	github.com/auxten/postgresql-parser v1.0.1
