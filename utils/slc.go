@@ -22,6 +22,5 @@ func ContainStr(ss []string, s string) bool {
 			return true
 		}
 	}
-
 	return false
 }

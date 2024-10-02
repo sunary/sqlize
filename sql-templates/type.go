@@ -57,7 +57,13 @@ func (s Sql) DoubleType() string {
 
 // TextType ...
 func (s Sql) TextType() string {
-	return s.apply("TEXT")
+	switch s.dialect {
+	case SqliteDialect:
+		return "TEXT"
+
+	default:
+		return s.apply("TEXT")
+	}
 }
 
 // DatetimeType ...
@@ -67,7 +73,7 @@ func (s Sql) DatetimeType() string {
 		return s.apply("TIMESTAMP")
 
 	case SqliteDialect:
-		return s.apply("TEXT") // TEXT as ISO8601 strings ("YYYY-MM-DD HH:MM:SS.SSS")
+		return "TEXT" // TEXT as ISO8601 strings ("YYYY-MM-DD HH:MM:SS.SSS")
 
 	default:
 		return s.apply("DATETIME")

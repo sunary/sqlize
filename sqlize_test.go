@@ -70,9 +70,9 @@ func (tpl) TableName() string {
 
 type tpl_sqlite struct {
 	B1       Base   `sql:"embedded"`
-	ClientID string `sql:"type:text;primary_key;index_columns:client_id,country"`
-	Country  string `sql:"type:text"`
-	Email    string `sql:"type:text;unique"`
+	ClientID string `sql:"type:TEXT;primary_key;index_columns:client_id,country"`
+	Country  string `sql:"type:TEXT"`
+	Email    string `sql:"type:TEXT;unique"`
 }
 
 func (tpl_sqlite) TableName() string {
@@ -231,14 +231,12 @@ ALTER TABLE three_pl ADD CONSTRAINT fk_user_three_pl FOREIGN KEY (email) REFEREN
 DROP TABLE IF EXISTS three_pl;`
 	expectCreateTplSqliteUp = `
 CREATE TABLE three_pl_sqlite (
- client_id  text,
- country    text,
- email      text,
- created_at text,
- updated_at text
-);
-ALTER TABLE three_pl_sqlite ADD PRIMARY KEY(client_id, country);
-CREATE UNIQUE INDEX idx_email ON three_pl_sqlite(email);`
+ client_id  TEXT,
+ country    TEXT,
+ email      TEXT,
+ created_at TEXT,
+ updated_at TEXT
+);`
 	expectCreateTplSqliteDown = `
 DROP TABLE IF EXISTS three_pl_sqlite;`
 

@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,7 +43,7 @@ func glob(path string, suffix string) ([]string, error) {
 	files := []string{}
 	// listing
 	if f.IsDir() {
-		listing, err := ioutil.ReadDir(path)
+		listing, err := os.ReadDir(path)
 		if err != nil {
 			return nil, err
 		}
