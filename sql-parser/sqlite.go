@@ -31,14 +31,15 @@ AlterTableStatement
 
 sqlite does not support drop column
 */
-func (p Parser) Visit(node sqlite.Node) (w sqlite.Visitor, err error) {
+func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, err error) {
 	switch n := node.(type) {
 	case *sqlite.CreateTableStatement:
-		tbName := n.Table.String()
+		tbName := n.Name.String()
 		tb := element.NewTableWithAction(tbName, element.MigrateAddAction)
 		p.Migration.AddTable(*tb)
 		p.Migration.Using(tbName)
 
+		// TODO: rqlite/sql doesn't support parse constraints
 		for i := range n.Columns {
 			col := element.Column{
 				Node: element.Node{
