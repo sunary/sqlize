@@ -1,28 +1,117 @@
-### SQLize
+# SQLize
 
 ![github action](https://github.com/sunary/sqlize/actions/workflows/go.yml/badge.svg)
 
 English | [中文](README_zh.md)
 
-Generate SQL migration schema from Golang models and the current SQL schema, support:
+SQLize is a powerful SQL toolkit for Golang, offering parsing, building, and migration capabilities.
 
-- [x] MySQL
-- [x] Postgres
-- [x] Sqlite
-- [ ] Sql Server
+## Features
 
-#### Features
+- SQL parsing and building for multiple databases:
+  - MySQL
+  - PostgreSQL
+  - SQLite
 
-+ Sql parser (MySQL, Postgres, Sqlite)
-+ Sql builder from objects (MySQL, Postgres, Sqlite)
-+ Generate `sql migration` from Golang models and the current SQL schema
-+ Generate `arvo` schema (Mysql only)
-+ Support embedded struct
-+ Generate migration version - compatible with `golang-migrate/migrate`
-+ Tag options - compatible with `gorm` tag (default tag is `sql`)
+- SQL migration generation:
+  - Create migrations from Golang models and current SQL schema
+  - Generate migration versions compatible with `golang-migrate/migrate`
 
+- Advanced functionalities:
+  - Support for embedded structs
+  - Avro schema generation (MySQL only)
+  - Compatibility with `gorm` tags (default tag is `sql`)
 
-### Getting Started
+## Conventions
+
+### Default Behaviors
+
+- Database: `mysql` (use `sql_builder.WithPostgresql()` for PostgreSQL, etc.)
+- SQL syntax: Uppercase (e.g., `"SELECT * FROM user WHERE id = ?"`)
+  - For lowercase, use `sql_builder.WithSqlLowercase()`
+- Table naming: Singular
+  - For plural (adding 's'), use `sql_builder.WithPluralTableName()`
+- Comment generation: Use `sql_builder.WithCommentGenerate()`
+
+### SQL Tag Options
+
+- Format: Supports both `snake_case` and `camelCase` (e.g., `sql:"primary_key"` equals `sql:"primaryKey"`)
+- Custom column: `sql:"column:column_name"`
+- Primary key: `sql:"primary_key"`
+- Foreign key: `sql:"foreign_key:user_id;references:user_id"`
+- Auto increment: `sql:"auto_increment"`
+- Default value: `sql:"default:CURRENT_TIMESTAMP"`
+- Override datatype: `sql:"type:VARCHAR(64)"`
+- Ignore field: `sql:"-"`
+
+### Indexing
+
+- Basic index: `sql:"index"`
+- Custom index name: `sql:"index:idx_col_name"`
+- Unique index: `sql:"unique"`
+- Custom unique index: `sql:"unique:idx_name"`
+- Composite index: `sql:"index_columns:col1,col2"` (includes unique index and primary key)
+- Index type: `sql:"index_type:btree"`
+
+### Embedded Structs
+
+- Use `sql:"embedded"` or `sql:"squash"`
+- Cannot be a pointer
+- Supports prefix: `sql:"embedded_prefix:base_"`
+- Fields have lowest order, except for primary key (always first)
+
+### Data Types
+
+- MySQL data types are implicitly changed:
+
+```sql
+	TINYINT => tinyint(4)
+	INT     => int(11)
+	BIGINT  => bigint(20)
+```
+
+### Important Notes
+
+- Pointer values must be declared in the struct
+
+### Examples
+
+1. Using pointer values:
+
+```golang
+type sample struct {
+	ID        int32 `sql:"primary_key"`
+	DeletedAt *time.Time
+}
+
+now := time.Now()
+newMigration.FromObjects(sample{DeletedAt: &now})
+```
+
+2. Embedded struct:
+
+```golang
+type Base struct {
+	ID        int32 `sql:"primary_key"`
+	CreatedAt time.Time
+}
+type sample struct {
+	Base `sql:"embedded"`
+	User string
+}
+
+newMigration.FromObjects(sample{})
+
+/*
+CREATE TABLE sample (
+ id         int(11) PRIMARY KEY,
+ user       text,
+ created_at datetime
+);
+*/
+```
+
+3. Complete example:
 
 ```go
 package main
@@ -107,68 +196,4 @@ func main() {
 
 	_ = newMigration.WriteFiles("demo migration")
 }
-```
-
-### Convention
-
-* `mysql` by default, using options like `sql_builder.WithPostgresql()` for `postgresql`, ...
-* Sql syntax uppercase (Eg: `"SELECT * FROM user WHERE id = ?"`) default, using option `sql_builder.WithSqlLowercase()` for lowercase
-* Support **generate** comment, using option `sql_builder.WithCommentGenerate()`
-* Support automatic addition of `s` to table names (plural naming convention), using option `sql_builder.WithPluralTableName()`
-* Accept tag convention: `snake_case` or `camelCase`, Eg: `sql:"primary_key"` equalize `sql:"primaryKey"`
-* Custom column name: `sql:"column:column_name"`
-* Primary key for this field: `sql:"primary_key"`
-* Foreign key: `sql:"foreign_key:user_id;references:user_id"`
-* Auto increment: `sql:"auto_increment"`
-* Indexing this field: `sql:"index"`
-* Custom index name: `sql:"index:idx_col_name"`
-* Unique indexing this field: `sql:"unique"`
-* Custome unique index name: `sql:"unique:idx_name"`
-* Composite index (include unique index and primary key): `sql:"index_columns:col1,col2"`
-* Index type: `sql:"index_type:btree"`
-* Set default value: `sql:"default:CURRENT_TIMESTAMP"`
-* Override datatype: `sql:"type:VARCHAR(64)"`
-* Ignore: `sql:"-"`
-* Pointer value must be declare in struct
-
-```golang
-type sample struct {
-	ID        int32 `sql:"primary_key"`
-	DeletedAt *time.Time
-}
-
-now := time.Now()
-newMigration.FromObjects(sample{DeletedAt: &now})
-```
-
-* `mysql` data type will be changed implicitly:
-
-```sql
-TINYINT => tinyint(4)
-INT     => int(11)
-BIGINT  => bigint(20)
-```
-
-* fields belong to embedded struct have the lowest order, except `primary key` always first
-* an embedded struct (`sql:"embedded"` or `sql:"squash"`) can not be pointer, also support prefix: `sql:"embedded_prefix:base_"`
-
-```golang
-type Base struct {
-	ID        int32 `sql:"primary_key"`
-	CreatedAt time.Time
-}
-type sample struct {
-	Base `sql:"embedded"`
-	User string
-}
-
-newMigration.FromObjects(sample{})
-
-/*
-CREATE TABLE sample (
- id         int(11) PRIMARY KEY,
- user       text,
- created_at datetime
-);
-*/
 ```
