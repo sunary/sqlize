@@ -19,7 +19,6 @@ func (p *Parser) ParserMysql(sql string) error {
 		switch n.(type) {
 		case ast.DDLNode:
 			n.Accept(p)
-			break
 		}
 	}
 

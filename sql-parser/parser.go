@@ -7,15 +7,16 @@ import (
 
 // Parser ...
 type Parser struct {
-	dialect   sql_templates.SqlDialect
-	Migration element.Migration
+	dialect     sql_templates.SqlDialect
+	Migration   element.Migration
+	ignoreOrder bool
 }
 
 // NewParser ...
-func NewParser(dialect sql_templates.SqlDialect, lowercase bool) *Parser {
+func NewParser(dialect sql_templates.SqlDialect, lowercase, ignoreOrder bool) *Parser {
 	return &Parser{
 		dialect:   dialect,
-		Migration: element.NewMigration(dialect, lowercase),
+		Migration: element.NewMigration(dialect, lowercase, ignoreOrder),
 	}
 }
 
