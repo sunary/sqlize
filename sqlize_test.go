@@ -736,6 +736,7 @@ func TestSqlize_MigrationVersion(t *testing.T) {
 				WithMigrationFolder(""),
 				WithMigrationTable(utils.DefaultMigrationTable),
 				WithPostgresql(),
+				WithIgnoreFieldOrder(),
 			}
 			s := NewSqlize(opts...)
 

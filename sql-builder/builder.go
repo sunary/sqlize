@@ -12,35 +12,51 @@ import (
 	"github.com/sunary/sqlize/utils"
 )
 
+// Tag prefixes
 const (
-	// SqlTagDefault ...
 	SqlTagDefault      = "sql"
-	tagIsSquash        = "squash"
-	tagIsEmbedded      = "embedded"
 	prefixColumn       = "column:"          // set column name, eg: 'column:column_name'
 	prefixEmbedded     = "embedded_prefix:" // set embed prefix for flatten struct, eg: 'embedded_prefix:base_'
 	prefixPreviousName = ",previous:"       // mark previous name-field, eg: 'column:column_name,previous:old_name'
 	prefixType         = "type:"            // set field type, eg: 'type:VARCHAR(64)'
 	prefixDefault      = "default:"         // set default value, eg: 'default:0'
-	tagEnum            = "enum"             // type:ENUM('open','close')
 	prefixComment      = "comment:"         // comment field, eg: 'comment:sth you want to comment'
+)
 
+// Special tags
+const (
+	tagIsSquash   = "squash"
+	tagIsEmbedded = "embedded"
+	tagEnum       = "enum" // type:ENUM('open','close')
+)
+
+// Null and key constraints
+const (
 	tagIsNull          = "null"
 	tagIsNotNull       = "not_null"
 	tagIsAutoIncrement = "auto_increment"
 	tagIsPrimaryKey    = "primary_key" // this field is primary key, eg: 'primary_key'
-	tagIsIndex         = "index"       // indexing this field, eg: 'index' (=> idx_column_name)
-	tagIsUniqueIndex   = "unique"      // unique indexing this field, eg: 'unique' (=> idx_column_name)
+)
 
+// Index related
+const (
+	tagIsIndex         = "index"          // indexing this field, eg: 'index' (=> idx_column_name)
+	tagIsUniqueIndex   = "unique"         // unique indexing this field, eg: 'unique' (=> idx_column_name)
 	prefixIndex        = "index:"         // indexing with name, eg: 'index:idx_name'
 	prefixUniqueIndex  = "unique:"        // unique indexing with name, eg: 'unique:idx_name'
 	prefixIndexColumns = "index_columns:" // indexing these fields, eg: 'index_columns:col1,col2' (=> idx_col1_col2)
 	prefixIndexType    = "index_type:"    // indexing with type, eg: 'index_type:btree' (default) or 'index_type:hash'
+)
 
+// Foreign key related
+const (
 	prefixForeignKey   = "foreign_key:" // 'foreign_key:'
 	prefixFkReferences = "references:"  // 'references:'
 	prefixFkConstraint = "constraint:"  // 'constraint:'
+)
 
+// Function names
+const (
 	funcTableName = "TableName"
 )
 
@@ -140,21 +156,30 @@ func (s SqlBuilder) AddTable(obj interface{}) string {
 }
 
 type attrs struct {
-	Name         string
-	Prefix       string
-	Type         string
-	Value        string
-	IsPk         bool
-	ForeignKey   *fkAttrs
-	IsUnique     bool
+	// Basic attributes
+	Name    string
+	Prefix  string
+	Type    string
+	Value   string
+	Comment string
+
+	// Key and constraint attributes
+	IsPk       bool
+	IsUnique   bool
+	IsNull     bool
+	IsNotNull  bool
+	IsAutoIncr bool
+
+	// Foreign key
+	ForeignKey *fkAttrs
+
+	// Index attributes
 	Index        string
 	IndexType    string
 	IndexColumns string
-	IsNull       bool
-	IsNotNull    bool
-	IsAutoIncr   bool
-	Comment      string
-	IsEmbedded   bool
+
+	// Special attribute
+	IsEmbedded bool
 }
 
 type fkAttrs struct {

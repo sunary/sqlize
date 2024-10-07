@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	sql *sql_templates.Sql
+	sql              *sql_templates.Sql
+	ignoreFieldOrder bool
 )
 
 // Migration ...
@@ -22,8 +23,10 @@ type Migration struct {
 }
 
 // NewMigration ...
-func NewMigration(dialect sql_templates.SqlDialect, lowercase bool) Migration {
+func NewMigration(dialect sql_templates.SqlDialect, lowercase, ignoreOrder bool) Migration {
 	sql = sql_templates.NewSql(dialect, lowercase)
+	ignoreFieldOrder = ignoreOrder
+
 	return Migration{
 		Tables:       []Table{},
 		tableIndexes: map[string]int{},

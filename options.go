@@ -10,11 +10,12 @@ type sqlizeOptions struct {
 	migrationDownSuffix string
 	migrationTable      string
 
-	sqlTag          string
-	dialect         sql_templates.SqlDialect
-	lowercase       bool
-	pluralTableName bool
-	generateComment bool
+	sqlTag           string
+	dialect          sql_templates.SqlDialect
+	lowercase        bool
+	pluralTableName  bool
+	generateComment  bool
+	ignoreFieldOrder bool
 }
 
 type funcSqlizeOption struct {
@@ -118,5 +119,12 @@ func WithPluralTableName() SqlizeOption {
 func WithCommentGenerate() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
 		o.generateComment = true
+	})
+}
+
+// WithIgnoreFieldOrder ...
+func WithIgnoreFieldOrder() SqlizeOption {
+	return newFuncSqlizeOption(func(o *sqlizeOptions) {
+		o.ignoreFieldOrder = true
 	})
 }

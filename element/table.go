@@ -383,10 +383,10 @@ func (t Table) MigrationColumnUp() ([]string, map[string]struct{}) {
 					dropCols[t.Columns[i].Name] = struct{}{}
 				}
 
-				if after != "" {
-					strSqls = append(strSqls, t.Columns[i].migrationUp(t.Name, after, -1)...)
-				} else {
+				if ignoreFieldOrder || after == "" {
 					strSqls = append(strSqls, t.Columns[i].migrationUp(t.Name, "", -1)...)
+				} else {
+					strSqls = append(strSqls, t.Columns[i].migrationUp(t.Name, after, -1)...)
 				}
 			}
 		}
@@ -516,10 +516,10 @@ func (t Table) MigrationColumnDown() ([]string, map[string]struct{}) {
 					dropCols[t.Columns[i].Name] = struct{}{}
 				}
 
-				if after != "" {
-					strSqls = append(strSqls, t.Columns[i].migrationDown(t.Name, after)...)
-				} else {
+				if ignoreFieldOrder || after == "" {
 					strSqls = append(strSqls, t.Columns[i].migrationDown(t.Name, "")...)
+				} else {
+					strSqls = append(strSqls, t.Columns[i].migrationDown(t.Name, after)...)
 				}
 			}
 		}

@@ -40,11 +40,12 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationDownSuffix: utils.DefaultMigrationDownSuffix,
 		migrationTable:      utils.DefaultMigrationTable,
 
-		dialect:         sql_templates.MysqlDialect,
-		lowercase:       false,
-		sqlTag:          sql_builder.SqlTagDefault,
-		pluralTableName: false,
-		generateComment: false,
+		dialect:          sql_templates.MysqlDialect,
+		lowercase:        false,
+		sqlTag:           sql_builder.SqlTagDefault,
+		pluralTableName:  false,
+		generateComment:  false,
+		ignoreFieldOrder: false,
 	}
 	for i := range opts {
 		opts[i].apply(&o)
@@ -75,7 +76,7 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		lowercase:           o.lowercase,
 		pluralTableName:     o.pluralTableName,
 		sqlBuilder:          sb,
-		parser:              sql_parser.NewParser(o.dialect, o.lowercase),
+		parser:              sql_parser.NewParser(o.dialect, o.lowercase, o.ignoreFieldOrder),
 	}
 }
 
