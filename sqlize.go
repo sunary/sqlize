@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	genDescription = "# generate by sqlize\n\n"
-	emptyMigration = "# empty"
+	genDescription = "/* generate by sqlize */\n\n"
+	emptyMigration = "/* empty */"
 )
 
 // Sqlize ...
