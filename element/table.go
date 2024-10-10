@@ -7,7 +7,9 @@ import (
 	"sort"
 	"strings"
 
+	ptypes "github.com/auxten/postgresql-parser/pkg/sql/types"
 	"github.com/pingcap/parser/ast"
+	"github.com/pingcap/parser/types"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -252,16 +254,49 @@ func (t Table) getIndexForeignKey(fkName string) int {
 	return -1
 }
 
+func hasChangedMysqlOptions(new, old []*ast.ColumnOption) bool {
+	if len(new) != len(old) {
+		return true
+	}
+
+	mNew := map[ast.ColumnOptionType]int{}
+	for i := range old {
+		mNew[old[i].Tp] += 1
+	}
+
+	mOld := map[ast.ColumnOptionType]int{}
+	for i := range old {
+		mOld[old[i].Tp] += 1
+	}
+
+	for k, v := range mOld {
+		if mNew[k] != v {
+			return true
+		}
+	}
+
+	return false
+}
+
+func hasChangedMysqlType(new, old *types.FieldType) bool {
+	return new != nil && new.String() != old.String()
+}
+
+func hasChangePostgresType(new, old *ptypes.T) bool {
+	return new != nil && new.SQLString() != old.SQLString()
+}
+
 // Diff differ between 2 migrations
 func (t *Table) Diff(old Table) {
 	for i := range t.Columns {
 		if j := old.getIndexColumn(t.Columns[i].Name); t.Columns[i].Action == MigrateAddAction &&
 			j >= 0 && old.Columns[j].Action != MigrateNoAction {
-			if (t.Columns[i].MysqlType != nil && t.Columns[i].MysqlType.String() == old.Columns[j].MysqlType.String()) ||
-				(t.Columns[i].PgType != nil && t.Columns[i].PgType.SQLString() == old.Columns[j].PgType.SQLString()) {
-				t.Columns[i].Action = MigrateNoAction
-			} else {
+			if hasChangedMysqlOptions(t.Columns[i].Options, old.Columns[j].Options) ||
+				hasChangedMysqlType(t.Columns[i].MysqlType, old.Columns[j].MysqlType) ||
+				hasChangePostgresType(t.Columns[i].PgType, old.Columns[j].PgType) {
 				t.Columns[i].Action = MigrateModifyAction
+			} else {
+				t.Columns[i].Action = MigrateNoAction
 			}
 		}
 	}
