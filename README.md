@@ -111,7 +111,7 @@ CREATE TABLE sample (
 */
 ```
 
-3. Complete example:
+3. Comparing SQL schema with Go struct:
 
 ```go
 package main
@@ -195,5 +195,48 @@ func main() {
 	//...
 
 	_ = newMigration.WriteFiles("demo migration")
+}
+```
+
+4. Comparing Two SQL Schemas:
+
+```go
+package main
+
+import (
+	"github.com/sunary/sqlize"
+)
+
+func main() {
+	sql1 := sqlize.NewSqlize()
+	sql1.FromString(`
+CREATE TABLE user (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  name          VARCHAR(64),
+  age           INT,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX idx_name_age ON user(name, age);
+	`)
+
+	sql2 := sqlize.NewSqlize()
+	sql2.FromString(`
+CREATE TABLE user (
+  id            INT,
+  name          VARCHAR(64),
+  age           INT,
+  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at    DATETIME
+);`)
+
+	sql1.Diff(*sql2)
+	println(sql1.StringUp())
+	//ALTER TABLE `user` MODIFY COLUMN `id` int(11) AUTO_INCREMENT PRIMARY KEY;
+	//ALTER TABLE `user` MODIFY COLUMN `updated_at` datetime DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
+	//CREATE UNIQUE INDEX `idx_name_age` ON `user`(`name`, `age`);
+
+	println(sql1.StringDown())
+	//DROP INDEX `idx_name_age` ON `user`;
 }
 ```
