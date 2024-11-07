@@ -149,7 +149,7 @@ func (c Column) definition() string {
 		}
 
 		if sql.IsPostgres() && opt.Tp == ast.ColumnOptionDefaultValue {
-			strSql += " " + b.String()
+			strSql += " " + opt.StrValue
 			continue
 		}
 
