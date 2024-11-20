@@ -237,6 +237,8 @@ CREATE TABLE user (
 	//CREATE UNIQUE INDEX `idx_name_age` ON `user`(`name`, `age`);
 
 	println(sql1.StringDown())
+	//ALTER TABLE `user` MODIFY COLUMN `id` int(11);
+	//ALTER TABLE `user` MODIFY COLUMN `updated_at` datetime;
 	//DROP INDEX `idx_name_age` ON `user`;
 }
 ```

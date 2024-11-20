@@ -150,7 +150,7 @@ func (m *Migration) AddComment(tbName, colName, comment string) {
 		return
 	}
 
-	m.Tables[id].Columns[colIdx].Comment = comment
+	m.Tables[id].Columns[colIdx].CurrentAttr.Comment = comment
 }
 
 // AddIndex ...

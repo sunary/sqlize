@@ -46,8 +46,10 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, err error) {
 					Name:   n.Columns[i].Name.String(),
 					Action: element.MigrateAddAction,
 				},
-				LiteType: n.Columns[i].Type,
-				Options:  p.parseSqliteConstrains(tbName, n.Columns[i].Constraints),
+				CurrentAttr: element.SqlAttr{
+					LiteType: n.Columns[i].Type,
+					Options:  p.parseSqliteConstrains(tbName, n.Columns[i].Constraints),
+				},
 			}
 
 			p.Migration.AddColumn(tbName, col)
@@ -118,8 +120,10 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, err error) {
 					Name:   n.ColumnDef.Name.String(),
 					Action: element.MigrateAddAction,
 				},
-				LiteType: n.ColumnDef.Type,
-				Options:  p.parseSqliteConstrains(tbName, n.ColumnDef.Constraints),
+				CurrentAttr: element.SqlAttr{
+					LiteType: n.ColumnDef.Type,
+					Options:  p.parseSqliteConstrains(tbName, n.ColumnDef.Constraints),
+				},
 			})
 		}
 	}
