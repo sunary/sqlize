@@ -100,7 +100,7 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		if isPk {
 			if _, isPrevPk := c.pkDefinition(true); isPrevPk {
 				// avoid repeat define primary key
-				def = strings.Replace(def, sql.PrimaryOption(), "", 1)
+				def = strings.Replace(def, " "+sql.PrimaryOption(), "", 1)
 			}
 		}
 
@@ -111,7 +111,7 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 		if isPrevPk {
 			if _, isPk := c.pkDefinition(false); isPk {
 				// avoid repeat define primary key
-				prevDef = strings.Replace(prevDef, sql.PrimaryOption(), "", 1)
+				prevDef = strings.Replace(prevDef, " "+sql.PrimaryOption(), "", 1)
 			}
 		}
 
