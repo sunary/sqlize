@@ -62,18 +62,18 @@ func (t *Table) AddColumn(col Column) {
 		t.Columns[id] = col
 
 	default:
-		t.Columns[id].Options = append(t.Columns[id].Options, col.Options...)
+		t.Columns[id].CurrentAttr.Options = append(t.Columns[id].CurrentAttr.Options, col.CurrentAttr.Options...)
 
-		if size := len(t.Columns[id].Options); size > 0 {
-			for i := range t.Columns[id].Options[:size-1] {
-				if t.Columns[id].Options[i].Tp == ast.ColumnOptionPrimaryKey {
-					t.Columns[id].Options[i], t.Columns[id].Options[size-1] = t.Columns[id].Options[size-1], t.Columns[id].Options[i]
+		if size := len(t.Columns[id].CurrentAttr.Options); size > 0 {
+			for i := range t.Columns[id].CurrentAttr.Options[:size-1] {
+				if t.Columns[id].CurrentAttr.Options[i].Tp == ast.ColumnOptionPrimaryKey {
+					t.Columns[id].CurrentAttr.Options[i], t.Columns[id].CurrentAttr.Options[size-1] = t.Columns[id].CurrentAttr.Options[size-1], t.Columns[id].CurrentAttr.Options[i]
 					break
 				}
 			}
 		}
 
-		t.Columns[id].MysqlType = col.MysqlType
+		t.Columns[id].CurrentAttr.MysqlType = col.CurrentAttr.MysqlType
 		return
 	}
 
@@ -291,10 +291,11 @@ func (t *Table) Diff(old Table) {
 	for i := range t.Columns {
 		if j := old.getIndexColumn(t.Columns[i].Name); t.Columns[i].Action == MigrateAddAction &&
 			j >= 0 && old.Columns[j].Action != MigrateNoAction {
-			if hasChangedMysqlOptions(t.Columns[i].Options, old.Columns[j].Options) ||
-				hasChangedMysqlType(t.Columns[i].MysqlType, old.Columns[j].MysqlType) ||
-				hasChangePostgresType(t.Columns[i].PgType, old.Columns[j].PgType) {
+			if hasChangedMysqlOptions(t.Columns[i].CurrentAttr.Options, old.Columns[j].CurrentAttr.Options) ||
+				hasChangedMysqlType(t.Columns[i].CurrentAttr.MysqlType, old.Columns[j].CurrentAttr.MysqlType) ||
+				hasChangePostgresType(t.Columns[i].CurrentAttr.PgType, old.Columns[j].CurrentAttr.PgType) {
 				t.Columns[i].Action = MigrateModifyAction
+				t.Columns[i].PreviousAttr = old.Columns[j].CurrentAttr
 			} else {
 				t.Columns[i].Action = MigrateNoAction
 			}

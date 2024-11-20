@@ -73,11 +73,13 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 						})
 					} else {
 						p.Migration.AddColumn(alter.Table.Text(), element.Column{
-							Node:      element.Node{Name: cols[0], Action: element.MigrateAddAction},
-							MysqlType: nil,
-							Options: []*ast.ColumnOption{
-								{
-									Tp: ast.ColumnOptionPrimaryKey,
+							Node: element.Node{Name: cols[0], Action: element.MigrateAddAction},
+							CurrentAttr: element.SqlAttr{
+								MysqlType: nil,
+								Options: []*ast.ColumnOption{
+									{
+										Tp: ast.ColumnOptionPrimaryKey,
+									},
 								},
 							},
 						})
@@ -113,9 +115,11 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 				if len(alter.Specs[i].NewColumns) > 0 {
 					for j := range alter.Specs[i].NewColumns {
 						col := element.Column{
-							Node:      element.Node{Name: alter.Specs[i].NewColumns[j].Name.Name.O, Action: element.MigrateModifyAction},
-							MysqlType: alter.Specs[i].NewColumns[j].Tp,
-							Comment:   alter.Specs[i].Comment,
+							Node: element.Node{Name: alter.Specs[i].NewColumns[j].Name.Name.O, Action: element.MigrateModifyAction},
+							CurrentAttr: element.SqlAttr{
+								MysqlType: alter.Specs[i].NewColumns[j].Tp,
+								Comment:   alter.Specs[i].Comment,
+							},
 						}
 						p.Migration.AddColumn(alter.Table.Name.O, col)
 					}
@@ -161,11 +165,13 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 					})
 				} else {
 					tb.AddColumn(element.Column{
-						Node:      element.Node{Name: cols[0], Action: element.MigrateAddAction},
-						MysqlType: nil,
-						Options: []*ast.ColumnOption{
-							{
-								Tp: ast.ColumnOptionPrimaryKey,
+						Node: element.Node{Name: cols[0], Action: element.MigrateAddAction},
+						CurrentAttr: element.SqlAttr{
+							MysqlType: nil,
+							Options: []*ast.ColumnOption{
+								{
+									Tp: ast.ColumnOptionPrimaryKey,
+								},
 							},
 						},
 					})
@@ -218,10 +224,12 @@ func (p *Parser) Enter(in ast.Node) (ast.Node, bool) {
 		}
 
 		column := element.Column{
-			Node:      element.Node{Name: def.Name.Name.O, Action: element.MigrateAddAction},
-			MysqlType: def.Tp,
-			Options:   def.Options,
-			Comment:   comment,
+			Node: element.Node{Name: def.Name.Name.O, Action: element.MigrateAddAction},
+			CurrentAttr: element.SqlAttr{
+				MysqlType: def.Tp,
+				Options:   def.Options,
+				Comment:   comment,
+			},
 		}
 		p.Migration.AddColumn("", column)
 	}

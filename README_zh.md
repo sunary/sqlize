@@ -232,11 +232,13 @@ CREATE TABLE user (
 
 	sql1.Diff(*sql2)
 	println(sql1.StringUp())
-	// ALTER TABLE `user` MODIFY COLUMN `id` int(11) AUTO_INCREMENT PRIMARY KEY;
-	// ALTER TABLE `user` MODIFY COLUMN `updated_at` datetime DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
-	// CREATE UNIQUE INDEX `idx_name_age` ON `user`(`name`, `age`);
+	//ALTER TABLE `user` MODIFY COLUMN `id` int(11) AUTO_INCREMENT PRIMARY KEY;
+	//ALTER TABLE `user` MODIFY COLUMN `updated_at` datetime DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
+	//CREATE UNIQUE INDEX `idx_name_age` ON `user`(`name`, `age`);
 
 	println(sql1.StringDown())
-	// DROP INDEX `idx_name_age` ON `user`;
+	//ALTER TABLE `user` MODIFY COLUMN `id` int(11);
+	//ALTER TABLE `user` MODIFY COLUMN `updated_at` datetime;
+	//DROP INDEX `idx_name_age` ON `user`;
 }
 ```

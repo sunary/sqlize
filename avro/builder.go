@@ -59,19 +59,19 @@ func getAvroType(col element.Column) interface{} {
 			"type":            "string",
 			"connect.version": 1,
 			"connect.parameters": map[string]string{
-				"allowed": strings.Join(col.MysqlType.Elems, ","),
+				"allowed": strings.Join(col.CurrentAttr.MysqlType.Elems, ","),
 			},
 			"connect.default": "init",
 			"connect.name":    "io.debezium.data.Enum",
 		}
 	}
 
-	switch col.MysqlType.EvalType() {
+	switch col.CurrentAttr.MysqlType.EvalType() {
 	case types.ETInt:
 		return "int"
 
 	case types.ETDecimal:
-		displayFlen, displayDecimal := col.MysqlType.Flen, col.MysqlType.Decimal
+		displayFlen, displayDecimal := col.CurrentAttr.MysqlType.Flen, col.CurrentAttr.MysqlType.Decimal
 		return map[string]interface{}{
 			"type":            "bytes",
 			"scale":           displayDecimal,

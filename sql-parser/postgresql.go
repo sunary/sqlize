@@ -92,8 +92,10 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 
 		case *tree.AlterTableAlterColumnType:
 			col := element.Column{
-				Node:   element.Node{Name: nc.Column.String(), Action: element.MigrateModifyAction},
-				PgType: nc.ToType,
+				Node: element.Node{Name: nc.Column.String(), Action: element.MigrateModifyAction},
+				CurrentAttr: element.SqlAttr{
+					PgType: nc.ToType,
+				},
 			}
 			p.Migration.AddColumn(n.Table.String(), col)
 
@@ -101,11 +103,13 @@ func (p *Parser) walker(ctx interface{}, node interface{}) (stop bool) {
 			if nc.Default != nil {
 				col := element.Column{
 					Node: element.Node{Name: nc.Column.String(), Action: element.MigrateModifyAction},
-					Options: []*ast.ColumnOption{{
-						Expr:     nil,
-						Tp:       ast.ColumnOptionDefaultValue,
-						StrValue: nc.Default.String(),
-					}},
+					CurrentAttr: element.SqlAttr{
+						Options: []*ast.ColumnOption{{
+							Expr:     nil,
+							Tp:       ast.ColumnOptionDefaultValue,
+							StrValue: nc.Default.String(),
+						}},
+					},
 				}
 				p.Migration.AddColumn(n.Table.String(), col)
 			}
@@ -166,9 +170,11 @@ func postgresColumn(n *tree.ColumnTableDef) (element.Column, []element.Index) {
 	}
 
 	return element.Column{
-		Node:    element.Node{Name: n.Name.String(), Action: element.MigrateAddAction},
-		PgType:  n.Type,
-		Options: opts,
+		Node: element.Node{Name: n.Name.String(), Action: element.MigrateAddAction},
+		CurrentAttr: element.SqlAttr{
+			PgType:  n.Type,
+			Options: opts,
+		},
 	}, indexes
 }
 
