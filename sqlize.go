@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	_ "github.com/pingcap/parser/test_driver" // driver parser
-	"github.com/sunary/sqlize/avro"
+	"github.com/sunary/sqlize/export/avro"
 	sql_builder "github.com/sunary/sqlize/sql-builder"
 	sql_parser "github.com/sunary/sqlize/sql-parser"
 	sql_templates "github.com/sunary/sqlize/sql-templates"
