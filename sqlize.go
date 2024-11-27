@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 
 	_ "github.com/pingcap/parser/test_driver" // driver parser
+	"github.com/sunary/sqlize/element"
 	"github.com/sunary/sqlize/export/avro"
+	"github.com/sunary/sqlize/export/mermaidjs"
 	sql_builder "github.com/sunary/sqlize/sql-builder"
 	sql_parser "github.com/sunary/sqlize/sql-parser"
 	sql_templates "github.com/sunary/sqlize/sql-templates"
@@ -225,19 +227,42 @@ func (s Sqlize) migrationDownVersion(ver int64) string {
 	return fmt.Sprintf(tmp.RollbackMigrationVersion(), s.migrationTable)
 }
 
+func (s Sqlize) selectTable(needTables ...string) []element.Table {
+	tables := make([]element.Table, 0, len(needTables))
+
+	for i := range s.parser.Migration.Tables {
+		if len(needTables) == 0 || utils.ContainStr(needTables, s.parser.Migration.Tables[i].Name) {
+			tables = append(tables, s.parser.Migration.Tables[i])
+		}
+	}
+
+	return tables
+}
+
+// MermaidJsErd export MermaidJs ERD
+func (s Sqlize) MermaidJsErd(needTables ...string) string {
+	mm := mermaidjs.NewMermaidJs(s.selectTable(needTables...))
+	return mm.String()
+}
+
+// MermaidJsLive export MermaidJs Live
+func (s Sqlize) MermaidJsLive(needTables ...string) string {
+	mm := mermaidjs.NewMermaidJs(s.selectTable(needTables...))
+	return mm.Live()
+}
+
 // ArvoSchema export arvo schema, support mysql only
 func (s Sqlize) ArvoSchema(needTables ...string) []string {
 	if s.dialect != sql_templates.MysqlDialect {
 		return nil
 	}
 
-	schemas := make([]string, 0)
-	for i := range s.parser.Migration.Tables {
-		if len(needTables) == 0 || utils.ContainStr(needTables, s.parser.Migration.Tables[i].Name) {
-			record := avro.NewArvoSchema(s.parser.Migration.Tables[i])
-			jsonData, _ := json.Marshal(record)
-			schemas = append(schemas, string(jsonData))
-		}
+	tables := s.selectTable(needTables...)
+	schemas := make([]string, 0, len(tables))
+	for i := range tables {
+		record := avro.NewArvoSchema(tables[i])
+		jsonData, _ := json.Marshal(record)
+		schemas = append(schemas, string(jsonData))
 	}
 
 	return schemas

@@ -207,10 +207,17 @@ func (t *Table) AddForeignKey(fk ForeignKey) {
 	if id == -1 {
 		t.ForeignKeys = append(t.ForeignKeys, fk)
 		t.indexForeignKeys[fk.Name] = len(t.ForeignKeys) - 1
-		return
+	} else {
+		t.ForeignKeys[id] = fk
 	}
 
-	t.ForeignKeys[id] = fk
+	for i := range t.Columns {
+		if t.Columns[i].Name == fk.Column {
+			t.Columns[i].CurrentAttr.Options = append(t.Columns[i].CurrentAttr.Options, &ast.ColumnOption{
+				Tp: ast.ColumnOptionReference,
+			})
+		}
+	}
 }
 
 // RemoveForeignKey ...

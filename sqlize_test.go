@@ -17,7 +17,16 @@ type Base struct {
 	UpdatedAt time.Time
 }
 
-type addsTest struct {
+type person struct {
+	ID        int32  `sql:"primary_key;auto_increment"`
+	Name      string `sql:"type:VARCHAR(64);unique;index:name,age"`
+	Alias     string `sql:"-"`
+	Age       int
+	IsFemale  bool
+	CreatedAt time.Time `sql:"default:CURRENT_TIMESTAMP"`
+}
+
+type anotherPerson struct {
 	ID        int32  `sql:"primary_key;auto_increment"`
 	Name      string `sql:"type:VARCHAR(64);index:name,age;unique"`
 	Alias     string `sql:"-"`
@@ -26,13 +35,8 @@ type addsTest struct {
 	CreatedAt time.Time `sql:"default:CURRENT_TIMESTAMP"`
 }
 
-type person struct {
-	ID        int32  `sql:"primary_key;auto_increment"`
-	Name      string `sql:"type:VARCHAR(64);unique;index:name,age"`
-	Alias     string `sql:"-"`
-	Age       int
-	IsFemale  bool
-	CreatedAt time.Time `sql:"default:CURRENT_TIMESTAMP"`
+func (anotherPerson) TableName() string {
+	return "another_person"
 }
 
 type hotel struct {
@@ -56,7 +60,7 @@ type movie struct {
 	YearReleased string `sql:"column:year_released,previous:released_at"`
 }
 
-type tpl struct {
+type order struct {
 	B1       Base   `sql:"embedded"`
 	ClientID string `sql:"type:varchar(255);primary_key;index_columns:client_id,country"`
 	Country  string `sql:"type:varchar(255)"`
@@ -64,38 +68,39 @@ type tpl struct {
 	User     *user  `sql:"foreign_key:email;references:email"`
 }
 
-func (tpl) TableName() string {
-	return "three_pl"
+func (order) TableName() string {
+	return "orders"
 }
 
-type tpl_sqlite struct {
+type order_sqlite struct {
 	B1       Base   `sql:"embedded"`
 	ClientID string `sql:"type:TEXT;primary_key;index_columns:client_id,country"`
 	Country  string `sql:"type:TEXT"`
 	Email    string `sql:"type:TEXT;unique"`
 }
 
-func (tpl_sqlite) TableName() string {
-	return "three_pl_sqlite"
+func (order_sqlite) TableName() string {
+	return "orders_sqlite"
 }
 
 type user struct {
+	Email string
 }
 
 var (
 	space = regexp.MustCompile(`\s+`)
 
-	createAddsTestStm = `CREATE TABLE adds_tests (
+	createAnotherPersonStm = `CREATE TABLE another_person (
 		id        int(11) AUTO_INCREMENT PRIMARY KEY,
 		name      varchar(64),
 		age       int(11),
 		is_female tinyint(1),
 		created_at datetime DEFAULT CURRENT_TIMESTAMP()
 	   );`
-	alterAddsTestUpStm = `
-	   CREATE UNIQUE INDEX idx_name_age ON adds_tests(name, age);`
-	alterAddsTestDownStm = `
-	   DROP INDEX idx_name_age ON adds_tests;`
+	alterAnotherPersonUpStm = `
+	   CREATE UNIQUE INDEX idx_name_age ON another_person(name, age);`
+	alterAnotherPersonDownStm = `
+	   DROP INDEX idx_name_age ON another_person;`
 
 	createPersonStm = `CREATE TABLE person (
  id        int(11) AUTO_INCREMENT PRIMARY KEY,
@@ -149,17 +154,17 @@ ALTER TABLE movie RENAME COLUMN released_at TO year_released;`
 	alterMovieDownStm = `
 ALTER TABLE movie RENAME COLUMN year_released TO released_at;`
 
-	expectCreateAddsTestUp = `
-CREATE TABLE adds_tests (
+	expectCreateAnotherPersonUp = `
+CREATE TABLE another_person (
  id        int(11) AUTO_INCREMENT PRIMARY KEY,
  name      varchar(64),
  age       int(11),
  is_female tinyint(1),
  created_at datetime DEFAULT CURRENT_TIMESTAMP()
 );
-CREATE UNIQUE INDEX idx_name_age ON adds_tests(name, age);`
-	expectCreateAddsTestDown = `
-DROP TABLE IF EXISTS adds_tests;`
+CREATE UNIQUE INDEX idx_name_age ON another_person(name, age);`
+	expectCreateAnotherPersonDown = `
+DROP TABLE IF EXISTS another_person;`
 
 	expectCreatePersonUp = `
 CREATE TABLE person (
@@ -200,45 +205,94 @@ CREATE TABLE city (
 );`
 	expectCreateCityDown = `
 DROP TABLE IF EXISTS city;`
-	expectCreateTplUp = `
-CREATE TABLE three_pl (
+	expectCreateOrderUp = `
+CREATE TABLE orders (
  client_id  varchar(255) COMMENT 'client id',
  country    varchar(255) COMMENT 'country',
  email      varchar(255) COMMENT 'email',
  created_at datetime,
  updated_at datetime
 );
-ALTER TABLE three_pl ADD PRIMARY KEY(client_id, country);
-CREATE UNIQUE INDEX idx_email ON three_pl(email);
-ALTER TABLE three_pl ADD CONSTRAINT fk_user_three_pl FOREIGN KEY (email) REFERENCES user(email);`
-	expectCreateTplDown = `
-DROP TABLE IF EXISTS three_pl;`
-	expectCreateTplPostgresUp = `
-CREATE TABLE three_pl (
+ALTER TABLE orders ADD PRIMARY KEY(client_id, country);
+CREATE UNIQUE INDEX idx_email ON orders(email);
+ALTER TABLE orders ADD CONSTRAINT fk_user_orders FOREIGN KEY (email) REFERENCES user(email);`
+	expectCreateOrderDown = `
+DROP TABLE IF EXISTS orders;`
+	expectCreateOrderPostgresUp = `
+CREATE TABLE orders (
  client_id VARCHAR(255),
  country   VARCHAR(255),
  email     VARCHAR(255),
  created_at TIMESTAMP,
  updated_at TIMESTAMP
 );
-COMMENT ON COLUMN three_pl.client_id IS 'client id';
-COMMENT ON COLUMN three_pl.country IS 'country';
-COMMENT ON COLUMN three_pl.email IS 'email';
-ALTER TABLE three_pl ADD PRIMARY KEY(client_id, country);
-CREATE UNIQUE INDEX idx_email ON three_pl(email);
-ALTER TABLE three_pl ADD CONSTRAINT fk_user_three_pl FOREIGN KEY (email) REFERENCES "user"(email);`
-	expectCreateTplPostgresDown = `
-DROP TABLE IF EXISTS three_pl;`
-	expectCreateTplSqliteUp = `
-CREATE TABLE three_pl_sqlite (
+COMMENT ON COLUMN orders.client_id IS 'client id';
+COMMENT ON COLUMN orders.country IS 'country';
+COMMENT ON COLUMN orders.email IS 'email';
+ALTER TABLE orders ADD PRIMARY KEY(client_id, country);
+CREATE UNIQUE INDEX idx_email ON orders(email);
+ALTER TABLE orders ADD CONSTRAINT fk_user_orders FOREIGN KEY (email) REFERENCES "user"(email);`
+	expectCreateOrderPostgresDown = `
+DROP TABLE IF EXISTS orders;`
+	expectCreateOrderSqliteUp = `
+CREATE TABLE orders_sqlite (
  client_id  TEXT,
  country    TEXT,
  email      TEXT,
  created_at TEXT,
  updated_at TEXT
 );`
-	expectCreateTplSqliteDown = `
-DROP TABLE IF EXISTS three_pl_sqlite;`
+	expectCreateOrderSqliteDown = `
+DROP TABLE IF EXISTS orders_sqlite;`
+
+	expectPersonMermaidJsErd = `erDiagram
+ PERSON {
+  int(11) id PK
+  varchar(64) name
+  int(11) age
+  tinyint(1) is_female
+  datetime created_at
+ }`
+	expectHotelMermaidJsErd = `erDiagram
+ HOTEL {
+  int(11) id PK
+  text name
+  datetime grand_opening
+  datetime created_at
+  datetime updated_at
+  datetime base_created_at
+  datetime base_updated_at
+ }`
+	expectPersonCityMermaidJsErd = `erDiagram
+ PERSON {
+  int(11) id PK
+  varchar(64) name
+  int(11) age
+  tinyint(1) is_female
+  datetime created_at
+ }
+ CITY {
+  int(11) id PK
+  text name
+  enum region
+ }`
+	expectOrderUserMermaidJsErd = `erDiagram
+ ORDERS {
+  varchar(255) client_id
+  varchar(255) country
+  varchar(255) email FK
+  datetime created_at
+  datetime updated_at
+ }
+ USER {
+  text email
+ }
+ ORDERS }o--|| USER: email`
+
+	expectPersonMermaidJsLive     = `https://mermaid.ink/img/ZXJEaWFncmFtCiBQRVJTT04gewogIGludCgxMSkgaWQgUEsgCiAgdmFyY2hhcig2NCkgbmFtZSAgCiAgaW50KDExKSBhZ2UgIAogIHRpbnlpbnQoMSkgaXNfZmVtYWxlICAKICBkYXRldGltZSBjcmVhdGVkX2F0ICAKIH0K`
+	expectHotelMermaidJsLive      = `https://mermaid.ink/img/ZXJEaWFncmFtCiBIT1RFTCB7CiAgaW50KDExKSBpZCBQSyAKICB0ZXh0IG5hbWUgIAogIGRhdGV0aW1lIGdyYW5kX29wZW5pbmcgIAogIGRhdGV0aW1lIGNyZWF0ZWRfYXQgIAogIGRhdGV0aW1lIHVwZGF0ZWRfYXQgIAogIGRhdGV0aW1lIGJhc2VfY3JlYXRlZF9hdCAgCiAgZGF0ZXRpbWUgYmFzZV91cGRhdGVkX2F0ICAKIH0K`
+	expectPersonCityMermaidJsLive = `https://mermaid.ink/img/ZXJEaWFncmFtCiBQRVJTT04gewogIGludCgxMSkgaWQgUEsgCiAgdmFyY2hhcig2NCkgbmFtZSAgCiAgaW50KDExKSBhZ2UgIAogIHRpbnlpbnQoMSkgaXNfZmVtYWxlICAKICBkYXRldGltZSBjcmVhdGVkX2F0ICAKIH0KIENJVFkgewogIGludCgxMSkgaWQgUEsgCiAgdGV4dCBuYW1lICAKICBlbnVtIHJlZ2lvbiAgCiB9Cg==`
+	expectOrderUserMermaidJsLive  = `https://mermaid.ink/img/ZXJEaWFncmFtCiBPUkRFUlMgewogIHZhcmNoYXIoMjU1KSBjbGllbnRfaWQgIAogIHZhcmNoYXIoMjU1KSBjb3VudHJ5ICAKICB2YXJjaGFyKDI1NSkgZW1haWwgRksgCiAgZGF0ZXRpbWUgY3JlYXRlZF9hdCAgCiAgZGF0ZXRpbWUgdXBkYXRlZF9hdCAgCiB9CiBVU0VSIHsKICB0ZXh0IGVtYWlsICAKIH0KIE9SREVSUyB9by0tfHwgVVNFUjogZW1haWw=`
 
 	expectPersonArvo = `
 {"type":"record","name":"person","namespace":"person","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"age","type":"int"},{"name":"is_female","type":"bool"},{"name":"created_at","type":["null",{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"person"}`
@@ -246,6 +300,7 @@ DROP TABLE IF EXISTS three_pl_sqlite;`
 {"type":"record","name":"hotel","namespace":"hotel","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"grand_opening","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"created_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"updated_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"base_created_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"base_updated_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"hotel"}`
 	expectCityArvo = `
 {"type":"record","name":"city","namespace":"city","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"region","type":["null",{"connect.default":"init","connect.name":"io.debezium.data.Enum","connect.parameters":{"allowed":"northern,southern"},"connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"city"}`
+
 	expectCreateMigrationTableUp = `CREATE TABLE IF NOT EXISTS schema_migrations (
  version    bigint(20) PRIMARY KEY,
  dirty      BOOLEAN
@@ -277,14 +332,14 @@ func TestSqlize_FromObjects(t *testing.T) {
 		wantErr           bool
 	}{
 		{
-			name:            "from adds_tests object",
+			name:            "from anotherPerson object",
 			pluralTableName: true,
 			args: args{
-				[]interface{}{addsTest{}},
+				[]interface{}{anotherPerson{}},
 				"",
 			},
-			wantMigrationUp:   expectCreateAddsTestUp,
-			wantMigrationDown: expectCreateAddsTestDown,
+			wantMigrationUp:   expectCreateAnotherPersonUp,
+			wantMigrationDown: expectCreateAnotherPersonDown,
 			wantErr:           false,
 		},
 		{
@@ -319,14 +374,14 @@ func TestSqlize_FromObjects(t *testing.T) {
 			wantErr:           false,
 		},
 		{
-			name:            "from tpl object",
+			name:            "from order object",
 			generateComment: true,
 			args: args{
-				[]interface{}{tpl{}},
+				[]interface{}{order{}},
 				"/",
 			},
-			wantMigrationUp:   expectCreateTplUp,
-			wantMigrationDown: expectCreateTplDown,
+			wantMigrationUp:   expectCreateOrderUp,
+			wantMigrationDown: expectCreateOrderDown,
 			wantErr:           false,
 		},
 		{
@@ -402,14 +457,14 @@ func TestSqlize_FromObjects(t *testing.T) {
 		wantErr           bool
 	}{
 		{
-			name:            "from tpl object",
+			name:            "from order object",
 			generateComment: true,
 			args: args{
-				[]interface{}{tpl{}},
+				[]interface{}{order{}},
 				"/",
 			},
-			wantMigrationUp:   expectCreateTplPostgresUp,
-			wantMigrationDown: expectCreateTplPostgresDown,
+			wantMigrationUp:   expectCreateOrderPostgresUp,
+			wantMigrationDown: expectCreateOrderPostgresDown,
 			wantErr:           false,
 		},
 	}
@@ -440,14 +495,14 @@ func TestSqlize_FromObjects(t *testing.T) {
 		wantErr           bool
 	}{
 		{
-			name:            "from tpl sqlite object",
+			name:            "from order sqlite object",
 			generateComment: true,
 			args: args{
-				[]interface{}{tpl_sqlite{}},
+				[]interface{}{order_sqlite{}},
 				"/",
 			},
-			wantMigrationUp:   expectCreateTplSqliteUp,
-			wantMigrationDown: expectCreateTplSqliteDown,
+			wantMigrationUp:   expectCreateOrderSqliteUp,
+			wantMigrationDown: expectCreateOrderSqliteDown,
 			wantErr:           false,
 		},
 	}
@@ -831,6 +886,74 @@ func TestSqlize_HashValue(t *testing.T) {
 	}
 }
 
+func TestSqlize_Mermaidjs(t *testing.T) {
+	now := time.Now()
+
+	type args struct {
+		models     []interface{}
+		needTables []string
+	}
+
+	MermaidJsTestcases := []struct {
+		name     string
+		args     args
+		wantErd  string
+		wantLive string
+	}{
+		{
+			name: "person mermaidjs",
+			args: args{
+				[]interface{}{person{}},
+				[]string{"person"},
+			},
+			wantErd:  expectPersonMermaidJsErd,
+			wantLive: expectPersonMermaidJsLive,
+		},
+		{
+			name: "hotel mermaidjs",
+			args: args{
+				[]interface{}{hotel{GrandOpening: &now}},
+				[]string{"hotel"},
+			},
+			wantErd:  expectHotelMermaidJsErd,
+			wantLive: expectHotelMermaidJsLive,
+		},
+		{
+			name: "person city mermaidjs",
+			args: args{
+				[]interface{}{person{}, city{}},
+				[]string{"person", "city"},
+			},
+			wantErd:  expectPersonCityMermaidJsErd,
+			wantLive: expectPersonCityMermaidJsLive,
+		},
+		{
+			name: "order user mermaidjs",
+			args: args{
+				[]interface{}{order{}, user{}},
+				[]string{"orders", "user"},
+			},
+			wantErd:  expectOrderUserMermaidJsErd,
+			wantLive: expectOrderUserMermaidJsLive,
+		},
+	}
+	for _, tt := range MermaidJsTestcases {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := []SqlizeOption{}
+			s := NewSqlize(opts...)
+
+			s.FromObjects(tt.args.models...)
+			if got := s.MermaidJsErd(tt.args.needTables...); normStr(got) != normStr(tt.wantErd) {
+				t.Errorf("MermaidJsErd() got = \n%v,\nexpected = \n%v", got, tt.wantErd)
+			}
+
+			if got := s.MermaidJsLive(tt.args.needTables...); got != tt.wantLive {
+				t.Errorf("MermaidJsLive() got = \n%v,\nexpected = \n%v", got, tt.wantLive)
+			}
+		})
+	}
+}
+
 func TestSqlize_ArvoSchema(t *testing.T) {
 	now := time.Now()
 
@@ -885,6 +1008,10 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 func normSql(s string) string {
 	s = strings.Replace(s, "`", "", -1)  // mysql escape keywords
 	s = strings.Replace(s, "\"", "", -1) // postgres escape keywords
+	return strings.TrimSpace(space.ReplaceAllString(s, " "))
+}
+
+func normStr(s string) string {
 	return strings.TrimSpace(space.ReplaceAllString(s, " "))
 }
 
