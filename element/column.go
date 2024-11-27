@@ -47,6 +47,25 @@ func (c Column) GetType() byte {
 	return 0
 }
 
+// DataType ...
+func (c Column) DataType() string {
+	return c.typeDefinition(false)
+}
+
+// Constraint ...
+func (c Column) Constraint() string {
+	for _, opt := range c.CurrentAttr.Options {
+		switch opt.Tp {
+		case ast.ColumnOptionPrimaryKey:
+			return "PK"
+		case ast.ColumnOptionReference:
+			return "FK"
+		}
+	}
+
+	return ""
+}
+
 // HasDefaultValue ...
 func (c Column) HasDefaultValue() bool {
 	for _, opt := range c.CurrentAttr.Options {
@@ -60,7 +79,7 @@ func (c Column) HasDefaultValue() bool {
 
 func (c Column) hashValue() string {
 	strHash := sql.EscapeSqlName(c.Name)
-	strHash += c.typeDefinition(false)
+	strHash += " " + c.typeDefinition(false)
 	hash := md5.Sum([]byte(strHash))
 	return hex.EncodeToString(hash[:])
 }
@@ -163,7 +182,7 @@ func (c Column) pkDefinition(isPrev bool) (string, bool) {
 	if isPrev {
 		attr = c.PreviousAttr
 	}
-	strSql := c.typeDefinition(isPrev)
+	strSql := " " + c.typeDefinition(isPrev)
 
 	isPrimaryKey := false
 	for _, opt := range attr.Options {
@@ -182,6 +201,10 @@ func (c Column) pkDefinition(isPrev bool) (string, bool) {
 
 		if sql.IsPostgres() && opt.Tp == ast.ColumnOptionDefaultValue {
 			strSql += " " + opt.StrValue
+			continue
+		}
+
+		if opt.Tp == ast.ColumnOptionReference && opt.Refer == nil { // manual add
 			continue
 		}
 
@@ -205,11 +228,11 @@ func (c Column) typeDefinition(isPrev bool) string {
 
 	switch {
 	case sql.IsPostgres() && attr.PgType != nil:
-		return " " + attr.PgType.SQLString()
+		return attr.PgType.SQLString()
 	case sql.IsSqlite() && attr.LiteType != nil:
-		return " " + attr.LiteType.Name.Name
+		return attr.LiteType.Name.Name
 	case attr.MysqlType != nil:
-		return " " + attr.MysqlType.String()
+		return attr.MysqlType.String()
 	}
 
 	return "" // column type is empty

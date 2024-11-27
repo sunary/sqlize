@@ -16,6 +16,8 @@ SQLize is a powerful SQL toolkit for Golang, offering parsing, building, and mig
 - SQL migration generation:
   - Create migrations from Golang models and current SQL schema
   - Generate migration versions compatible with `golang-migrate/migrate`
+  - Export ERD (MermaidJs)
+  - Export Arvo Schema
 
 - Advanced functionalities:
   - Support for embedded structs
@@ -191,6 +193,7 @@ func main() {
 	//ALTER TABLE `user` ADD COLUMN `gender` tinyint(1) AFTER `age`;
 	//DROP INDEX `idx_accept_tnc_at` ON `user`;
 
+	println(newMigration.MermaidJsLive())
 	println(newMigration.ArvoSchema())
 	//...
 
