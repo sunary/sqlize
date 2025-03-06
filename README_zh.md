@@ -5,7 +5,9 @@
 [English](README.md) | 中文
 
 SQLize 是一款强大的迁移生成工具，可检测两个 SQL 状态源之间的差异。它通过对比现有 SQL 模式与 Go 模型，简化迁移创建过程，确保数据库平滑更新。
+
 SQLize 设计灵活，支持 `MySQL`、`PostgreSQL` 和 `SQLite`，并能与流行的 Go ORM 和迁移工具（如 `gorm`（gorm 标签）、`golang-migrate/migrate`（迁移版本）等）良好集成。
+
 此外，SQLize 还提供高级功能，包括 `Avro Schema` 导出（仅支持 MySQL）和 `ERD` 关系图生成（`MermaidJS`）。
 
 ## 约定

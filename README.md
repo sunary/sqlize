@@ -5,7 +5,9 @@
 English | [中文](README_zh.md)
 
 SQLize is a powerful migration generation tool that detects differences between two SQL state sources. It simplifies migration creation by comparing an existing SQL schema with Go models, ensuring seamless database updates.
+
 Designed for flexibility, SQLize supports `MySQL`, `PostgreSQL`, and `SQLite` and integrates well with popular Go ORM and migration tools like `gorm` (gorm tag), `golang-migrate/migrate` (migration version), and more.
+
 Additionally, SQLize offers advanced features, including `Avro Schema` export (MySQL only) and `ERD` diagram generation (`MermaidJS`).
 
 ## Conventions
