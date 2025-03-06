@@ -4,23 +4,9 @@
 
 [English](README.md) | 中文
 
-SQLize 是一个强大的 Golang SQL 工具包，提供解析、构建和迁移功能。
-
-## 特性
-
-- 支持多种数据库的 SQL 解析和构建：
-  - MySQL
-  - PostgreSQL
-  - SQLite
-
-- SQL 迁移生成：
-  - 从 Golang 模型和当前 SQL 架构创建迁移
-  - 生成与 `golang-migrate/migrate` 兼容的迁移版本
-
-- 高级功能：
-  - 支持嵌入式结构体
-  - Avro 架构生成（仅限 MySQL）
-  - 与 `gorm` 标签兼容（默认标签为 `sql`）
+SQLize 是一款强大的迁移生成工具，可检测两个 SQL 状态源之间的差异。它通过对比现有 SQL 模式与 Go 模型，简化迁移创建过程，确保数据库平滑更新。
+SQLize 设计灵活，支持 `MySQL`、`PostgreSQL` 和 `SQLite`，并能与流行的 Go ORM 和迁移工具（如 `gorm`（gorm 标签）、`golang-migrate/migrate`（迁移版本）等）良好集成。
+此外，SQLize 还提供高级功能，包括 `Avro Schema` 导出（仅支持 MySQL）和 `ERD` 关系图生成（`MermaidJS`）。
 
 ## 约定
 
@@ -70,176 +56,95 @@ INT     => int(11)
 BIGINT  => bigint(20)
 ```
 
-### 重要说明
-
-- 指针值必须在结构体中声明
-
-### 示例
-
-1. 使用指针值：
+- 指针值必须在结构体或预定义数据类型中声明：
 
 ```golang
-type sample struct {
-    ID        int32 `sql:"primary_key"`
-    DeletedAt *time.Time
+// your struct
+type Record struct {
+	ID        int
+	DeletedAt *time.Time
 }
 
+// =>
+// the struct is declared with a value
 now := time.Now()
-newMigration.FromObjects(sample{DeletedAt: &now})
+Record{DeletedAt: &now}
+
+// or predefined data type
+type Record struct {
+	ID        int
+	DeletedAt *time.Time `sql:"type:DATETIME"`
+}
+
+// or using struct supported by "database/sql"
+type Record struct {
+	ID        int
+	DeletedAt sql.NullTime
+}
 ```
 
-2. 嵌入式结构体：
+### 使用方法
+
+- 将以下代码添加到您的项目中作为命令。
+- 实现 YourModels()，返回受迁移影响的 Go 模型。
+- 需要生成迁移时，运行该命令。
 
 ```golang
-type Base struct {
-    ID        int32 `sql:"primary_key"`
-    CreatedAt time.Time
-}
-type sample struct {
-    Base `sql:"embedded"`
-    User string
-}
-
-newMigration.FromObjects(sample{})
-
-/*
-CREATE TABLE sample (
- id         int(11) PRIMARY KEY,
- user       text,
- created_at datetime
-);
-*/
-```
-
-3. 比较 SQL 架构与 Go 结构体：
-
-```go
 package main
 
 import (
-	"time"
-	
-	"github.com/sunary/sqlize"
-)
+	"fmt"
+	"log"
+	"os"
 
-type user struct {
-	ID          int32  `sql:"primary_key;auto_increment"`
-	Alias       string `sql:"type:VARCHAR(64)"`
-	Name        string `sql:"type:VARCHAR(64);unique;index_columns:name,age"`
-	Age         int
-	Bio         string
-	IgnoreMe    string     `sql:"-"`
-	AcceptTncAt *time.Time `sql:"index:idx_accept_tnc_at"`
-	CreatedAt   time.Time  `sql:"default:CURRENT_TIMESTAMP"`
-	UpdatedAt   time.Time  `sql:"default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;index:idx_updated_at"`
-}
-
-func (user) TableName() string {
-	return "user"
-}
-
-var createStm = `
-CREATE TABLE user (
-  id            INT AUTO_INCREMENT PRIMARY KEY,
-  name          VARCHAR(64),
-  age           INT,
-  bio           TEXT,
-  gender        BOOL,
-  accept_tnc_at DATETIME NULL,
-  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-CREATE UNIQUE INDEX idx_name_age ON user(name, age);
-CREATE INDEX idx_updated_at ON user(updated_at);`
-
-func main() {
-	n := time.Now()
-	newMigration := sqlize.NewSqlize(sqlize.WithSqlTag("sql"), sqlize.WithMigrationFolder(""))
-	_ = newMigration.FromObjects(user{AcceptTncAt: &n})
-
-	println(newMigration.StringUp())
-	//CREATE TABLE `user` (
-	//	`id`            int(11) AUTO_INCREMENT PRIMARY KEY,
-	//	`alias`         varchar(64),
-	//	`name`          varchar(64),
-	//	`age`           int(11),
-	//	`bio`           text,
-	//	`accept_tnc_at` datetime NULL,
-	//	`created_at`    datetime DEFAULT CURRENT_TIMESTAMP(),
-	//	`updated_at`    datetime DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP()
-	//);
-	//CREATE UNIQUE INDEX `idx_name_age` ON `user`(`name`, `age`);
-	//CREATE INDEX `idx_accept_tnc_at` ON `user`(`accept_tnc_at`);
-	//CREATE INDEX `idx_updated_at` ON `user`(`updated_at`);
-
-	println(newMigration.StringDown())
-	//DROP TABLE IF EXISTS `user`;
-
-	oldMigration := sqlize.NewSqlize(sqlize.WithMigrationFolder(""))
-	//_ = oldMigration.FromMigrationFolder()
-	_ = oldMigration.FromString(createStm)
-
-	newMigration.Diff(*oldMigration)
-
-	println(newMigration.StringUp())
-	//ALTER TABLE `user` ADD COLUMN `alias` varchar(64) AFTER `id`;
-	//ALTER TABLE `user` DROP COLUMN `gender`;
-	//CREATE INDEX `idx_accept_tnc_at` ON `user`(`accept_tnc_at`);
-
-	println(newMigration.StringDown())
-	//ALTER TABLE `user` DROP COLUMN `alias`;
-	//ALTER TABLE `user` ADD COLUMN `gender` tinyint(1) AFTER `age`;
-	//DROP INDEX `idx_accept_tnc_at` ON `user`;
-
-	println(newMigration.MermaidJsLive())
-	println(newMigration.ArvoSchema())
-	//...
-
-	_ = newMigration.WriteFiles("demo migration")
-}
-```
-
-4. 比较两个 SQL 架构：
-
-```go
-package main
-
-import (
 	"github.com/sunary/sqlize"
 )
 
 func main() {
-	sql1 := sqlize.NewSqlize()
-	sql1.FromString(`
-CREATE TABLE user (
-  id            INT AUTO_INCREMENT PRIMARY KEY,
-  name          VARCHAR(64),
-  age           INT,
-  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-CREATE UNIQUE INDEX idx_name_age ON user(name, age);
-	`)
+	migrationFolder := "migrations/"
+	sqlLatest := sqlize.NewSqlize(sqlize.WithSqlTag("sql"),
+		sqlize.WithMigrationFolder(migrationFolder),
+		sqlize.WithCommentGenerate())
 
-	sql2 := sqlize.NewSqlize()
-	sql2.FromString(`
-CREATE TABLE user (
-  id            INT,
-  name          VARCHAR(64),
-  age           INT,
-  created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at    DATETIME
-);`)
+	ms := YourModels() // TODO: implement YourModels() function
+	err := sqlLatest.FromObjects(ms...)
+	if err != nil {
+		log.Fatal("sqlize FromObjects", err)
+	}
+	sqlVersion := sqlLatest.HashValue()
 
-	sql1.Diff(*sql2)
-	println(sql1.StringUp())
-	//ALTER TABLE `user` MODIFY COLUMN `id` int(11) AUTO_INCREMENT PRIMARY KEY;
-	//ALTER TABLE `user` MODIFY COLUMN `updated_at` datetime DEFAULT CURRENT_TIMESTAMP() ON UPDATE CURRENT_TIMESTAMP();
-	//CREATE UNIQUE INDEX `idx_name_age` ON `user`(`name`, `age`);
+	sqlMigrated := sqlize.NewSqlize(sqlize.WithMigrationFolder(migrationFolder))
+	err = sqlMigrated.FromMigrationFolder()
+	if err != nil {
+		log.Fatal("sqlize FromMigrationFolder", err)
+	}
 
-	println(sql1.StringDown())
-	//ALTER TABLE `user` MODIFY COLUMN `id` int(11);
-	//ALTER TABLE `user` MODIFY COLUMN `updated_at` datetime;
-	//DROP INDEX `idx_name_age` ON `user`;
+	sqlLatest.Diff(*sqlMigrated)
+
+	fmt.Println("sql version", sqlVersion)
+
+	fmt.Println("\n\n### migration up")
+	migrationUp := sqlLatest.StringUp()
+	fmt.Println(migrationUp)
+
+	fmt.Println("\n\n### migration down")
+	fmt.Println(sqlLatest.StringDown())
+
+	initVersion := false
+	if initVersion {
+		log.Println("write to init version")
+		err = sqlLatest.WriteFilesVersion("new version", 0, false)
+		if err != nil {
+			log.Fatal("sqlize WriteFilesVersion", err)
+		}
+	}
+
+	if len(os.Args) > 1 {
+		log.Println("write to file", os.Args[1])
+		err = sqlLatest.WriteFilesWithVersion(os.Args[1], sqlVersion, false)
+		if err != nil {
+			log.Fatal("sqlize WriteFilesWithVersion", err)
+		}
+	}
 }
 ```
