@@ -4,8 +4,10 @@ CREATE TABLE IF NOT EXISTS table_with_all_types (
     name TEXT NOT NULL,
 
     unique_number INTEGER UNIQUE,
+    number_with_default DEFAULT 123,
 
     price REAL,
+    price_with_default REAL DEFAULT 0.0,
 
     is_active BOOLEAN DEFAULT TRUE,
 
@@ -15,7 +17,15 @@ CREATE TABLE IF NOT EXISTS table_with_all_types (
 
     age INTEGER CHECK (age >= 18),
 
-    description TEXT DEFAULT "No description"
+    description TEXT DEFAULT "Some description",
+
+    empty_text TEXT DEFAULT "",
+    single_char_text TEXT DEFAULT "x",
+    single_quote_escape TEXT DEFAULT "It\'s a test",
+    backslash_escape TEXT DEFAULT "C:\\Program Files",
+    newline_escape TEXT DEFAULT "Line1\nLine2",
+    tab_escape TEXT DEFAULT "Column1\tColumn2",
+    unicode_escape TEXT DEFAULT "Unicode: \u263A"
 );
 
 CREATE INDEX IF NOT EXISTS idx_name ON table_with_all_types (name);
