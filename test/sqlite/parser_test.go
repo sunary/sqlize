@@ -1,7 +1,6 @@
 package sqlite
 
 import (
-	"os"
 	"testing"
 
 	"github.com/sunary/sqlize"
@@ -13,11 +12,8 @@ func TestParserSingleTable(t *testing.T) {
 		sqlize.WithSqlite(),
 	)
 
-	schemaSqlBytes, err := os.ReadFile(schemaOneTable)
-	if err != nil {
-		t.Fatalf("failed to read schema file: %v", err)
-	}
-	if err := sqlizeCurrent.FromString(string(schemaSqlBytes)); err != nil {
+	schemaSql := readFile(t, schemaWithOneTable)
+	if err := sqlizeCurrent.FromString(schemaSql); err != nil {
 		t.Fatalf("failed to parse schema: %v", err)
 	}
 }
@@ -28,11 +24,8 @@ func TestParserMultipleTables(t *testing.T) {
 		sqlize.WithSqlite(),
 	)
 
-	schemaSqlBytes, err := os.ReadFile(schemaTwoTables)
-	if err != nil {
-		t.Fatalf("failed to read schema file: %v", err)
-	}
-	if err := sqlizeCurrent.FromString(string(schemaSqlBytes)); err != nil {
+	schemaSql := readFile(t, schemaWithTwoTables)
+	if err := sqlizeCurrent.FromString(schemaSql); err != nil {
 		t.Fatalf("failed to parse schema: %v", err)
 	}
 }
