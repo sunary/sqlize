@@ -206,12 +206,13 @@ func (c Column) pkDefinition(isPrev bool) (string, bool) {
 		}
 
 		if sql.IsSqlite() {
+			// SQLite overrides, that pingcap doesn't support
 			if opt.Tp == ast.ColumnOptionDefaultValue {
 				expression, err := strconv.Unquote(opt.StrValue)
 				if err != nil {
 					expression = opt.StrValue
 				}
-				if expression[0] == '\'' && expression[len(expression)-1] == '\'' {
+				if len(expression) >= 2 && expression[0] == '\'' && expression[len(expression)-1] == '\'' {
 					// remove single quotes. strconv may not detect it
 					expression = strconv.Quote(expression[1 : len(expression)-1])
 				}
@@ -232,8 +233,6 @@ func (c Column) pkDefinition(isPrev bool) (string, bool) {
 				strSql += " CHECK (" + opt.StrValue + ")"
 				continue
 			}
-
-			// More Sqlite overrides here...
 		}
 
 		if opt.Tp == ast.ColumnOptionReference && opt.Refer == nil { // manual add
