@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	schemaWithOneTable  = "data/schema_one_table.sql"
-	schemaWithTwoTables = "data/schema_two_tables.sql"
+	schemaWithOneTable  = "testdata/schema_one_table.sql"
+	schemaWithTwoTables = "testdata/schema_two_tables.sql"
 )
 
 func assertContains(t *testing.T, str, substr, message string) {

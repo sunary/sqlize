@@ -129,7 +129,7 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, n sqlite.Node, err e
 		}
 	}
 
-	return nil, nil, nil
+	return p, nil, nil
 }
 
 func (p *Parser) parseSqliteConstrains(tbName string, columnDefinition *sqlite.ColumnDefinition) []*ast.ColumnOption {

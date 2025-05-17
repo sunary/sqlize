@@ -7,7 +7,7 @@ import (
 	"github.com/sunary/sqlize"
 )
 
-// TestSqliteParser tests that Sqlize can generate a migration script for the simplest schema.
+// TestMigrationGeneratorSingleTable tests that Sqlize can generate a migration script for the simplest schema.
 func TestMigrationGeneratorSingleTable(t *testing.T) {
 	sqlizeCurrent := sqlize.NewSqlize(
 		sqlize.WithSqlite(),

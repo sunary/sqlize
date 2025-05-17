@@ -6,7 +6,7 @@ import (
 	"github.com/sunary/sqlize"
 )
 
-// TestSqliteParser tests that Sqlize can parse a sqlite schema with one table.
+// TestParserSingleTable tests that Sqlize can parse a sqlite schema with one table.
 func TestParserSingleTable(t *testing.T) {
 	sqlizeCurrent := sqlize.NewSqlize(
 		sqlize.WithSqlite(),
@@ -18,7 +18,7 @@ func TestParserSingleTable(t *testing.T) {
 	}
 }
 
-// TestSqliteParser tests that Sqlize can parse a sqlite schema with foreign keys.
+// TestParserMultipleTables tests that Sqlize can parse a sqlite schema with foreign keys.
 func TestParserMultipleTables(t *testing.T) {
 	sqlizeCurrent := sqlize.NewSqlize(
 		sqlize.WithSqlite(),
