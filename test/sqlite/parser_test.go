@@ -7,11 +7,6 @@ import (
 	"github.com/sunary/sqlize"
 )
 
-const (
-	schemaOneTable  = "data/schema_one_table.sql"
-	schemaTwoTables = "data/schema_two_tables.sql"
-)
-
 // TestSqliteParser tests that Sqlize can parse a sqlite schema with one table.
 func TestParserSingleTable(t *testing.T) {
 	sqlizeCurrent := sqlize.NewSqlize(
