@@ -228,6 +228,10 @@ func (c Column) pkDefinition(isPrev bool) (string, bool) {
 				strSql += " UNIQUE"
 				continue
 			}
+			if opt.Tp == ast.ColumnOptionCheck {
+				strSql += " CHECK (" + opt.StrValue + ")"
+				continue
+			}
 
 			// More Sqlite overrides here...
 		}

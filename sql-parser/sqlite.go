@@ -151,6 +151,10 @@ func (p *Parser) parseSqliteConstrains(tbName string, columnDefinition *sqlite.C
 			opts = append(opts, &ast.ColumnOption{Tp: ast.ColumnOptionUniqKey})
 
 		case *sqlite.CheckConstraint:
+			opts = append(opts, &ast.ColumnOption{
+				Tp:       ast.ColumnOptionCheck,
+				StrValue: cons.Expr.String(),
+			})
 
 		case *sqlite.DefaultConstraint:
 			opts = append(opts, &ast.ColumnOption{
