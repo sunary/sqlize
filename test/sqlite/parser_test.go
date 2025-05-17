@@ -21,7 +21,6 @@ func TestSqliteParser(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read schema file: %v", err)
 	}
-	t.Log(string(schemaSqlBytes))
 	if err := sqlizeCurrent.FromString(string(schemaSqlBytes)); err != nil {
 		t.Fatalf("failed to parse schema: %v", err)
 	}

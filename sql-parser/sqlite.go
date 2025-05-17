@@ -1,6 +1,7 @@
 package sql_parser
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/pingcap/parser/ast"
@@ -49,7 +50,7 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, n sqlite.Node, err e
 				},
 				CurrentAttr: element.SqlAttr{
 					LiteType: n.Columns[i].Type,
-					Options:  p.parseSqliteConstrains(tbName, n.Columns[i].Constraints),
+					Options:  p.parseSqliteConstrains(tbName, n.Columns[i]),
 				},
 			}
 
@@ -123,7 +124,7 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, n sqlite.Node, err e
 				},
 				CurrentAttr: element.SqlAttr{
 					LiteType: n.ColumnDef.Type,
-					Options:  p.parseSqliteConstrains(tbName, n.ColumnDef.Constraints),
+					Options:  p.parseSqliteConstrains(tbName, n.ColumnDef),
 				},
 			})
 		}
@@ -132,7 +133,8 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, n sqlite.Node, err e
 	return nil, nil, nil
 }
 
-func (p *Parser) parseSqliteConstrains(tbName string, conss []sqlite.Constraint) []*ast.ColumnOption {
+func (p *Parser) parseSqliteConstrains(tbName string, columnDefinition *sqlite.ColumnDefinition) []*ast.ColumnOption {
+	conss := columnDefinition.Constraints
 	opts := []*ast.ColumnOption{}
 	for _, cons := range conss {
 		switch cons := cons.(type) {
@@ -148,9 +150,18 @@ func (p *Parser) parseSqliteConstrains(tbName string, conss []sqlite.Constraint)
 				indexCol[i] = cons.Columns[i].Collation.Name
 			}
 
+			// Unique constraints are sometimes parsed as unnamed.
+			// If that's the case, we generate the name ourselves
+			var idxName string
+			if cons.Name == nil || cons.Name.Name == "" {
+				idxName = fmt.Sprintf("idx_%s_%s", tbName, strings.Join(indexCol, "_"))
+			} else {
+				idxName = cons.Name.Name
+			}
+
 			p.Migration.AddIndex(tbName, element.Index{
 				Node: element.Node{
-					Name:   cons.Name.Name,
+					Name:   idxName,
 					Action: element.MigrateAddAction,
 				},
 				Columns: indexCol,
