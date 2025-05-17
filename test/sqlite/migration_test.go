@@ -22,11 +22,11 @@ func TestMigrationGeneratorSingleTable(t *testing.T) {
 	}
 
 	sqlizeCurrent.StringUp()
-	// sqlizeCurrent.StringDown()
+	sqlizeCurrent.StringDown()
 
-	// sqlizeCurrent.StringUpWithVersion(0, false)
-	// sqlizeCurrent.StringDownWithVersion(0)
+	sqlizeCurrent.StringUpWithVersion(0, false)
+	sqlizeCurrent.StringDownWithVersion(0)
 
-	// sqlizeCurrent.StringUpWithVersion(123, false)
-	// sqlizeCurrent.StringDownWithVersion(123)
+	sqlizeCurrent.StringUpWithVersion(123, false)
+	sqlizeCurrent.StringDownWithVersion(123)
 }

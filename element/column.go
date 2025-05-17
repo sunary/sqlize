@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 
 	ptypes "github.com/auxten/postgresql-parser/pkg/sql/types"
@@ -202,6 +203,33 @@ func (c Column) pkDefinition(isPrev bool) (string, bool) {
 		if sql.IsPostgres() && opt.Tp == ast.ColumnOptionDefaultValue {
 			strSql += " " + opt.StrValue
 			continue
+		}
+
+		if sql.IsSqlite() {
+			if opt.Tp == ast.ColumnOptionDefaultValue {
+				expression, err := strconv.Unquote(opt.StrValue)
+				if err != nil {
+					expression = opt.StrValue
+				}
+				if expression[0] == '\'' && expression[len(expression)-1] == '\'' {
+					// remove single quotes. strconv may not detect it
+					expression = strconv.Quote(expression[1 : len(expression)-1])
+				}
+
+				strSql += " DEFAULT " + expression
+				continue
+			}
+
+			if opt.Tp == ast.ColumnOptionAutoIncrement {
+				strSql += " AUTOINCREMENT"
+				continue
+			}
+			if opt.Tp == ast.ColumnOptionUniqKey {
+				strSql += " UNIQUE"
+				continue
+			}
+
+			// More Sqlite overrides here...
 		}
 
 		if opt.Tp == ast.ColumnOptionReference && opt.Refer == nil { // manual add

@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS table_with_all_types (
 
     age INTEGER CHECK (age >= 18),
 
-    description TEXT DEFAULT 'No description'
+    description TEXT DEFAULT "No description"
 );
 
 CREATE INDEX IF NOT EXISTS idx_name ON table_with_all_types (name);

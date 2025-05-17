@@ -2,6 +2,7 @@ package sql_parser
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/pingcap/parser/ast"
@@ -134,6 +135,7 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, n sqlite.Node, err e
 }
 
 func (p *Parser) parseSqliteConstrains(tbName string, columnDefinition *sqlite.ColumnDefinition) []*ast.ColumnOption {
+	// https://www.sqlite.org/syntax/column-constraint.html
 	conss := columnDefinition.Constraints
 	opts := []*ast.ColumnOption{}
 	for _, cons := range conss {
@@ -145,18 +147,27 @@ func (p *Parser) parseSqliteConstrains(tbName string, columnDefinition *sqlite.C
 			opts = append(opts, &ast.ColumnOption{Tp: ast.ColumnOptionNotNull})
 
 		case *sqlite.UniqueConstraint:
-			indexCol := make([]string, len(cons.Columns))
-			for i := range cons.Columns {
-				indexCol[i] = cons.Columns[i].Collation.Name
+			var indexCol []string
+			if len(cons.Columns) == 0 {
+				indexCol = []string{columnDefinition.Name.Name}
+			} else {
+				indexCol := make([]string, len(cons.Columns))
+				for i := range cons.Columns {
+					indexCol[i] = cons.Columns[i].Collation.Name
+				}
 			}
 
 			// Unique constraints are sometimes parsed as unnamed.
 			// If that's the case, we generate the name ourselves
 			var idxName string
-			if cons.Name == nil || cons.Name.Name == "" {
-				idxName = fmt.Sprintf("idx_%s_%s", tbName, strings.Join(indexCol, "_"))
-			} else {
+			if cons.Name != nil && cons.Name.Name != "" {
 				idxName = cons.Name.Name
+			} else {
+				tablePart, err := strconv.Unquote(tbName)
+				if err != nil {
+					tablePart = tbName
+				}
+				idxName = fmt.Sprintf("idx_%s_%s", tablePart, strings.Join(indexCol, "_"))
 			}
 
 			p.Migration.AddIndex(tbName, element.Index{
@@ -173,7 +184,8 @@ func (p *Parser) parseSqliteConstrains(tbName string, columnDefinition *sqlite.C
 		case *sqlite.DefaultConstraint:
 			opts = append(opts, &ast.ColumnOption{
 				Tp:       ast.ColumnOptionDefaultValue,
-				StrValue: cons.Default.String()})
+				StrValue: cons.Expr.String(),
+			})
 		}
 	}
 
