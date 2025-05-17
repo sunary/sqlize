@@ -134,6 +134,7 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, n sqlite.Node, err e
 
 func (p *Parser) parseSqliteConstrains(tbName string, columnDefinition *sqlite.ColumnDefinition) []*ast.ColumnOption {
 	// https://www.sqlite.org/syntax/column-constraint.html
+	// Also, Sqlite does not support dropping constraints, so we safely can add them here
 	conss := columnDefinition.Constraints
 	opts := []*ast.ColumnOption{}
 	for _, cons := range conss {

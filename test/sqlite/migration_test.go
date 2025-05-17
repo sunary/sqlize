@@ -21,12 +21,16 @@ func TestMigrationGeneratorSingleTable(t *testing.T) {
 		t.Fatalf("failed to parse schema: %v", err)
 	}
 
-	sqlizeCurrent.StringUp()
-	sqlizeCurrent.StringDown()
+	runVariousMigrationFunctions(t, sqlizeCurrent)
+}
 
-	sqlizeCurrent.StringUpWithVersion(0, false)
-	sqlizeCurrent.StringDownWithVersion(0)
+func runVariousMigrationFunctions(t *testing.T, s *sqlize.Sqlize) {
+	s.StringUp()
+	s.StringDown()
 
-	sqlizeCurrent.StringUpWithVersion(123, false)
-	sqlizeCurrent.StringDownWithVersion(123)
+	s.StringUpWithVersion(0, false)
+	s.StringDownWithVersion(0)
+
+	s.StringUpWithVersion(123, false)
+	s.StringDownWithVersion(123)
 }
