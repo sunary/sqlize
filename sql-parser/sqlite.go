@@ -17,7 +17,8 @@ func (p *Parser) ParserSqlite(sql string) error {
 		return err
 	}
 
-	return sqlite.Walk(p, node)
+	_, err = sqlite.Walk(p, node)
+	return err
 }
 
 /*
@@ -31,7 +32,7 @@ AlterTableStatement
 
 sqlite does not support drop column
 */
-func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, err error) {
+func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, n sqlite.Node, err error) {
 	switch n := node.(type) {
 	case *sqlite.CreateTableStatement:
 		tbName := n.Name.String()
@@ -128,7 +129,7 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, err error) {
 		}
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
 func (p *Parser) parseSqliteConstrains(tbName string, conss []sqlite.Constraint) []*ast.ColumnOption {
@@ -168,6 +169,6 @@ func (p *Parser) parseSqliteConstrains(tbName string, conss []sqlite.Constraint)
 	return opts
 }
 
-func (p Parser) VisitEnd(node sqlite.Node) error {
-	return nil
+func (p Parser) VisitEnd(node sqlite.Node) (sqlite.Node, error) {
+	return nil, nil
 }
