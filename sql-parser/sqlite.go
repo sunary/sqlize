@@ -142,6 +142,9 @@ func (p *Parser) parseSqliteConstrains(tbName string, columnDefinition *sqlite.C
 		switch cons := cons.(type) {
 		case *sqlite.PrimaryKeyConstraint:
 			opts = append(opts, &ast.ColumnOption{Tp: ast.ColumnOptionPrimaryKey})
+			if cons.Autoincrement.IsValid() {
+				opts = append(opts, &ast.ColumnOption{Tp: ast.ColumnOptionAutoIncrement})
+			}
 
 		case *sqlite.NotNullConstraint:
 			opts = append(opts, &ast.ColumnOption{Tp: ast.ColumnOptionNotNull})
