@@ -9,19 +9,15 @@ import (
 
 // TestMigrationGeneratorSingleTable tests that Sqlize can generate a migration script for the simplest schema.
 func TestMigrationGeneratorSingleTable(t *testing.T) {
-	sqlizeCurrent := sqlize.NewSqlize(
+	s := sqlize.NewSqlize(
 		sqlize.WithSqlite(),
 	)
 
 	schemaSql := readFile(t, schemaWithOneTable)
-	if err := sqlizeCurrent.FromString(schemaSql); err != nil {
+	if err := s.FromString(schemaSql); err != nil {
 		t.Fatalf("failed to parse schema: %v", err)
 	}
 
-	runVariousMigrationFunctions(t, sqlizeCurrent)
-}
-
-func runVariousMigrationFunctions(t *testing.T, s *sqlize.Sqlize) {
 	upSQL := s.StringUp()
 	downSQL := s.StringDown()
 

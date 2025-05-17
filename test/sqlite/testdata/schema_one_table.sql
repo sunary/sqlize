@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS table_with_all_types (
     name TEXT NOT NULL,
 
     unique_number INTEGER UNIQUE,
-    number_with_default DEFAULT 123,
+    number_with_default INTEGER DEFAULT 123,
 
     price REAL,
     price_with_default REAL DEFAULT 0.0,
