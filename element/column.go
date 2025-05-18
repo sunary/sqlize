@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 
 	ptypes "github.com/auxten/postgresql-parser/pkg/sql/types"
@@ -202,6 +203,40 @@ func (c Column) pkDefinition(isPrev bool) (string, bool) {
 		if sql.IsPostgres() && opt.Tp == ast.ColumnOptionDefaultValue {
 			strSql += " " + opt.StrValue
 			continue
+		}
+
+		if sql.IsSqlite() {
+			// SQLite overrides, that pingcap doesn't support
+			if opt.Tp == ast.ColumnOptionDefaultValue {
+				// Parsed StrValue may be quoted in single quotes, which breaks SQL expression.
+				// We need to unquote it and, if it's a TEXT column. quote it again with double quotes.
+				expression, err := strconv.Unquote(opt.StrValue)
+				if err != nil {
+					expression = opt.StrValue
+				}
+				if len(expression) >= 2 && expression[0] == '\'' && expression[len(expression)-1] == '\'' {
+					// remove single quotes. strconv may not detect it
+					expression = expression[1 : len(expression)-1]
+				}
+				if c.typeDefinition(isPrev) == "TEXT" {
+					expression = strconv.Quote(expression)
+				}
+				strSql += " DEFAULT " + expression
+				continue
+			}
+
+			if opt.Tp == ast.ColumnOptionAutoIncrement {
+				strSql += " AUTOINCREMENT"
+				continue
+			}
+			if opt.Tp == ast.ColumnOptionUniqKey {
+				strSql += " UNIQUE"
+				continue
+			}
+			if opt.Tp == ast.ColumnOptionCheck {
+				strSql += " CHECK (" + opt.StrValue + ")"
+				continue
+			}
 		}
 
 		if opt.Tp == ast.ColumnOptionReference && opt.Refer == nil { // manual add

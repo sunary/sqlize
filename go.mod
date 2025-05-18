@@ -6,7 +6,7 @@ require (
 	github.com/auxten/postgresql-parser v1.0.1
 	github.com/pingcap/parser v0.0.0-20200623164729-3a18f1e5dceb
 	github.com/pkg/errors v0.9.1
-	github.com/rqlite/sql v0.0.0-20240312185922-ffac88a740bd
+	github.com/rqlite/sql v0.0.0-20241111133259-a4122fabb196
 )
 
 require (

@@ -17,7 +17,8 @@ func (p *Parser) ParserSqlite(sql string) error {
 		return err
 	}
 
-	return sqlite.Walk(p, node)
+	_, err = sqlite.Walk(p, node)
+	return err
 }
 
 /*
@@ -31,7 +32,7 @@ AlterTableStatement
 
 sqlite does not support drop column
 */
-func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, err error) {
+func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, n sqlite.Node, err error) {
 	switch n := node.(type) {
 	case *sqlite.CreateTableStatement:
 		tbName := n.Name.String()
@@ -48,7 +49,7 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, err error) {
 				},
 				CurrentAttr: element.SqlAttr{
 					LiteType: n.Columns[i].Type,
-					Options:  p.parseSqliteConstrains(tbName, n.Columns[i].Constraints),
+					Options:  p.parseSqliteConstrains(tbName, n.Columns[i]),
 				},
 			}
 
@@ -122,52 +123,51 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, err error) {
 				},
 				CurrentAttr: element.SqlAttr{
 					LiteType: n.ColumnDef.Type,
-					Options:  p.parseSqliteConstrains(tbName, n.ColumnDef.Constraints),
+					Options:  p.parseSqliteConstrains(tbName, n.ColumnDef),
 				},
 			})
 		}
 	}
 
-	return nil, nil
+	return p, nil, nil
 }
 
-func (p *Parser) parseSqliteConstrains(tbName string, conss []sqlite.Constraint) []*ast.ColumnOption {
+func (p *Parser) parseSqliteConstrains(tbName string, columnDefinition *sqlite.ColumnDefinition) []*ast.ColumnOption {
+	// https://www.sqlite.org/syntax/column-constraint.html
+	// Also, Sqlite does not support dropping constraints, so we safely can add them here
+	conss := columnDefinition.Constraints
 	opts := []*ast.ColumnOption{}
 	for _, cons := range conss {
 		switch cons := cons.(type) {
 		case *sqlite.PrimaryKeyConstraint:
 			opts = append(opts, &ast.ColumnOption{Tp: ast.ColumnOptionPrimaryKey})
+			if cons.Autoincrement.IsValid() {
+				opts = append(opts, &ast.ColumnOption{Tp: ast.ColumnOptionAutoIncrement})
+			}
 
 		case *sqlite.NotNullConstraint:
 			opts = append(opts, &ast.ColumnOption{Tp: ast.ColumnOptionNotNull})
 
 		case *sqlite.UniqueConstraint:
-			indexCol := make([]string, len(cons.Columns))
-			for i := range cons.Columns {
-				indexCol[i] = cons.Columns[i].Collation.Name
-			}
-
-			p.Migration.AddIndex(tbName, element.Index{
-				Node: element.Node{
-					Name:   cons.Name.Name,
-					Action: element.MigrateAddAction,
-				},
-				Columns: indexCol,
-				Typ:     ast.IndexKeyTypeUnique,
-			})
+			opts = append(opts, &ast.ColumnOption{Tp: ast.ColumnOptionUniqKey})
 
 		case *sqlite.CheckConstraint:
+			opts = append(opts, &ast.ColumnOption{
+				Tp:       ast.ColumnOptionCheck,
+				StrValue: cons.Expr.String(),
+			})
 
 		case *sqlite.DefaultConstraint:
 			opts = append(opts, &ast.ColumnOption{
 				Tp:       ast.ColumnOptionDefaultValue,
-				StrValue: cons.Default.String()})
+				StrValue: cons.Expr.String(),
+			})
 		}
 	}
 
 	return opts
 }
 
-func (p Parser) VisitEnd(node sqlite.Node) error {
-	return nil
+func (p Parser) VisitEnd(node sqlite.Node) (sqlite.Node, error) {
+	return nil, nil
 }

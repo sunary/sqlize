@@ -214,6 +214,8 @@ github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU
 github.com/rogpeppe/go-internal v1.12.0/go.mod h1:E+RYuTGaKKdloAfM02xzb0FW3Paa99yedzYV+kq4uf4=
 github.com/rqlite/sql v0.0.0-20240312185922-ffac88a740bd h1:wW6BtayFoKaaDeIvXRE3SZVPOscSKlYD+X3bB749+zk=
 github.com/rqlite/sql v0.0.0-20240312185922-ffac88a740bd/go.mod h1:ib9zVtNgRKiGuoMyUqqL5aNpk+r+++YlyiVIkclVqPg=
+github.com/rqlite/sql v0.0.0-20241111133259-a4122fabb196 h1:SjRKMwKLTEE3STO6unJlz4VlMjMv5NZgIdI9HikBeAc=
+github.com/rqlite/sql v0.0.0-20241111133259-a4122fabb196/go.mod h1:ib9zVtNgRKiGuoMyUqqL5aNpk+r+++YlyiVIkclVqPg=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/ryanuber/columnize v2.1.0+incompatible/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=
 github.com/sclevine/agouti v3.0.0+incompatible/go.mod h1:b4WX9W9L1sfQKXeJf1mUTLZKJ48R1S7H23Ji7oFO5Bw=
