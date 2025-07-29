@@ -6,15 +6,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/pingcap/parser/ast"
-	"github.com/pingcap/parser/model"
+	"github.com/pingcap/tidb/pkg/parser/ast"
 )
 
 // Index ...
 type Index struct {
 	Node
 	Typ       ast.IndexKeyType
-	IndexType model.IndexType
+	IndexType ast.IndexType
 	CnsTyp    ast.ConstraintType
 	Columns   []string
 }

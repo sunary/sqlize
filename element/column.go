@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	ptypes "github.com/auxten/postgresql-parser/pkg/sql/types"
-	"github.com/pingcap/parser/ast"
-	"github.com/pingcap/parser/format"
-	"github.com/pingcap/parser/types"
+	"github.com/pingcap/tidb/pkg/parser/ast"
+	"github.com/pingcap/tidb/pkg/parser/format"
+	"github.com/pingcap/tidb/pkg/parser/types"
 	sqlite "github.com/rqlite/sql"
 	sql_templates "github.com/sunary/sqlize/sql-templates"
 )
@@ -42,7 +42,7 @@ type Column struct {
 // GetType ...
 func (c Column) GetType() byte {
 	if c.CurrentAttr.MysqlType != nil {
-		return c.CurrentAttr.MysqlType.Tp
+		return c.CurrentAttr.MysqlType.GetType()
 	}
 
 	return 0
@@ -244,7 +244,11 @@ func (c Column) pkDefinition(isPrev bool) (string, bool) {
 		}
 
 		_ = opt.Restore(ctx)
-		strSql += " " + b.String()
+		optStr := b.String()
+		if opt.Tp == ast.ColumnOptionDefaultValue {
+			optStr = strings.ReplaceAll(optStr, "DEFAULT _UTF8MB4", "DEFAULT ")
+		}
+		strSql += " " + optStr
 	}
 
 	return strSql, isPrimaryKey

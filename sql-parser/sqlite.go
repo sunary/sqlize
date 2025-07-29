@@ -3,7 +3,7 @@ package sql_parser
 import (
 	"strings"
 
-	"github.com/pingcap/parser/ast"
+	"github.com/pingcap/tidb/pkg/parser/ast"
 	sqlite "github.com/rqlite/sql"
 	"github.com/sunary/sqlize/element"
 )

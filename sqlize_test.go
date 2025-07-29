@@ -90,18 +90,6 @@ type user struct {
 var (
 	space = regexp.MustCompile(`\s+`)
 
-	createAnotherPersonStm = `CREATE TABLE another_person (
-		id        int(11) AUTO_INCREMENT PRIMARY KEY,
-		name      varchar(64),
-		age       int(11),
-		is_female tinyint(1),
-		created_at datetime DEFAULT CURRENT_TIMESTAMP()
-	   );`
-	alterAnotherPersonUpStm = `
-	   CREATE UNIQUE INDEX idx_name_age ON another_person(name, age);`
-	alterAnotherPersonDownStm = `
-	   DROP INDEX idx_name_age ON another_person;`
-
 	createPersonStm = `CREATE TABLE person (
  id        int(11) AUTO_INCREMENT PRIMARY KEY,
  name      varchar(64),
@@ -413,11 +401,12 @@ func TestSqlize_FromObjects(t *testing.T) {
 			}
 
 			s := NewSqlize(opts...)
-			if tt.args.migrationFolder == "" {
+			switch tt.args.migrationFolder {
+			case "":
 				if err := s.FromMigrationFolder(); err == nil {
 					t.Errorf("FromMigrationFolder() mysql error = %v,\n wantErr = %v", err, utils.PathDoesNotExistErr)
 				}
-			} else if tt.args.migrationFolder == "/" {
+			case "/":
 				if err := s.FromMigrationFolder(); err != nil {
 					t.Errorf("FromMigrationFolder() mysql error = %v,\n wantErr = %v", err, nil)
 				}
@@ -435,11 +424,12 @@ func TestSqlize_FromObjects(t *testing.T) {
 				t.Errorf("StringDown() mysql got = \n%s,\nexpected = \n%s", strDown, tt.wantMigrationDown)
 			}
 
-			if tt.args.migrationFolder == "" {
+			switch tt.args.migrationFolder {
+			case "":
 				if err := s.WriteFiles(tt.name); err != nil {
 					t.Errorf("WriteFiles() mysql error = \n%v,\nwantErr = \n%v", err, nil)
 				}
-			} else if tt.args.migrationFolder == "/" {
+			case "/":
 				if err := s.WriteFiles(tt.name); err == nil {
 					t.Errorf("WriteFiles() mysql error = \n%v,\nwantErr = \n%v", err, errors.New("read-only file system"))
 				}
