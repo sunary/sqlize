@@ -4,8 +4,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/pingcap/parser/mysql"
-	"github.com/pingcap/parser/types"
+	"github.com/pingcap/tidb/pkg/parser/mysql"
+	"github.com/pingcap/tidb/pkg/parser/types"
 	"github.com/sunary/sqlize/element"
 )
 
@@ -59,7 +59,7 @@ func getAvroType(col element.Column) interface{} {
 			"type":            "string",
 			"connect.version": 1,
 			"connect.parameters": map[string]string{
-				"allowed": strings.Join(col.CurrentAttr.MysqlType.Elems, ","),
+				"allowed": strings.Join(col.CurrentAttr.MysqlType.GetElems(), ","),
 			},
 			"connect.default": "init",
 			"connect.name":    "io.debezium.data.Enum",
@@ -71,7 +71,7 @@ func getAvroType(col element.Column) interface{} {
 		return "int"
 
 	case types.ETDecimal:
-		displayFlen, displayDecimal := col.CurrentAttr.MysqlType.Flen, col.CurrentAttr.MysqlType.Decimal
+		displayFlen, displayDecimal := col.CurrentAttr.MysqlType.GetFlen(), col.CurrentAttr.MysqlType.GetDecimal()
 		return map[string]interface{}{
 			"type":            "bytes",
 			"scale":           displayDecimal,

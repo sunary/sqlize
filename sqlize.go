@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	_ "github.com/pingcap/parser/test_driver" // driver parser
+	_ "github.com/pingcap/tidb/pkg/parser/test_driver"
 	"github.com/sunary/sqlize/element"
 	"github.com/sunary/sqlize/export/avro"
 	"github.com/sunary/sqlize/export/mermaidjs"

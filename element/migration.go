@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"strings"
 
-	"github.com/pingcap/parser/ast"
+	"github.com/pingcap/tidb/pkg/parser/ast"
 	sql_templates "github.com/sunary/sqlize/sql-templates"
 	"github.com/sunary/sqlize/utils"
 )

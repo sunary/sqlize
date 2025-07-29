@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	ptypes "github.com/auxten/postgresql-parser/pkg/sql/types"
-	"github.com/pingcap/parser/ast"
-	"github.com/pingcap/parser/types"
+	"github.com/pingcap/tidb/pkg/parser/ast"
+	"github.com/pingcap/tidb/pkg/parser/types"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -449,9 +449,10 @@ func (t Table) MigrationColumnUp() ([]string, map[string]struct{}) {
 		strCols := make([]string, 0)
 		commentCols := make([]string, 0)
 		for i := range t.Columns {
-			if t.Columns[i].Action == MigrateAddAction {
+			switch t.Columns[i].Action {
+			case MigrateAddAction:
 				strCols = append(strCols, " "+t.Columns[i].migrationUp("", "", maxIdent)[0])
-			} else if t.Columns[i].Action == MigrateModifyAction || t.Columns[i].Action == MigrateRenameAction {
+			case MigrateModifyAction, MigrateRenameAction:
 				nCol := t.Columns[i]
 				nCol.Action = MigrateAddAction
 				strCols = append(strCols, " "+nCol.migrationUp("", "", maxIdent)[0])

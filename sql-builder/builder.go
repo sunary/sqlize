@@ -3,6 +3,7 @@ package sql_builder
 import (
 	"database/sql"
 	"fmt"
+	"maps"
 	"reflect"
 	"regexp"
 	"strings"
@@ -109,9 +110,7 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 
 // MappingTables ...
 func (s *SqlBuilder) MappingTables(m map[string]string) {
-	for k, v := range m {
-		s.tables[k] = v
-	}
+	maps.Copy(s.tables, m)
 }
 
 // AddTable ...
