@@ -289,8 +289,8 @@ func hasChangedMysqlOptions(new, old []*ast.ColumnOption) bool {
 	}
 
 	mNew := map[ast.ColumnOptionType]int{}
-	for i := range optOld {
-		mNew[optOld[i].Tp] += 1
+	for i := range optNew {
+		mNew[optNew[i].Tp] += 1
 	}
 
 	mOld := map[ast.ColumnOptionType]int{}
