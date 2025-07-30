@@ -186,6 +186,7 @@ func (c Column) pkDefinition(isPrev bool) (string, bool) {
 	strSql := " " + c.typeDefinition(isPrev)
 
 	isPrimaryKey := false
+	hasComment := false
 	for _, opt := range attr.Options {
 		if opt.Tp == ast.ColumnOptionPrimaryKey {
 			isPrimaryKey = true
@@ -248,7 +249,14 @@ func (c Column) pkDefinition(isPrev bool) (string, bool) {
 		if opt.Tp == ast.ColumnOptionDefaultValue {
 			optStr = strings.ReplaceAll(optStr, "DEFAULT _UTF8MB4", "DEFAULT ")
 		}
-		strSql += " " + optStr
+
+		if !hasComment {
+			strSql += " " + optStr
+		}
+
+		if opt.Tp == ast.ColumnOptionComment {
+			hasComment = true
+		}
 	}
 
 	return strSql, isPrimaryKey

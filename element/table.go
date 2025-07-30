@@ -262,18 +262,40 @@ func (t Table) getIndexForeignKey(fkName string) int {
 }
 
 func hasChangedMysqlOptions(new, old []*ast.ColumnOption) bool {
-	if len(new) != len(old) {
+	optNew := make([]*ast.ColumnOption, 0, len(new))
+	hasComment := false
+	for _, v := range new {
+		if !hasComment {
+			optNew = append(optNew, v)
+		}
+		if v.Tp == ast.ColumnOptionComment {
+			hasComment = true
+		}
+	}
+
+	optOld := make([]*ast.ColumnOption, 0, len(old))
+	hasComment = false
+	for _, v := range old {
+		if !hasComment {
+			optOld = append(optOld, v)
+		}
+		if v.Tp == ast.ColumnOptionComment {
+			hasComment = true
+		}
+	}
+
+	if len(optNew) != len(optOld) {
 		return true
 	}
 
 	mNew := map[ast.ColumnOptionType]int{}
-	for i := range old {
-		mNew[old[i].Tp] += 1
+	for i := range optOld {
+		mNew[optOld[i].Tp] += 1
 	}
 
 	mOld := map[ast.ColumnOptionType]int{}
-	for i := range old {
-		mOld[old[i].Tp] += 1
+	for i := range optOld {
+		mOld[optOld[i].Tp] += 1
 	}
 
 	for k, v := range mOld {
