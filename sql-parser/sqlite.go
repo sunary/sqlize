@@ -61,7 +61,7 @@ func (p *Parser) Visit(node sqlite.Node) (w sqlite.Visitor, n sqlite.Node, err e
 			case *sqlite.UniqueConstraint:
 				indexCol := make([]string, len(cons.Columns))
 				for i := range cons.Columns {
-					indexCol[i] = cons.Columns[i].Collation.Name
+					indexCol[i] = cons.Columns[i].X.String()
 				}
 
 				p.Migration.AddIndex(tbName, element.Index{

@@ -4,22 +4,100 @@
 
 English | [中文](README_zh.md)
 
-SQLize is a powerful migration generation tool that detects differences between two SQL state sources. It simplifies migration creation by comparing an existing SQL schema with Go models, ensuring seamless database updates.
+## Purpose
 
-Designed for flexibility, SQLize supports `MySQL`, `PostgreSQL`, and `SQLite` and integrates well with popular Go ORM and migration tools like `gorm` (gorm tag), `golang-migrate/migrate` (migration version), and more.
+**SQLize** generates database migrations by comparing two schema sources: your **Go structs** (desired state) and your **existing migrations** (current state). Instead of writing migration SQL by hand, you define models in Go and SQLize produces the `ALTER TABLE`, `CREATE TABLE`, and related statements needed to bring your database up to date.
 
-Additionally, SQLize offers advanced features, including `Avro Schema` export (MySQL only) and `ERD` diagram generation (`MermaidJS`).
+### What problem does it solve?
+
+- **Manual migrations are error-prone** — Easy to forget columns, indexes, or foreign keys when writing `ALTER TABLE` by hand
+- **Schema drift** — Go models and the database can get out of sync over time
+- **Boilerplate** — Repetitive work creating up/down migrations for every schema change
+
+### How it works
+
+1. **Desired state** — Load schema from your Go structs (via `FromObjects`)
+2. **Current state** — Load schema from your migration folder (via `FromMigrationFolder`)
+3. **Diff** — SQLize compares them and computes the changes
+4. **Output** — Get migration SQL (`StringUp` / `StringDown`) or write files directly (`WriteFilesWithVersion`)
+
+```
+Go structs (desired)  ──┐
+                       ├──► Diff ──► Migration SQL (up/down)
+Migration files (current) ─┘
+```
+
+## Features
+
+- **Multi-database**: MySQL, PostgreSQL, SQLite, SQL Server
+- **ORM-friendly**: Works with struct tags (`sql`, `gorm`), compatible with `golang-migrate/migrate`
+- **Schema export**: Avro Schema (MySQL), ERD diagrams (MermaidJS)
+
+## Installation
+
+```bash
+go get github.com/sunary/sqlize
+```
+
+## Quick Start
+
+```golang
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"github.com/sunary/sqlize"
+)
+
+func main() {
+	migrationFolder := "migrations/"
+	sqlLatest := sqlize.NewSqlize(
+		sqlize.WithSqlTag("sql"),
+		sqlize.WithMigrationFolder(migrationFolder),
+		sqlize.WithCommentGenerate(),
+	)
+
+	ms := YourModels() // Return your Go models
+	err := sqlLatest.FromObjects(ms...)
+	if err != nil {
+		log.Fatal("sqlize FromObjects", err)
+	}
+	sqlVersion := sqlLatest.HashValue()
+
+	sqlMigrated := sqlize.NewSqlize(sqlize.WithMigrationFolder(migrationFolder))
+	err = sqlMigrated.FromMigrationFolder()
+	if err != nil {
+		log.Fatal("sqlize FromMigrationFolder", err)
+	}
+
+	sqlLatest.Diff(*sqlMigrated)
+
+	fmt.Println("sql version", sqlVersion)
+	fmt.Println("\n### migration up")
+	fmt.Println(sqlLatest.StringUp())
+	fmt.Println("\n### migration down")
+	fmt.Println(sqlLatest.StringDown())
+
+	if len(os.Args) > 1 {
+		err = sqlLatest.WriteFilesWithVersion(os.Args[1], sqlVersion, false)
+		if err != nil {
+			log.Fatal("sqlize WriteFilesWithVersion", err)
+		}
+	}
+}
+```
 
 ## Conventions
 
 ### Default Behaviors
 
-- Database: `mysql` (use `sql_builder.WithPostgresql()` for PostgreSQL, etc.)
-- SQL syntax: Uppercase (e.g., `"SELECT * FROM user WHERE id = ?"`)
-  - For lowercase, use `sql_builder.WithSqlLowercase()`
-- Table naming: Singular
-  - For plural (adding 's'), use `sql_builder.WithPluralTableName()`
-- Comment generation: Use `sql_builder.WithCommentGenerate()`
+- Database: `mysql` (use `sqlize.WithPostgresql()`, `sqlize.WithSqlite()`, etc.)
+- SQL syntax: Uppercase (use `sqlize.WithSqlLowercase()` for lowercase)
+- Table naming: Singular (use `sqlize.WithPluralTableName()` for plural)
+- Comment generation: `sqlize.WithCommentGenerate()`
 
 ### SQL Tag Options
 
@@ -53,12 +131,12 @@ Additionally, SQLize offers advanced features, including `Avro Schema` export (M
 - MySQL data types are implicitly changed:
 
 ```sql
-	TINYINT => tinyint(4)
-	INT     => int(11)
-	BIGINT  => bigint(20)
+TINYINT => tinyint(4)
+INT     => int(11)
+BIGINT  => bigint(20)
 ```
 
-- Pointer values must be declared in the struct or predefined data types.
+- Pointer values must be declared in the struct or predefined data types:
 
 ```golang
 // your struct
@@ -82,71 +160,5 @@ type Record struct {
 type Record struct {
 	ID        int
 	DeletedAt sql.NullTime
-}
-```
-
-## Usage
-
-- Add the following code to your project as a command.
-- Implement `YourModels()` to return the Go models affected by the migration.
-- Run the command whenever you need to generate a migration.
-
-```golang
-package main
-
-import (
-	"fmt"
-	"log"
-	"os"
-
-	"github.com/sunary/sqlize"
-)
-
-func main() {
-	migrationFolder := "migrations/"
-	sqlLatest := sqlize.NewSqlize(sqlize.WithSqlTag("sql"),
-		sqlize.WithMigrationFolder(migrationFolder),
-		sqlize.WithCommentGenerate())
-
-	ms := YourModels() // TODO: implement YourModels() function
-	err := sqlLatest.FromObjects(ms...)
-	if err != nil {
-		log.Fatal("sqlize FromObjects", err)
-	}
-	sqlVersion := sqlLatest.HashValue()
-
-	sqlMigrated := sqlize.NewSqlize(sqlize.WithMigrationFolder(migrationFolder))
-	err = sqlMigrated.FromMigrationFolder()
-	if err != nil {
-		log.Fatal("sqlize FromMigrationFolder", err)
-	}
-
-	sqlLatest.Diff(*sqlMigrated)
-
-	fmt.Println("sql version", sqlVersion)
-
-	fmt.Println("\n\n### migration up")
-	migrationUp := sqlLatest.StringUp()
-	fmt.Println(migrationUp)
-
-	fmt.Println("\n\n### migration down")
-	fmt.Println(sqlLatest.StringDown())
-
-	initVersion := false
-	if initVersion {
-		log.Println("write to init version")
-		err = sqlLatest.WriteFilesVersion("new version", 0, false)
-		if err != nil {
-			log.Fatal("sqlize WriteFilesVersion", err)
-		}
-	}
-
-	if len(os.Args) > 1 {
-		log.Println("write to file", os.Args[1])
-		err = sqlLatest.WriteFilesWithVersion(os.Args[1], sqlVersion, false)
-		if err != nil {
-			log.Fatal("sqlize WriteFilesWithVersion", err)
-		}
-	}
 }
 ```
