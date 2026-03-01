@@ -10,9 +10,9 @@ import (
 	"github.com/sunary/sqlize/element"
 	"github.com/sunary/sqlize/export/avro"
 	"github.com/sunary/sqlize/export/mermaidjs"
-	sql_builder "github.com/sunary/sqlize/sql-builder"
-	sql_parser "github.com/sunary/sqlize/sql-parser"
-	sql_templates "github.com/sunary/sqlize/sql-templates"
+	"github.com/sunary/sqlize/sqlbuilder"
+	"github.com/sunary/sqlize/sqlparser"
+	"github.com/sunary/sqlize/sqltemplates"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -27,11 +27,11 @@ type Sqlize struct {
 	migrationUpSuffix   string
 	migrationDownSuffix string
 	migrationTable      string
-	dialect             sql_templates.SqlDialect
+	dialect             sqltemplates.SqlDialect
 	lowercase           bool
 	pluralTableName     bool
-	sqlBuilder          *sql_builder.SqlBuilder
-	parser              *sql_parser.Parser
+	sqlBuilder          *sqlbuilder.SqlBuilder
+	parser              *sqlparser.Parser
 }
 
 // NewSqlize ...
@@ -42,9 +42,9 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		migrationDownSuffix: utils.DefaultMigrationDownSuffix,
 		migrationTable:      utils.DefaultMigrationTable,
 
-		dialect:          sql_templates.MysqlDialect,
+		dialect:          sqltemplates.MysqlDialect,
 		lowercase:        false,
-		sqlTag:           sql_builder.SqlTagDefault,
+		sqlTag:           sqlbuilder.SqlTagDefault,
 		pluralTableName:  false,
 		generateComment:  false,
 		ignoreFieldOrder: false,
@@ -53,21 +53,21 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		opts[i].apply(&o)
 	}
 
-	opt := []sql_builder.SqlBuilderOption{sql_builder.WithSqlTag(o.sqlTag), sql_builder.WithDialect(o.dialect)}
+	opt := []sqlbuilder.SqlBuilderOption{sqlbuilder.WithSqlTag(o.sqlTag), sqlbuilder.WithDialect(o.dialect)}
 
 	if o.lowercase {
-		opt = append(opt, sql_builder.WithSqlLowercase())
+		opt = append(opt, sqlbuilder.WithSqlLowercase())
 	}
 
 	if o.generateComment {
-		opt = append(opt, sql_builder.WithCommentGenerate())
+		opt = append(opt, sqlbuilder.WithCommentGenerate())
 	}
 
 	if o.pluralTableName {
-		opt = append(opt, sql_builder.WithPluralTableName())
+		opt = append(opt, sqlbuilder.WithPluralTableName())
 	}
 
-	sb := sql_builder.NewSqlBuilder(opt...)
+	sb := sqlbuilder.NewSqlBuilder(opt...)
 
 	return &Sqlize{
 		migrationFolder:     o.migrationFolder,
@@ -78,7 +78,7 @@ func NewSqlize(opts ...SqlizeOption) *Sqlize {
 		lowercase:           o.lowercase,
 		pluralTableName:     o.pluralTableName,
 		sqlBuilder:          sb,
-		parser:              sql_parser.NewParser(o.dialect, o.lowercase, o.ignoreFieldOrder),
+		parser:              sqlparser.NewParser(o.dialect, o.lowercase, o.ignoreFieldOrder),
 	}
 }
 
@@ -210,7 +210,7 @@ func (s Sqlize) WriteFilesWithVersion(name string, ver int64, dirty bool) error 
 }
 
 func (s Sqlize) migrationUpVersion(ver int64, dirty bool) string {
-	tmp := sql_templates.NewSql(s.dialect, s.lowercase)
+	tmp := sqltemplates.NewSql(s.dialect, s.lowercase)
 	if ver == 0 {
 		return fmt.Sprintf(tmp.CreateTableMigration(), s.migrationTable)
 	}
@@ -219,7 +219,7 @@ func (s Sqlize) migrationUpVersion(ver int64, dirty bool) string {
 }
 
 func (s Sqlize) migrationDownVersion(ver int64) string {
-	tmp := sql_templates.NewSql(s.dialect, s.lowercase)
+	tmp := sqltemplates.NewSql(s.dialect, s.lowercase)
 	if ver == 0 {
 		return fmt.Sprintf(tmp.DropTableMigration(), s.migrationTable)
 	}
@@ -251,16 +251,16 @@ func (s Sqlize) MermaidJsLive(needTables ...string) string {
 	return mm.Live()
 }
 
-// ArvoSchema export arvo schema, support mysql only
-func (s Sqlize) ArvoSchema(needTables ...string) []string {
-	if s.dialect != sql_templates.MysqlDialect {
+// AvroSchema export avro schema, support mysql only
+func (s Sqlize) AvroSchema(needTables ...string) []string {
+	if s.dialect != sqltemplates.MysqlDialect {
 		return nil
 	}
 
 	tables := s.selectTable(needTables...)
 	schemas := make([]string, 0, len(tables))
 	for i := range tables {
-		record := avro.NewArvoSchema(tables[i])
+		record := avro.NewAvroSchema(tables[i])
 		jsonData, _ := json.Marshal(record)
 		schemas = append(schemas, string(jsonData))
 	}

@@ -1,19 +1,19 @@
-package sql_parser
+package sqlparser
 
 import (
 	"github.com/sunary/sqlize/element"
-	sql_templates "github.com/sunary/sqlize/sql-templates"
+	"github.com/sunary/sqlize/sqltemplates"
 )
 
 // Parser ...
 type Parser struct {
-	dialect     sql_templates.SqlDialect
+	dialect     sqltemplates.SqlDialect
 	Migration   element.Migration
 	ignoreOrder bool
 }
 
 // NewParser ...
-func NewParser(dialect sql_templates.SqlDialect, lowercase, ignoreOrder bool) *Parser {
+func NewParser(dialect sqltemplates.SqlDialect, lowercase, ignoreOrder bool) *Parser {
 	return &Parser{
 		dialect:   dialect,
 		Migration: element.NewMigration(dialect, lowercase, ignoreOrder),
@@ -23,10 +23,10 @@ func NewParser(dialect sql_templates.SqlDialect, lowercase, ignoreOrder bool) *P
 // Parser ...
 func (p *Parser) Parser(sql string) error {
 	switch p.dialect {
-	case sql_templates.PostgresDialect:
+	case sqltemplates.PostgresDialect:
 		return p.ParserPostgresql(sql)
 
-	case sql_templates.SqliteDialect:
+	case sqltemplates.SqliteDialect:
 		return p.ParserSqlite(sql)
 
 	default:

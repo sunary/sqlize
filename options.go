@@ -1,8 +1,6 @@
 package sqlize
 
-import (
-	sql_templates "github.com/sunary/sqlize/sql-templates"
-)
+import "github.com/sunary/sqlize/sqltemplates"
 
 type sqlizeOptions struct {
 	migrationFolder     string
@@ -11,7 +9,7 @@ type sqlizeOptions struct {
 	migrationTable      string
 
 	sqlTag           string
-	dialect          sql_templates.SqlDialect
+	dialect          sqltemplates.SqlDialect
 	lowercase        bool
 	pluralTableName  bool
 	generateComment  bool
@@ -69,28 +67,28 @@ func WithSqlTag(sqlTag string) SqlizeOption {
 // WithMysql default
 func WithMysql() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.dialect = sql_templates.MysqlDialect
+		o.dialect = sqltemplates.MysqlDialect
 	})
 }
 
 // WithPostgresql ...
 func WithPostgresql() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.dialect = sql_templates.PostgresDialect
+		o.dialect = sqltemplates.PostgresDialect
 	})
 }
 
 // WithSqlserver ...
 func WithSqlserver() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.dialect = sql_templates.SqlserverDialect
+		o.dialect = sqltemplates.SqlserverDialect
 	})
 }
 
 // WithSqlite ...
 func WithSqlite() SqlizeOption {
 	return newFuncSqlizeOption(func(o *sqlizeOptions) {
-		o.dialect = sql_templates.SqliteDialect
+		o.dialect = sqltemplates.SqliteDialect
 	})
 }
 
