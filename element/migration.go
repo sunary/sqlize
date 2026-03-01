@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/pingcap/tidb/pkg/parser/ast"
-	sql_templates "github.com/sunary/sqlize/sql-templates"
+	"github.com/sunary/sqlize/sqltemplates"
 	"github.com/sunary/sqlize/utils"
 )
 
 var (
-	sql              *sql_templates.Sql
+	sql              *sqltemplates.Sql
 	ignoreFieldOrder bool
 )
 
@@ -23,8 +23,8 @@ type Migration struct {
 }
 
 // NewMigration ...
-func NewMigration(dialect sql_templates.SqlDialect, lowercase, ignoreOrder bool) Migration {
-	sql = sql_templates.NewSql(dialect, lowercase)
+func NewMigration(dialect sqltemplates.SqlDialect, lowercase, ignoreOrder bool) Migration {
+	sql = sqltemplates.NewSql(dialect, lowercase)
 	ignoreFieldOrder = ignoreOrder
 
 	return Migration{

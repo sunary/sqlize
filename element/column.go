@@ -13,7 +13,7 @@ import (
 	"github.com/pingcap/tidb/pkg/parser/format"
 	"github.com/pingcap/tidb/pkg/parser/types"
 	sqlite "github.com/rqlite/sql"
-	sql_templates "github.com/sunary/sqlize/sql-templates"
+	"github.com/sunary/sqlize/sqltemplates"
 )
 
 const (
@@ -146,7 +146,7 @@ func (c Column) migrationUp(tbName, after string, ident int) []string {
 }
 
 func (c Column) migrationCommentUp(tbName string) []string {
-	if c.CurrentAttr.Comment == "" || sql.GetDialect() != sql_templates.PostgresDialect {
+	if c.CurrentAttr.Comment == "" || sql.GetDialect() != sqltemplates.PostgresDialect {
 		return nil
 	}
 

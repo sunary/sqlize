@@ -1,12 +1,12 @@
-package sql_builder
+package sqlbuilder
 
 import (
-	sql_templates "github.com/sunary/sqlize/sql-templates"
+	"github.com/sunary/sqlize/sqltemplates"
 )
 
 type sqlBuilderOptions struct {
 	sqlTag          string
-	dialect         sql_templates.SqlDialect
+	dialect         sqltemplates.SqlDialect
 	lowercase       bool
 	generateComment bool
 	pluralTableName bool
@@ -41,33 +41,33 @@ func WithSqlTag(sqlTag string) SqlBuilderOption {
 // WithMysql default
 func WithMysql() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
-		o.dialect = sql_templates.MysqlDialect
+		o.dialect = sqltemplates.MysqlDialect
 	})
 }
 
 // WithPostgresql ...
 func WithPostgresql() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
-		o.dialect = sql_templates.PostgresDialect
+		o.dialect = sqltemplates.PostgresDialect
 	})
 }
 
 // WithSqlserver ...
 func WithSqlserver() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
-		o.dialect = sql_templates.SqlserverDialect
+		o.dialect = sqltemplates.SqlserverDialect
 	})
 }
 
 // WithSqlite ...
 func WithSqlite() SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
-		o.dialect = sql_templates.SqliteDialect
+		o.dialect = sqltemplates.SqliteDialect
 	})
 }
 
 // WithDialect ...
-func WithDialect(dialect sql_templates.SqlDialect) SqlBuilderOption {
+func WithDialect(dialect sqltemplates.SqlDialect) SqlBuilderOption {
 	return newFuncSqlBuilderOption(func(o *sqlBuilderOptions) {
 		o.dialect = dialect
 	})

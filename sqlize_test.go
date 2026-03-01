@@ -282,11 +282,11 @@ DROP TABLE IF EXISTS orders_sqlite;`
 	expectPersonCityMermaidJsLive = `https://mermaid.ink/img/ZXJEaWFncmFtCiBQRVJTT04gewogIGludCgxMSkgaWQgUEsgCiAgdmFyY2hhcig2NCkgbmFtZSAgCiAgaW50KDExKSBhZ2UgIAogIHRpbnlpbnQoMSkgaXNfZmVtYWxlICAKICBkYXRldGltZSBjcmVhdGVkX2F0ICAKIH0KIENJVFkgewogIGludCgxMSkgaWQgUEsgCiAgdGV4dCBuYW1lICAKICBlbnVtIHJlZ2lvbiAgCiB9Cg==`
 	expectOrderUserMermaidJsLive  = `https://mermaid.ink/img/ZXJEaWFncmFtCiBPUkRFUlMgewogIHZhcmNoYXIoMjU1KSBjbGllbnRfaWQgIAogIHZhcmNoYXIoMjU1KSBjb3VudHJ5ICAKICB2YXJjaGFyKDI1NSkgZW1haWwgRksgCiAgZGF0ZXRpbWUgY3JlYXRlZF9hdCAgCiAgZGF0ZXRpbWUgdXBkYXRlZF9hdCAgCiB9CiBVU0VSIHsKICB0ZXh0IGVtYWlsICAKIH0KIE9SREVSUyB9by0tfHwgVVNFUjogZW1haWw=`
 
-	expectPersonArvo = `
+	expectPersonAvro = `
 {"type":"record","name":"person","namespace":"person","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"age","type":"int"},{"name":"is_female","type":"bool"},{"name":"created_at","type":["null",{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"person"}`
-	expectHotelArvo = `
+	expectHotelAvro = `
 {"type":"record","name":"hotel","namespace":"hotel","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"grand_opening","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"created_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"updated_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"base_created_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}},{"name":"base_updated_at","type":{"connect.default":"1970-01-01T00:00:00Z","connect.name":"io.debezium.time.ZonedTimestamp","connect.version":1,"type":"string"}}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"hotel"}`
-	expectCityArvo = `
+	expectCityAvro = `
 {"type":"record","name":"city","namespace":"city","fields":[{"name":"before","type":["null",{"type":"record","name":"Value","namespace":"","fields":[{"name":"id","type":"int"},{"name":"name","type":"string"},{"name":"region","type":["null",{"connect.default":"init","connect.name":"io.debezium.data.Enum","connect.parameters":{"allowed":"northern,southern"},"connect.version":1,"type":"string"}]}],"connect.name":""}]},{"name":"after","type":["null","Value"]},{"name":"op","type":"string"},{"name":"ts_ms","type":["null","long"]},{"name":"transaction","type":["null",{"type":"record","name":"ConnectDefault","namespace":"io.confluent.connect.avro","fields":[{"name":"id","type":"string"},{"name":"total_order","type":"long"},{"name":"data_collection_order","type":"long"}],"connect.name":""}]}],"connect.name":"city"}`
 
 	expectCreateMigrationTableUp = `CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -944,7 +944,7 @@ func TestSqlize_Mermaidjs(t *testing.T) {
 	}
 }
 
-func TestSqlize_ArvoSchema(t *testing.T) {
+func TestSqlize_AvroSchema(t *testing.T) {
 	now := time.Now()
 
 	type args struct {
@@ -952,44 +952,44 @@ func TestSqlize_ArvoSchema(t *testing.T) {
 		needTables []string
 	}
 
-	arvoSchemaMysqlTestcases := []struct {
+	avroSchemaMysqlTestcases := []struct {
 		name string
 		args args
 		want []string
 	}{
 		{
-			name: "person arvo",
+			name: "person avro",
 			args: args{
 				[]interface{}{person{}},
 				[]string{"person"},
 			},
-			want: []string{expectPersonArvo},
+			want: []string{expectPersonAvro},
 		},
 		{
-			name: "hotel arvo",
+			name: "hotel avro",
 			args: args{
 				[]interface{}{hotel{GrandOpening: &now}},
 				[]string{"hotel"},
 			},
-			want: []string{expectHotelArvo},
+			want: []string{expectHotelAvro},
 		},
 		{
-			name: "city arvo",
+			name: "city avro",
 			args: args{
 				[]interface{}{city{}},
 				[]string{"city"},
 			},
-			want: []string{expectCityArvo},
+			want: []string{expectCityAvro},
 		},
 	}
-	for _, tt := range arvoSchemaMysqlTestcases {
+	for _, tt := range avroSchemaMysqlTestcases {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := []SqlizeOption{}
 			s := NewSqlize(opts...)
 
 			s.FromObjects(tt.args.models...)
-			if got := s.ArvoSchema(tt.args.needTables...); (got != nil || tt.want != nil) && !areEqualJSON(got[0], tt.want[0]) {
-				t.Errorf("ArvoSchema() mysql got = \n%v,\nexpected = \n%v", got, tt.want)
+			if got := s.AvroSchema(tt.args.needTables...); (got != nil || tt.want != nil) && !areEqualJSON(got[0], tt.want[0]) {
+				t.Errorf("AvroSchema() mysql got = \n%v,\nexpected = \n%v", got, tt.want)
 			}
 		})
 	}

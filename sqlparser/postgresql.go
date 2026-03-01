@@ -1,4 +1,4 @@
-package sql_parser
+package sqlparser
 
 import (
 	"strings"

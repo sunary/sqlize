@@ -1,4 +1,4 @@
-package sql_templates
+package sqltemplates
 
 import (
 	"fmt"

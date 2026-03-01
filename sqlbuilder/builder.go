@@ -1,4 +1,4 @@
-package sql_builder
+package sqlbuilder
 
 import (
 	"database/sql"
@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	sql_templates "github.com/sunary/sqlize/sql-templates"
+	"github.com/sunary/sqlize/sqltemplates"
 	"github.com/sunary/sqlize/utils"
 )
 
@@ -78,9 +78,9 @@ var (
 
 // SqlBuilder ...
 type SqlBuilder struct {
-	sql             *sql_templates.Sql
+	sql             *sqltemplates.Sql
 	sqlTag          string
-	dialect         sql_templates.SqlDialect
+	dialect         sqltemplates.SqlDialect
 	generateComment bool
 	pluralTableName bool
 	tables          map[string]string
@@ -89,7 +89,7 @@ type SqlBuilder struct {
 // NewSqlBuilder ...
 func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	o := sqlBuilderOptions{
-		dialect:         sql_templates.MysqlDialect,
+		dialect:         sqltemplates.MysqlDialect,
 		lowercase:       false,
 		pluralTableName: false,
 		sqlTag:          SqlTagDefault,
@@ -99,7 +99,7 @@ func NewSqlBuilder(opts ...SqlBuilderOption) *SqlBuilder {
 	}
 
 	return &SqlBuilder{
-		sql:             sql_templates.NewSql(o.dialect, o.lowercase),
+		sql:             sqltemplates.NewSql(o.dialect, o.lowercase),
 		dialect:         o.dialect,
 		sqlTag:          o.sqlTag,
 		pluralTableName: o.pluralTableName,
@@ -130,7 +130,7 @@ func (s SqlBuilder) AddTable(obj interface{}) string {
 	comments := []string{}
 	if s.generateComment {
 		switch s.dialect {
-		case sql_templates.PostgresDialect:
+		case sqltemplates.PostgresDialect:
 			comments = append(comments, fmt.Sprintf(s.sql.TableComment(), s.sql.EscapeSqlName(tableName), tableName))
 
 		default:
@@ -432,7 +432,7 @@ func (s SqlBuilder) parseStruct(tableName, prefix string, obj interface{}) ([]st
 
 		if at.Comment != "" {
 			switch s.dialect {
-			case sql_templates.PostgresDialect:
+			case sqltemplates.PostgresDialect:
 				comments = append(comments,
 					fmt.Sprintf(s.sql.ColumnComment(), s.sql.EscapeSqlName(tableName), s.sql.EscapeSqlName(at.Name), at.Comment))
 

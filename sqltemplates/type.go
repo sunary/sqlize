@@ -1,4 +1,4 @@
-package sql_templates
+package sqltemplates
 
 // BooleanType ...
 func (s Sql) BooleanType() string {
